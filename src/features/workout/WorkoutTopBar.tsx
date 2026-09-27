@@ -3,11 +3,18 @@ import { useNavigate } from 'react-router'
 import { Button } from '../../components/Button'
 import { Sheet } from '../../components/Sheet'
 import { IconChevronLeft, IconChevronRight, IconMore } from '../../components/icons'
-import type { WorkoutSession } from '../../domain/types'
+import type { ExerciseLog, WorkoutSession } from '../../domain/types'
 import { goToExercise } from '../../domain/workout/actions'
 import { useWorkoutStore } from '../../state/workoutStore'
 import { exerciseProgress } from './cardUtils'
 import styles from './WorkoutTopBar.module.css'
+
+function dotClass(log: ExerciseLog, current: boolean): string {
+  if (current) return styles.current
+  const { logged, total } = exerciseProgress(log)
+  if (logged === total) return styles.complete
+  return logged > 0 ? styles.partial : ''
+}
 
 interface WorkoutTopBarProps {
   session: WorkoutSession
@@ -46,9 +53,7 @@ export function WorkoutTopBar({ session, index, onFinish, onDiscard }: WorkoutTo
         </span>
         <span className={styles.dots} aria-hidden="true">
           {exercises.map((log, i) => {
-            const { logged, total } = exerciseProgress(log)
-            const state = i === index ? styles.current : logged === total ? styles.complete : logged > 0 ? styles.partial : ''
-            return <span key={log.exerciseId} className={`${styles.dot} ${state}`} />
+            return <span key={log.exerciseId} className={`${styles.dot} ${dotClass(log, i === index)}`} />
           })}
         </span>
       </button>
@@ -123,9 +128,7 @@ export function WorkoutTopBar({ session, index, onFinish, onDiscard }: WorkoutTo
             </Button>
           </>
         }
-      >
-        {null}
-      </Sheet>
+      />
     </header>
   )
 }

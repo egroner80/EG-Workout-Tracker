@@ -41,7 +41,6 @@ export interface WorkoutState {
   /** A stored workout that failed validation; the recovery screen handles it. */
   recovery: RecoveryState | null
   busy: boolean
-  lastTickAt: number
 
   hydrate: () => Promise<void>
   setSettings: (settings: AppSettings) => void
@@ -81,6 +80,8 @@ export function createWorkoutStore(deps: WorkoutStoreDeps = {}) {
   const events = deps.events ?? workoutEvents
 
   return create<WorkoutState>()((set, get) => {
+    // Not store state: the ticker updates it four times a second, and subscribers never read it.
+    let lastTickAt = clock()
     const queue = new SaveQueue({
       save: deps.save ?? saveActiveSession,
       mirror: writeMirror,
@@ -162,11 +163,10 @@ export function createWorkoutStore(deps: WorkoutStoreDeps = {}) {
       saveError: null,
       recovery: null,
       busy: false,
-      lastTickAt: clock(),
 
       async hydrate() {
-        const settings = await getSettings()
-        let session = await pickHydrationCandidate()
+        const [settings, candidate] = await Promise.all([getSettings(), pickHydrationCandidate()])
+        let session = candidate
         const now = clock()
         if (session) {
           // Resolve anything that ran out while the app was closed, once and silently.
@@ -176,7 +176,8 @@ export function createWorkoutStore(deps: WorkoutStoreDeps = {}) {
             queue.enqueue(session)
           }
         }
-        set({ status: 'ready', session, settings, lastTickAt: now })
+        lastTickAt = now
+        set({ status: 'ready', session, settings })
       },
 
       setSettings(settings) {
@@ -189,7 +190,8 @@ export function createWorkoutStore(deps: WorkoutStoreDeps = {}) {
         try {
           const session = await startWorkout(clock())
           writeMirror(session)
-          set({ session, saveError: null, lastTickAt: clock() })
+          lastTickAt = clock()
+          set({ session, saveError: null })
           return session
         } finally {
           set({ busy: false })
@@ -204,10 +206,11 @@ export function createWorkoutStore(deps: WorkoutStoreDeps = {}) {
       },
 
       tick(now = clock()) {
-        const { session, settings, lastTickAt, busy } = get()
-        set({ lastTickAt: now })
+        const { session, settings, busy } = get()
+        const previousTickAt = lastTickAt
+        lastTickAt = now
         if (!session || busy || session.status !== 'active') return
-        const ticks = countdownTicks(session, lastTickAt, now)
+        const ticks = countdownTicks(session, previousTickAt, now)
         const result = resync(session, { now, visible: isVisible(), getReadyCountdown: settings.getReadyCountdown })
         commit(session, { session: result.session, events: [...ticks, ...result.events] }, now)
       },
@@ -215,7 +218,7 @@ export function createWorkoutStore(deps: WorkoutStoreDeps = {}) {
       resync(visible) {
         const { session, settings, busy } = get()
         const now = clock()
-        set({ lastTickAt: now })
+        lastTickAt = now
         if (!session || busy || session.status !== 'active') return
         commit(session, resync(session, { now, visible, getReadyCountdown: settings.getReadyCountdown }), now)
       },

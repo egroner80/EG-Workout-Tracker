@@ -44,6 +44,19 @@ export async function loadPrescriptionContext(): Promise<PrescriptionContext> {
   })
 }
 
+/** The newest finished real workout, the only one that can be reopened for corrections. */
+export async function getLatestRealSession(): Promise<WorkoutSession | undefined> {
+  let latest: WorkoutSession | undefined
+  await db.sessions
+    .orderBy('finishedAt')
+    .reverse()
+    .until(() => latest !== undefined)
+    .each((session) => {
+      if (isRealHistory(session)) latest = session
+    })
+  return latest
+}
+
 export async function getCurrentPrescriptions(): Promise<Map<string, ResolvedPrescription>> {
   return deriveCurrentPrescriptions(await loadPrescriptionContext())
 }

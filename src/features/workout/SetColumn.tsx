@@ -17,19 +17,14 @@ interface SetColumnProps {
 
 /** One set: + above, the tappable rep chip, − below — every control at least 48 px. */
 export function SetColumn({ index, set, targetReps, plannedLoad, loadType, onToggle, onStep }: SetColumnProps) {
-  const state = chipState(set, targetReps)
+  const state = chipState(set.status, set.reps, targetReps)
   const number = index + 1
   const statusText = { pending: 'not logged', done: 'done', below: 'below target', skipped: 'skipped' }[state]
-  const meta =
-    state === 'skipped'
-      ? 'skipped'
-      : set.loadKg !== plannedLoad
-        ? formatLoad(loadType, set.loadKg)
-        : state === 'below' && targetReps !== undefined
-          ? `of ${targetReps}`
-          : set.added
-            ? 'extra'
-            : `set ${number}`
+  let meta = `set ${number}`
+  if (state === 'skipped') meta = 'skipped'
+  else if (set.loadKg !== plannedLoad) meta = formatLoad(loadType, set.loadKg)
+  else if (state === 'below' && targetReps !== undefined) meta = `of ${targetReps}`
+  else if (set.added) meta = 'extra'
 
   return (
     <div className={styles.column}>

@@ -2,15 +2,15 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { formatLongDay, formatMinutes, formatTime } from '../../app/format'
-import { useHistory, useMeta, useTargets } from '../../app/liveData'
+import { useMeta, useTargets } from '../../app/liveData'
 import { Button } from '../../components/Button'
 import { getSession } from '../../data/repositories/sessions'
 import { formatDuration } from '../../domain/format'
 import { isProgressiveStep } from '../../domain/progression/warmup'
 import type { WarmupStepLog, WorkoutSession } from '../../domain/types'
-import { createBackup, recordBackup } from '../../services/dataCommands'
+import { getLatestRealSession } from '../../services/queries'
 import { useWorkoutStore } from '../../state/workoutStore'
-import { shareOrDownloadJson } from '../settings/exportFile'
+import { backUpNow } from '../settings/backupFlow'
 import { TargetEditorSheet } from '../targets/TargetEditorSheet'
 import { ExerciseResult } from './ExerciseResult'
 import { NextWorkoutSection } from './NextWorkoutSection'
@@ -31,7 +31,7 @@ export function SummaryScreen() {
   const { sessionId = '' } = useParams()
   const navigate = useNavigate()
   const session = useLiveQuery(() => getSession(sessionId), [sessionId])
-  const history = useHistory()
+  const latestReal = useLiveQuery(() => getLatestRealSession(), [])
   const targets = useTargets()
   const meta = useMeta()
   const workoutActive = useWorkoutStore((state) => state.session !== null)
@@ -52,7 +52,6 @@ export function SummaryScreen() {
   }
 
   const recommendations = session.recommendations ?? {}
-  const latestReal = history?.find((s) => s.source === 'real')
   const canEdit = !workoutActive && session.source === 'real' && latestReal?.id === session.id
   const warmupRecs = session.warmup.filter((step) => isProgressiveStep(step) && recommendations[step.stepId])
   const showBackupReminder =
@@ -60,13 +59,8 @@ export function SummaryScreen() {
 
   const backUp = async () => {
     setBackupState('working')
-    const result = await shareOrDownloadJson(`overload-backup-${new Date().toISOString().slice(0, 10)}.json`, await createBackup(Date.now()))
-    if (result === 'cancelled') {
-      setBackupState('idle')
-      return
-    }
-    await recordBackup(Date.now())
-    setBackupState('done')
+    const { result } = await backUpNow()
+    setBackupState(result === 'cancelled' ? 'idle' : 'done')
   }
 
   const editWorkout = async () => {
@@ -155,7 +149,7 @@ export function SummaryScreen() {
         </Button>
       </div>
 
-      <TargetEditorSheet targetId={editing} onClose={() => setEditing(null)} />
+      <TargetEditorSheet data={targets} targetId={editing} onClose={() => setEditing(null)} />
     </div>
   )
 }

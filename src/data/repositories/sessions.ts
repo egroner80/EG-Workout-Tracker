@@ -32,10 +32,6 @@ export function getActiveSession(): Promise<WorkoutSession | undefined> {
   return db.sessions.where('activeSlot').equals('active').first()
 }
 
-export function listAllSessions(): Promise<WorkoutSession[]> {
-  return db.sessions.toArray()
-}
-
 /** Finished workouts shown in History, newest first. */
 export async function listHistory(): Promise<WorkoutSession[]> {
   const sessions = await db.sessions.where('status').equals('completed').toArray()

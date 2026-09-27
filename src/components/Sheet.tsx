@@ -6,7 +6,7 @@ export interface SheetProps {
   open: boolean
   title: string
   onClose: () => void
-  children: ReactNode
+  children?: ReactNode
   /** Extra content under the title, e.g. a short explanation. */
   description?: ReactNode
   footer?: ReactNode

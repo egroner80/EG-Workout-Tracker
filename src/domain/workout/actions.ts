@@ -1,4 +1,5 @@
 import { stepLoad } from '../load'
+import { clamp } from '../math'
 import type {
   ActualEffort,
   ActualSet,
@@ -77,10 +78,6 @@ function findExercise(session: WorkoutSession, exerciseId: string): ExerciseLog 
 
 export function activeStepIndexes(session: WorkoutSession): number[] {
   return session.warmup.flatMap((step, i) => (step.active ? [i] : []))
-}
-
-export function currentWarmupStep(session: WorkoutSession): WarmupStepLog | undefined {
-  return session.warmup[runtimeOf(session).warmup.index]
 }
 
 const plannedMs = (step: WarmupStepLog) => step.plannedSec * 1000
@@ -256,7 +253,7 @@ export function stepReps(
   const log = repsLogOf(session, exerciseId)
   const set = log?.actual[setIndex]
   if (!log || !set) return result(session)
-  const reps = Math.min(99, Math.max(0, set.reps + delta))
+  const reps = clamp(set.reps + delta, 0, 99)
   let next = updateExercise(touch(session, ctx.now), exerciseId, () => withSet(log, setIndex, { reps, status: 'done' }))
   if (set.status !== 'done') next = startRestFor(next, exerciseId, ctx.now, setIndex)
   return result(next)
@@ -344,7 +341,7 @@ export function deleteAddedSet(
 
 /** Today's rest for this exercise; defaults change only in Settings. */
 export function setRestSec(session: WorkoutSession, exerciseId: string, restSec: number, ctx: ActionContext): ActionResult {
-  const clamped = Math.min(MAX_REST_SEC, Math.max(MIN_REST_SEC, Math.round(restSec)))
+  const clamped = clamp(Math.round(restSec), MIN_REST_SEC, MAX_REST_SEC)
   return result(updateExercise(touch(session, ctx.now), exerciseId, (log) => ({ ...log, restSec: clamped })))
 }
 
@@ -454,7 +451,7 @@ export function adjustEffort(
   const log = carryLogOf(session, exerciseId)
   const effort = log?.actual[effortIndex]
   if (!log || !effort) return result(session)
-  const seconds = Math.min(600, Math.max(0, effort.seconds + deltaSec))
+  const seconds = clamp(effort.seconds + deltaSec, 0, 600)
   return result(updateExercise(touch(session, ctx.now), exerciseId, () => withEffort(log, effortIndex, { seconds, status: 'done' })))
 }
 

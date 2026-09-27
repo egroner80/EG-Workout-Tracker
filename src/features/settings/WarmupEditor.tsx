@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { useTargets } from '../../app/liveData'
 import { Button } from '../../components/Button'
+import { ConfirmSheet } from '../../components/ConfirmSheet'
 import { ScreenHeader } from '../../components/ScreenHeader'
 import { Sheet } from '../../components/Sheet'
 import { Stepper } from '../../components/Stepper'
 import { Toggle } from '../../components/Toggle'
-import { IconArrowDown, IconArrowUp, IconPlus } from '../../components/icons'
+import { IconPlus } from '../../components/icons'
 import { newId } from '../../data/ids'
 import { formatDuration, formatPrescription } from '../../domain/format'
+import { clamp } from '../../domain/math'
 import type { ResolvedPrescription } from '../../domain/prescription'
 import { isProgressiveStep } from '../../domain/progression/warmup'
 import type { WarmupStepDef } from '../../domain/types'
@@ -16,7 +18,8 @@ import { useWorkoutStore } from '../../state/workoutStore'
 import { TargetEditorSheet } from '../targets/TargetEditorSheet'
 import { NameField } from './NameField'
 import styles from './Settings.module.css'
-import { clamp, moveById, updateTemplate, updateWarmupStep } from './settingsActions'
+import { Field, ReorderButtons } from './SettingsControls'
+import { moveById, updateTemplate, updateWarmupStep } from './settingsActions'
 
 const MIN_SEC = 5
 const MAX_SEC = 1800
@@ -82,34 +85,20 @@ export function WarmupEditor() {
         />
       )}
 
-      <Sheet
+      <ConfirmSheet
         open={removing !== null}
         title={`Remove ${removing?.name ?? ''}?`}
         description="It won't appear in future warm-ups. Past workouts keep it."
+        confirmLabel="Remove"
+        onConfirm={() => {
+          const id = removing?.id
+          setRemoving(null)
+          if (id) void updateTemplate((t) => ({ ...t, warmup: t.warmup.filter((s) => s.id !== id) }))
+        }}
         onClose={() => setRemoving(null)}
-        footer={
-          <>
-            <Button
-              variant="danger"
-              block
-              onClick={() => {
-                const id = removing?.id
-                setRemoving(null)
-                if (id) void updateTemplate((t) => ({ ...t, warmup: t.warmup.filter((s) => s.id !== id) }))
-              }}
-            >
-              Remove
-            </Button>
-            <Button block onClick={() => setRemoving(null)}>
-              Keep it
-            </Button>
-          </>
-        }
-      >
-        {null}
-      </Sheet>
+      />
 
-      <TargetEditorSheet targetId={editingTarget} onClose={() => setEditingTarget(null)} />
+      <TargetEditorSheet data={data} targetId={editingTarget} onClose={() => setEditingTarget(null)} />
     </div>
   )
 }
@@ -160,8 +149,7 @@ function StepCard({
           </Button>
         </div>
       ) : (
-        <div className={styles.fieldRow}>
-          <span className={styles.rowLabel}>Duration</span>
+        <Field label="Duration">
           <Stepper
             size="md"
             label={`${step.name} duration`}
@@ -170,7 +158,7 @@ function StepCard({
             onDecrement={() => void updateWarmupStep(step.id, (s) => ({ ...s, durationSec: clamp(s.durationSec - 5, MIN_SEC, MAX_SEC) }))}
             onIncrement={() => void updateWarmupStep(step.id, (s) => ({ ...s, durationSec: clamp(s.durationSec + 5, MIN_SEC, MAX_SEC) }))}
           />
-        </div>
+        </Field>
       )}
 
       {step.activation && (
@@ -185,8 +173,7 @@ function StepCard({
 
       {step.progression && (
         <>
-          <div className={styles.fieldRow}>
-            <span className={styles.rowLabel}>Adds per workout</span>
+          <Field label="Adds per workout">
             <Stepper
               size="md"
               label={`${step.name} increase per workout`}
@@ -195,9 +182,8 @@ function StepCard({
               onDecrement={() => void updateProgression(step.id, (p) => ({ ...p, stepSec: clamp(p.stepSec - 5, 5, 120) }))}
               onIncrement={() => void updateProgression(step.id, (p) => ({ ...p, stepSec: clamp(p.stepSec + 5, 5, 120) }))}
             />
-          </div>
-          <div className={styles.fieldRow}>
-            <span className={styles.rowLabel}>Up to</span>
+          </Field>
+          <Field label="Up to">
             <Stepper
               size="md"
               label={`${step.name} maximum`}
@@ -206,17 +192,12 @@ function StepCard({
               onDecrement={() => void updateProgression(step.id, (p) => ({ ...p, maxSec: clamp(p.maxSec - 15, 15, MAX_SEC) }))}
               onIncrement={() => void updateProgression(step.id, (p) => ({ ...p, maxSec: clamp(p.maxSec + 15, 15, MAX_SEC) }))}
             />
-          </div>
+          </Field>
         </>
       )}
 
       <div className={styles.cardActions}>
-        <button type="button" className={styles.iconButton} disabled={first} onClick={() => move(-1)} aria-label={`Move ${step.name} up`}>
-          <IconArrowUp size={22} />
-        </button>
-        <button type="button" className={styles.iconButton} disabled={last} onClick={() => move(1)} aria-label={`Move ${step.name} down`}>
-          <IconArrowDown size={22} />
-        </button>
+        <ReorderButtons name={step.name} first={first} last={last} onMove={move} />
         <Button size="md" variant="ghost" className={styles.removeButton} onClick={onRemove} aria-label={`Remove ${step.name}`}>
           Remove
         </Button>
@@ -286,8 +267,7 @@ function AddStepSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: s
             maxLength={60}
           />
         </label>
-        <div className={styles.fieldRow}>
-          <span className={styles.rowLabel}>Duration</span>
+        <Field label="Duration">
           <Stepper
             size="md"
             label="new warm-up duration"
@@ -296,7 +276,7 @@ function AddStepSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: s
             onDecrement={() => setDurationSec((s) => clamp(s - 5, MIN_SEC, MAX_SEC))}
             onIncrement={() => setDurationSec((s) => clamp(s + 5, MIN_SEC, MAX_SEC))}
           />
-        </div>
+        </Field>
       </div>
     </Sheet>
   )

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router'
 import { Button } from '../../components/Button'
 import { IconChevronLeft, IconChevronRight, IconClose, IconSkip } from '../../components/icons'
 import { formatDuration } from '../../domain/format'
+import { clamp } from '../../domain/math'
 import type { WorkoutSession } from '../../domain/types'
 import {
   activeStepIndexes,
@@ -108,7 +109,7 @@ export function WarmupScreen() {
           </p>
         )}
         <div className={styles.progressTrack} aria-hidden="true">
-          <div className={styles.progressFill} style={{ transform: `scaleX(${Math.min(1, Math.max(0, view.progress))})` }} />
+          <div className={styles.progressFill} style={{ transform: `scaleX(${clamp(view.progress, 0, 1)})` }} />
         </div>
         <p className={styles.status}>{status}</p>
       </div>

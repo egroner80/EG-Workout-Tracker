@@ -1,21 +1,13 @@
 import { useState } from 'react'
 import { Button } from '../../components/Button'
 import { Stepper } from '../../components/Stepper'
-import {
-  formatActualCarry,
-  formatActualSets,
-  formatLoad,
-  formatNext,
-  formatPrescription,
-} from '../../domain/format'
+import { CARRY_MODE_LABEL, formatActual, formatLoad, formatNext, formatPlanned } from '../../domain/format'
 import { stepLoad } from '../../domain/load'
 import type { ResolvedPrescription } from '../../domain/prescription'
 import type { ExerciseLog, Recommendation } from '../../domain/types'
 import { createOverride } from '../../services/dataCommands'
 import styles from './SummaryScreen.module.css'
 import { isSuccess } from './outcome'
-
-const MODE_LABEL = { carry: 'Carry', march: 'March', hold: 'Static hold' } as const
 
 interface ExerciseResultProps {
   log: ExerciseLog
@@ -27,31 +19,22 @@ interface ExerciseResultProps {
 
 /** Target, actual (✅ when met), and next for one exercise. */
 export function ExerciseResult({ log, recommendation, resolved, canChoose }: ExerciseResultProps) {
-  const target =
-    log.kind === 'reps'
-      ? formatPrescription({ kind: 'reps', loadKg: log.planned.loadKg, reps: log.planned.sets.map((s) => s.reps) }, log.loadType)
-      : formatPrescription(
-          { kind: 'timed', loadKg: log.planned.loadKg, seconds: log.planned.seconds, setsPerSide: log.scheme.setsPerSide },
-          log.loadType,
-        )
-  const actual =
-    log.kind === 'reps' ? formatActualSets(log.loadType, log.actual) : formatActualCarry(log.loadType, log.actual)
   const success = isSuccess(recommendation)
 
   return (
     <section className={styles.block} aria-label={log.name}>
       <h2 className={styles.blockTitle}>
         {log.name}
-        {log.kind === 'carry' && <span className={styles.mode}>{MODE_LABEL[log.mode]}</span>}
+        {log.kind === 'carry' && <span className={styles.mode}>{CARRY_MODE_LABEL[log.mode]}</span>}
       </h2>
       <p className={styles.line}>
         <span className={styles.lineLabel}>Target</span>
-        <span>{target}</span>
+        <span>{formatPlanned(log)}</span>
       </p>
       <p className={`${styles.line} ${success ? styles.success : styles.missed}`}>
         <span className={styles.lineLabel}>Actual</span>
         <span>
-          {actual} {success && <span aria-label="target met">✅</span>}
+          {formatActual(log)} {success && <span aria-label="target met">✅</span>}
         </span>
       </p>
       {recommendation && (

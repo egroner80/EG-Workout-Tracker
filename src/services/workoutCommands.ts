@@ -1,7 +1,7 @@
 import { db, type AppMeta } from '../data/db'
 import { newId } from '../data/ids'
 import { insertActiveSession } from '../data/repositories/sessions'
-import { deriveCurrentPrescriptions, realHistory } from '../domain/prescription'
+import { deriveCurrentPrescriptions } from '../domain/prescription'
 import {
   SessionStateError,
   buildSession,
@@ -13,7 +13,7 @@ import {
   type PendingResolution,
 } from '../domain/session'
 import type { WorkoutSession } from '../domain/types'
-import { loadPrescriptionContext } from './queries'
+import { getLatestRealSession, loadPrescriptionContext } from './queries'
 
 /** Snapshots today's plan from the current targets and inserts it as the one active workout. */
 export async function startWorkout(now: number): Promise<WorkoutSession> {
@@ -60,7 +60,7 @@ export async function reopenWorkout(sessionId: string, now: number): Promise<Wor
     if (await db.sessions.where('activeSlot').equals('active').first()) {
       throw new SessionStateError('Finish or discard the workout in progress first')
     }
-    const latest = realHistory(await db.sessions.where('status').equals('completed').toArray())[0]
+    const latest = await getLatestRealSession()
     if (!latest || latest.id !== sessionId) throw new SessionStateError('Only the latest workout can be edited')
     const reopened = reopenSession(latest, now)
     await db.sessions.put(reopened)

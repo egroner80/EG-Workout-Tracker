@@ -1,14 +1,15 @@
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { useTargets } from '../../app/liveData'
+import { useTargets, type TargetsData } from '../../app/liveData'
 import { Button } from '../../components/Button'
+import { ConfirmSheet } from '../../components/ConfirmSheet'
 import { ScreenHeader } from '../../components/ScreenHeader'
-import { Sheet } from '../../components/Sheet'
 import { Stepper } from '../../components/Stepper'
 import { Toggle } from '../../components/Toggle'
 import { newId } from '../../data/ids'
 import { formatDuration, formatKg, formatLoad, formatPrescription } from '../../domain/format'
 import { stepLoad } from '../../domain/load'
+import { clamp } from '../../domain/math'
 import type { ResolvedPrescription } from '../../domain/prescription'
 import { bottomRung } from '../../domain/progression/staircase'
 import type { CarryExerciseDef, ExerciseDef, LoadType, RepsExerciseDef } from '../../domain/types'
@@ -17,7 +18,8 @@ import { useWorkoutStore } from '../../state/workoutStore'
 import { TargetEditorSheet } from '../targets/TargetEditorSheet'
 import { NameField } from './NameField'
 import styles from './Settings.module.css'
-import { clamp, updateExercise, updateTemplate } from './settingsActions'
+import { Field, SegmentedControl } from './SettingsControls'
+import { updateExercise, updateTemplate } from './settingsActions'
 
 const LOAD_TYPES: { value: LoadType; label: string }[] = [
   { value: 'dumbbell', label: 'Dumbbell' },
@@ -46,10 +48,11 @@ export function ExerciseEditor() {
       </div>
     )
   }
-  return <EditExercise key={exercise.id} exercise={exercise} resolved={data.targets.get(exercise.id)} />
+  return <EditExercise key={exercise.id} exercise={exercise} data={data} />
 }
 
-function EditExercise({ exercise, resolved }: { exercise: ExerciseDef; resolved?: ResolvedPrescription }) {
+function EditExercise({ exercise, data }: { exercise: ExerciseDef; data: TargetsData }) {
+  const resolved = data.targets.get(exercise.id)
   const navigate = useNavigate()
   const workoutActive = useWorkoutStore((state) => state.session !== null)
   const [editingTarget, setEditingTarget] = useState(false)
@@ -104,8 +107,10 @@ function EditExercise({ exercise, resolved }: { exercise: ExerciseDef; resolved?
             />
           </div>
           <Field label="Load" stacked>
-            <LoadTypePicker
+            <SegmentedControl
+              label="Load type"
               value={exercise.loadType}
+              options={LOAD_TYPES}
               onChange={(loadType) => update((e) => withLoadType(e, loadType))}
             />
           </Field>
@@ -160,34 +165,20 @@ function EditExercise({ exercise, resolved }: { exercise: ExerciseDef; resolved?
         Remove from workout
       </Button>
 
-      <TargetEditorSheet targetId={editingTarget ? exercise.id : null} onClose={() => setEditingTarget(false)} />
-      <Sheet
+      <TargetEditorSheet data={data} targetId={editingTarget ? exercise.id : null} onClose={() => setEditingTarget(false)} />
+      <ConfirmSheet
         open={removing}
         title={`Remove ${exercise.name}?`}
         description="It won't be in future workouts. Past workouts keep it in History."
+        confirmLabel="Remove"
+        onConfirm={() => {
+          setRemoving(false)
+          void updateTemplate((t) => ({ ...t, exercises: t.exercises.filter((e) => e.id !== exercise.id) })).then(() =>
+            navigate('/settings/exercises', { replace: true }),
+          )
+        }}
         onClose={() => setRemoving(false)}
-        footer={
-          <>
-            <Button
-              variant="danger"
-              block
-              onClick={() => {
-                setRemoving(false)
-                void updateTemplate((t) => ({ ...t, exercises: t.exercises.filter((e) => e.id !== exercise.id) })).then(() =>
-                  navigate('/settings/exercises', { replace: true }),
-                )
-              }}
-            >
-              Remove
-            </Button>
-            <Button block onClick={() => setRemoving(false)}>
-              Keep it
-            </Button>
-          </>
-        }
-      >
-        {null}
-      </Sheet>
+      />
     </div>
   )
 }
@@ -352,34 +343,6 @@ function CarrySchemeFields({ exercise, update }: { exercise: CarryExerciseDef; u
   )
 }
 
-function Field({ label, stacked = false, children }: { label: string; stacked?: boolean; children: ReactNode }) {
-  return (
-    <div className={stacked ? styles.stackRow : styles.fieldRow}>
-      <span className={styles.rowLabel}>{label}</span>
-      {children}
-    </div>
-  )
-}
-
-function LoadTypePicker({ value, onChange }: { value: LoadType; onChange: (type: LoadType) => void }) {
-  return (
-    <div className={styles.segmented} role="radiogroup" aria-label="Load type">
-      {LOAD_TYPES.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          role="radio"
-          aria-checked={value === option.value}
-          className={value === option.value ? styles.segmentOn : styles.segment}
-          onClick={() => onChange(option.value)}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 /** New exercises use the rep ladder; they join the end of the workout. */
 function NewExerciseForm() {
   const navigate = useNavigate()
@@ -433,8 +396,10 @@ function NewExerciseForm() {
         </label>
         <div className={styles.group}>
           <Field label="Load" stacked>
-            <LoadTypePicker
+            <SegmentedControl
+              label="Load type"
               value={loadType}
+              options={LOAD_TYPES}
               onChange={(type) => {
                 setLoadType(type)
                 setLoadKg(type === 'bodyweight' ? 0 : Math.max(DEFAULT_STEP[type], loadKg))

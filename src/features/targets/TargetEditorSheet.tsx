@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { useTargets } from '../../app/liveData'
+import type { TargetsData } from '../../app/liveData'
 import { Button } from '../../components/Button'
 import { Sheet } from '../../components/Sheet'
 import { Stepper } from '../../components/Stepper'
 import { modifyTemplate } from '../../data/repositories/templateRepo'
 import { formatDuration, formatLoad, formatReps } from '../../domain/format'
 import { stepLoad } from '../../domain/load'
+import { clamp } from '../../domain/math'
 import type { ResolvedPrescription } from '../../domain/prescription'
 import { bottomRung, buildLadder, rungIndex } from '../../domain/progression/staircase'
 import type { ExerciseDef, Prescription, WarmupStepDef } from '../../domain/types'
@@ -14,13 +15,14 @@ import { useWorkoutStore } from '../../state/workoutStore'
 import styles from './TargetEditorSheet.module.css'
 
 interface TargetEditorSheetProps {
+  /** The screen's own `useTargets()` result, so the sheet adds no second query. */
+  data: TargetsData | undefined
   targetId: string | null
   onClose: () => void
 }
 
 /** Edits the next workout's target for one exercise or progressive warm-up step. */
-export function TargetEditorSheet({ targetId, onClose }: TargetEditorSheetProps) {
-  const data = useTargets()
+export function TargetEditorSheet({ data, targetId, onClose }: TargetEditorSheetProps) {
   if (!targetId || !data) return null
   const exercise = data.template.exercises.find((e) => e.id === targetId)
   const step = data.template.warmup.find((s) => s.id === targetId)
@@ -166,7 +168,7 @@ function RepsEditor({
     onChange({ ...draft, reps: next })
   }
   const setReps = (index: number, delta: number) =>
-    onChange({ ...draft, reps: draft.reps.map((r, i) => (i === index ? Math.min(99, Math.max(1, r + delta)) : r)) })
+    onChange({ ...draft, reps: draft.reps.map((r, i) => (i === index ? clamp(r + delta, 1, 99) : r)) })
 
   return (
     <>

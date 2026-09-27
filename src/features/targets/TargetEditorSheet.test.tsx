@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { useTargets } from '../../app/liveData'
 import { getTemplate } from '../../data/repositories/templateRepo'
 import { getCurrentPrescriptions } from '../../services/queries'
 import { renderAt, resetApp, startWorkout } from '../../test/workoutHarness'
@@ -10,8 +11,12 @@ beforeEach(async () => {
   await resetApp()
 })
 
+function Editor({ targetId }: { targetId: string }) {
+  return <TargetEditorSheet data={useTargets()} targetId={targetId} onClose={() => {}} />
+}
+
 async function open(targetId: string) {
-  renderAt(<TargetEditorSheet targetId={targetId} onClose={() => {}} />, '/')
+  renderAt(<Editor targetId={targetId} />, '/')
   return screen.findByRole('dialog')
 }
 

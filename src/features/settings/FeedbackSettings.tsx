@@ -4,7 +4,13 @@ import { feedback } from '../../platform/feedback'
 import { canVibrate } from '../../platform/haptics'
 import { useWorkoutStore } from '../../state/workoutStore'
 import styles from './Settings.module.css'
+import { SegmentedControl } from './SettingsControls'
 import { updateSettings } from './settingsActions'
+
+const THEMES = [
+  { value: 'dark', label: 'Dark' },
+  { value: 'light', label: 'Light' },
+] as const
 
 export function FeedbackSettings() {
   const settings = useWorkoutStore((state) => state.settings)
@@ -39,20 +45,12 @@ export function FeedbackSettings() {
         />
         <div className={styles.inlineRow}>
           <span className={styles.rowLabel}>Theme</span>
-          <div className={styles.segmented} role="radiogroup" aria-label="Theme">
-            {(['dark', 'light'] as const).map((theme) => (
-              <button
-                key={theme}
-                type="button"
-                role="radio"
-                aria-checked={settings.theme === theme}
-                className={settings.theme === theme ? styles.segmentOn : styles.segment}
-                onClick={() => void updateSettings({ theme })}
-              >
-                {theme === 'dark' ? 'Dark' : 'Light'}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            label="Theme"
+            value={settings.theme}
+            options={THEMES}
+            onChange={(theme) => void updateSettings({ theme })}
+          />
         </div>
         <div className={styles.inlineRow}>
           <span className={styles.rowLabel}>Check the chime</span>

@@ -2,11 +2,11 @@ import { useRef, useState } from 'react'
 import { formatDay } from '../../app/format'
 import { useHasDemo, useMeta } from '../../app/liveData'
 import { Button } from '../../components/Button'
-import { Sheet } from '../../components/Sheet'
+import { ConfirmSheet } from '../../components/ConfirmSheet'
 import type { ImportPlan } from '../../data/backup'
-import { applyImport, clearDemoData, createBackup, previewImport, recordBackup } from '../../services/dataCommands'
+import { applyImport, clearDemoData, previewImport } from '../../services/dataCommands'
 import styles from './Settings.module.css'
-import { shareOrDownloadJson } from './exportFile'
+import { backUpNow } from './backupFlow'
 
 const PERSIST_TEXT = {
   granted: 'Protected from automatic clearing.',
@@ -29,10 +29,8 @@ export function DataSettings() {
     setMessage(null)
     setBusy(true)
     try {
-      const backup = await createBackup(Date.now())
-      const result = await shareOrDownloadJson(`overload-backup-${new Date().toISOString().slice(0, 10)}.json`, backup)
+      const { result, backup } = await backUpNow()
       if (result !== 'cancelled') {
-        await recordBackup(Date.now())
         const saved = backup.sessions.filter((session) => session.status === 'completed' && session.deletedAt === undefined)
         setMessage({ tone: 'ok', text: `Backed up ${plural(saved.length, 'workout')}. A workout in progress isn't included.` })
       }
@@ -122,21 +120,15 @@ export function DataSettings() {
         )}
       </div>
 
-      <Sheet
+      <ConfirmSheet
         open={plan !== null}
         title="Restore this backup?"
         description="Restoring only adds and updates. Nothing on this phone is deleted, and newer local changes win."
+        confirmLabel="Restore"
+        confirmVariant="primary"
+        cancelLabel="Cancel"
+        onConfirm={() => void confirmImport()}
         onClose={() => setPlan(null)}
-        footer={
-          <>
-            <Button variant="primary" block onClick={() => void confirmImport()}>
-              Restore
-            </Button>
-            <Button block onClick={() => setPlan(null)}>
-              Cancel
-            </Button>
-          </>
-        }
       >
         {plan && (
           <ul className={styles.preview}>
@@ -153,33 +145,19 @@ export function DataSettings() {
             )}
           </ul>
         )}
-      </Sheet>
+      </ConfirmSheet>
 
-      <Sheet
+      <ConfirmSheet
         open={confirmDemo}
         title="Clear demo data?"
         description="Removes the sample workouts from History and Progress. Your own workouts are not touched."
+        confirmLabel="Clear demo data"
+        onConfirm={() => {
+          setConfirmDemo(false)
+          void clearDemoData()
+        }}
         onClose={() => setConfirmDemo(false)}
-        footer={
-          <>
-            <Button
-              variant="danger"
-              block
-              onClick={() => {
-                setConfirmDemo(false)
-                void clearDemoData()
-              }}
-            >
-              Clear demo data
-            </Button>
-            <Button block onClick={() => setConfirmDemo(false)}>
-              Keep it
-            </Button>
-          </>
-        }
-      >
-        {null}
-      </Sheet>
+      />
     </section>
   )
 }

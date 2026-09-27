@@ -1,4 +1,4 @@
-import type { ActualEffort, ActualSet, LoadType, Prescription, Recommendation } from './types'
+import type { ActualEffort, ActualSet, CarryMode, ExerciseLog, LoadType, Prescription, Recommendation } from './types'
 
 const MINUS = '−'
 const DASH = '–'
@@ -59,6 +59,24 @@ export function formatActualCarry(loadType: LoadType, efforts: readonly ActualEf
 
 export function formatTimedTarget(seconds: number, setsPerSide: number): string {
   return `${seconds} s per side × ${setsPerSide}`
+}
+
+export const CARRY_MODE_LABEL: Record<CarryMode, string> = { carry: 'Carry', march: 'March', hold: 'Static hold' }
+
+/** A logged exercise's plan: "18 kg · 5 / 5 / 6" or "18 kg · 40 s per side × 2". */
+export function formatPlanned(log: ExerciseLog): string {
+  if (log.kind === 'reps') {
+    return formatPrescription({ kind: 'reps', loadKg: log.planned.loadKg, reps: log.planned.sets.map((s) => s.reps) }, log.loadType)
+  }
+  return formatPrescription(
+    { kind: 'timed', loadKg: log.planned.loadKg, seconds: log.planned.seconds, setsPerSide: log.scheme.setsPerSide },
+    log.loadType,
+  )
+}
+
+/** What was actually done: sets grouped by load, or both carry sides. */
+export function formatActual(log: ExerciseLog): string {
+  return log.kind === 'reps' ? formatActualSets(log.loadType, log.actual) : formatActualCarry(log.loadType, log.actual)
 }
 
 /** A full prescription as shown in lists: "BW · 5 / 6 / 6", "18 kg · 40 s per side × 2", "2:10". */

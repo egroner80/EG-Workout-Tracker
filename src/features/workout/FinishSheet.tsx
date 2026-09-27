@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Button } from '../../components/Button'
+import { ConfirmSheet } from '../../components/ConfirmSheet'
 import { Sheet } from '../../components/Sheet'
 import { isLogged, pendingExercises, type PendingResolution } from '../../domain/session'
 import { useWorkoutStore } from '../../state/workoutStore'
@@ -49,7 +50,7 @@ export function FinishSheet({ open, onClose }: FinishSheetProps) {
 
   if (!logged) {
     return (
-      <Sheet
+      <ConfirmSheet
         open={open}
         title="Nothing logged yet"
         description={
@@ -57,29 +58,17 @@ export function FinishSheet({ open, onClose }: FinishSheetProps) {
             ? 'Cancel your edits to keep the finished workout as it was.'
             : 'There is nothing to save. Discard this workout, or keep going.'
         }
+        confirmLabel={reopened ? 'Cancel edits' : 'Discard workout'}
+        confirmVariant={reopened ? 'primary' : 'danger'}
+        cancelLabel="Keep going"
+        onConfirm={() => {
+          close()
+          void (reopened ? useWorkoutStore.getState().cancelEdits() : useWorkoutStore.getState().discard()).then(() =>
+            navigate('/'),
+          )
+        }}
         onClose={close}
-        footer={
-          <>
-            <Button
-              variant={reopened ? 'primary' : 'danger'}
-              block
-              onClick={() => {
-                close()
-                void (reopened ? useWorkoutStore.getState().cancelEdits() : useWorkoutStore.getState().discard()).then(() =>
-                  navigate('/'),
-                )
-              }}
-            >
-              {reopened ? 'Cancel edits' : 'Discard workout'}
-            </Button>
-            <Button block onClick={close}>
-              Keep going
-            </Button>
-          </>
-        }
-      >
-        {null}
-      </Sheet>
+      />
     )
   }
 

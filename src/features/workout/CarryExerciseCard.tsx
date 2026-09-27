@@ -1,7 +1,5 @@
 import { useState } from 'react'
-import { Button } from '../../components/Button'
-import { IconTimer } from '../../components/icons'
-import { formatDuration, formatLoad, formatTimedTarget } from '../../domain/format'
+import { CARRY_MODE_LABEL, formatDuration, formatTimedTarget } from '../../domain/format'
 import type { LastTime as LastTimeData } from '../../domain/prescription'
 import type { CarryExerciseLog, CarryMode, Outcome } from '../../domain/types'
 import {
@@ -9,21 +7,18 @@ import {
   currentLoad,
   setCarryMode,
   startEffort,
-  startRest,
   stepExerciseLoad,
   toggleSkipEffort,
 } from '../../domain/workout/actions'
 import { useWorkoutStore } from '../../state/workoutStore'
 import styles from './CarryExerciseCard.module.css'
 import cardStyles from './ExerciseCard.module.css'
+import { ExerciseCardHeader, StartRestButton } from './ExerciseCardParts'
+import { chipState } from './cardUtils'
 import { LastTime } from './LastTime'
 import { LoadStepper } from './LoadStepper'
 
-const MODES: { value: CarryMode; label: string }[] = [
-  { value: 'carry', label: 'Carry' },
-  { value: 'march', label: 'March' },
-  { value: 'hold', label: 'Static hold' },
-]
+const MODES: CarryMode[] = ['carry', 'march', 'hold']
 
 const SIDE_NAME = { L: 'Left', R: 'Right' } as const
 
@@ -42,27 +37,19 @@ export function CarryExerciseCard({ log, lastTime }: CarryExerciseCardProps) {
 
   return (
     <article className={cardStyles.card} aria-labelledby={`exercise-${id}`}>
-      <header className={cardStyles.header}>
-        <h1 id={`exercise-${id}`} className={cardStyles.name}>
-          {log.name}
-        </h1>
-        <p className={cardStyles.load}>
-          {formatLoad(log.loadType, log.planned.loadKg)}
-          <span className={cardStyles.qualifier}>one dumbbell</span>
-        </p>
-      </header>
+      <ExerciseCardHeader log={log} qualifier="one dumbbell" />
 
       <div className={styles.modes} role="radiogroup" aria-label="Variation">
         {MODES.map((mode) => (
           <button
-            key={mode.value}
+            key={mode}
             type="button"
             role="radio"
-            aria-checked={log.mode === mode.value}
-            className={`${styles.mode} ${log.mode === mode.value ? styles.modeSelected : ''}`}
-            onClick={() => apply((s, ctx) => setCarryMode(s, id, mode.value, ctx))}
+            aria-checked={log.mode === mode}
+            className={`${styles.mode} ${log.mode === mode ? styles.modeSelected : ''}`}
+            onClick={() => apply((s, ctx) => setCarryMode(s, id, mode, ctx))}
           >
-            {mode.label}
+            {CARRY_MODE_LABEL[mode]}
           </button>
         ))}
       </div>
@@ -92,23 +79,21 @@ export function CarryExerciseCard({ log, lastTime }: CarryExerciseCardProps) {
                 const effortIndex = log.actual.findIndex((e) => e.side === side && e.setIndex === setIndex)
                 const effort = log.actual[effortIndex]
                 if (!effort) return <span key={side} />
-                const below = effort.status === 'done' && effort.seconds < log.planned.seconds
-                const state = effort.status === 'done' ? (below ? styles.below : styles.done) : effort.status === 'skipped' ? styles.skipped : ''
+                const state = chipState(effort.status, effort.seconds, log.planned.seconds)
+                const meta = { pending: 'tap to start', done: 'done', below: `of ${log.planned.seconds} s`, skipped: 'skipped' }[state]
                 const label = `${SIDE_NAME[side]}, set ${setIndex + 1}`
                 return (
                   <div key={side} className={styles.tileWrap}>
                     <button
                       type="button"
-                      className={`${styles.tile} ${state}`}
+                      className={`${styles.tile} ${state === 'pending' ? '' : styles[state]}`}
                       onClick={() => apply((s, ctx) => startEffort(s, id, effortIndex, ctx))}
                       aria-label={`${label}: ${effort.status === 'done' ? `${effort.seconds} seconds recorded` : effort.status}. Tap to start the timer.`}
                     >
                       <span className={styles.tileTime}>
                         {effort.status === 'skipped' ? '–' : formatDuration(effort.seconds)}
                       </span>
-                      <span className={styles.tileMeta}>
-                        {effort.status === 'done' ? (below ? `of ${log.planned.seconds} s` : 'done') : effort.status === 'skipped' ? 'skipped' : 'tap to start'}
-                      </span>
+                      <span className={styles.tileMeta}>{meta}</span>
                     </button>
                     <div className={styles.adjust}>
                       <button
@@ -148,15 +133,7 @@ export function CarryExerciseCard({ log, lastTime }: CarryExerciseCardProps) {
 
       <LastTime lastTime={lastTime} />
 
-      <Button
-        variant="rest"
-        size="lg"
-        block
-        icon={<IconTimer size={22} />}
-        onClick={() => apply((s, ctx) => startRest(s, id, ctx))}
-      >
-        Start rest · {formatDuration(log.restSec)}
-      </Button>
+      <StartRestButton log={log} />
     </article>
   )
 }

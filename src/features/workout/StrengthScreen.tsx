@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Button } from '../../components/Button'
-import { Sheet } from '../../components/Sheet'
+import { ConfirmSheet } from '../../components/ConfirmSheet'
 import { IconChevronRight } from '../../components/icons'
 import { goToExercise } from '../../domain/workout/actions'
 import { loadLastTimes } from '../../services/queries'
@@ -93,7 +93,7 @@ export function StrengthScreen() {
       <RestTimerSheet next={allLogged && next ? { exerciseId: next.exerciseId, name: next.shortName } : undefined} />
       <EffortTimerOverlay />
       <FinishSheet open={finishOpen} onClose={() => setFinishOpen(false)} />
-      <Sheet
+      <ConfirmSheet
         open={discardOpen}
         title={reopened ? 'Cancel your edits?' : 'Discard this workout?'}
         description={
@@ -101,20 +101,12 @@ export function StrengthScreen() {
             ? 'The workout goes back to how it was when you finished it.'
             : 'Nothing from it will be saved to History, and your next targets stay as they are.'
         }
+        confirmLabel={reopened ? 'Cancel edits' : 'Discard workout'}
+        confirmVariant={reopened ? 'primary' : 'danger'}
+        cancelLabel="Keep going"
+        onConfirm={() => void discard()}
         onClose={() => setDiscardOpen(false)}
-        footer={
-          <>
-            <Button variant={reopened ? 'primary' : 'danger'} block onClick={() => void discard()}>
-              {reopened ? 'Cancel edits' : 'Discard workout'}
-            </Button>
-            <Button block onClick={() => setDiscardOpen(false)}>
-              Keep going
-            </Button>
-          </>
-        }
-      >
-        {null}
-      </Sheet>
+      />
     </div>
   )
 }

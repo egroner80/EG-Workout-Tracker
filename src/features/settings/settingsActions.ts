@@ -32,5 +32,3 @@ export function moveById<T extends { id: string }>(items: readonly T[], id: stri
   ;[next[index], next[target]] = [next[target], next[index]]
   return next
 }
-
-export const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))

@@ -1,3 +1,4 @@
+import { clamp } from '../math'
 import type { TimerState } from '../types'
 
 /**
@@ -12,7 +13,7 @@ export function startTimer(durationMs: number, now: number): TimerState {
 
 export function remainingMs(timer: TimerState, now: number): number {
   const raw = timer.running ? timer.endsAt - now : timer.remainingMs
-  return Math.min(timer.durationMs, Math.max(0, raw))
+  return clamp(raw, 0, timer.durationMs)
 }
 
 export function elapsedMs(timer: TimerState, now: number): number {

@@ -1,10 +1,11 @@
 import { Link } from 'react-router'
 import { useTargets } from '../../app/liveData'
 import { ScreenHeader } from '../../components/ScreenHeader'
-import { IconArrowDown, IconArrowUp, IconPlus } from '../../components/icons'
+import { IconPlus } from '../../components/icons'
 import { formatDuration, formatLoad } from '../../domain/format'
 import type { ExerciseDef } from '../../domain/types'
 import styles from './Settings.module.css'
+import { ReorderButtons } from './SettingsControls'
 import { moveById, updateTemplate } from './settingsActions'
 
 /** "3 × 5–6 · 1:30 rest" or "2 × 40–60 s per side · 1:00 rest". */
@@ -41,24 +42,14 @@ export function ExerciseListEditor() {
                 </span>
               </Link>
               <div className={styles.reorder}>
-                <button
-                  type="button"
-                  className={styles.iconButton}
-                  disabled={index === 0}
-                  aria-label={`Move ${exercise.name} up`}
-                  onClick={() => void updateTemplate((t) => ({ ...t, exercises: moveById(t.exercises, exercise.id, -1) }))}
-                >
-                  <IconArrowUp size={22} />
-                </button>
-                <button
-                  type="button"
-                  className={styles.iconButton}
-                  disabled={index === exercises.length - 1}
-                  aria-label={`Move ${exercise.name} down`}
-                  onClick={() => void updateTemplate((t) => ({ ...t, exercises: moveById(t.exercises, exercise.id, 1) }))}
-                >
-                  <IconArrowDown size={22} />
-                </button>
+                <ReorderButtons
+                  name={exercise.name}
+                  first={index === 0}
+                  last={index === exercises.length - 1}
+                  onMove={(direction) =>
+                    void updateTemplate((t) => ({ ...t, exercises: moveById(t.exercises, exercise.id, direction) }))
+                  }
+                />
               </div>
             </li>
           )

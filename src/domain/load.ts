@@ -1,3 +1,4 @@
+import { clamp } from './math'
 import type { LoadType } from './types'
 
 const BODYWEIGHT_MIN_KG = -100
@@ -17,7 +18,7 @@ export function roundKg(kg: number): number {
 export function stepLoad(loadType: LoadType, kg: number, stepKg: number, direction: 1 | -1): number {
   const next = roundKg(kg + direction * stepKg)
   if (loadType === 'bodyweight') {
-    return Math.min(BODYWEIGHT_MAX_KG, Math.max(BODYWEIGHT_MIN_KG, next))
+    return clamp(next, BODYWEIGHT_MIN_KG, BODYWEIGHT_MAX_KG)
   }
-  return Math.min(EXTERNAL_MAX_KG, Math.max(stepKg, next))
+  return clamp(next, stepKg, EXTERNAL_MAX_KG)
 }

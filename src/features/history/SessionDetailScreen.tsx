@@ -3,16 +3,15 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { formatLongDay, formatMinutes, formatTime } from '../../app/format'
 import { Button } from '../../components/Button'
+import { ConfirmSheet } from '../../components/ConfirmSheet'
 import { ScreenHeader } from '../../components/ScreenHeader'
-import { Sheet } from '../../components/Sheet'
 import { getSession } from '../../data/repositories/sessions'
-import { formatActualCarry, formatActualSets, formatDuration, formatPrescription } from '../../domain/format'
+import { CARRY_MODE_LABEL, formatActual, formatDuration, formatPlanned } from '../../domain/format'
 import { isMet } from '../../domain/history'
 import { warmupStepStatus } from '../../domain/progression/warmup'
 import { deleteWorkout } from '../../services/dataCommands'
 import styles from './History.module.css'
 
-const MODE = { carry: 'Carry', march: 'March', hold: 'Static hold' } as const
 const STEP_STATUS = { complete: 'done', partial: 'partial', skipped: 'skipped', untouched: 'not done' } as const
 
 export function SessionDetailScreen() {
@@ -60,29 +59,21 @@ export function SessionDetailScreen() {
 
       {session.exercises.map((log) => {
         const met = isMet(session.recommendations?.[log.exerciseId])
-        const planned =
-          log.kind === 'reps'
-            ? formatPrescription({ kind: 'reps', loadKg: log.planned.loadKg, reps: log.planned.sets.map((s) => s.reps) }, log.loadType)
-            : formatPrescription(
-                { kind: 'timed', loadKg: log.planned.loadKg, seconds: log.planned.seconds, setsPerSide: log.scheme.setsPerSide },
-                log.loadType,
-              )
-        const actual = log.kind === 'reps' ? formatActualSets(log.loadType, log.actual) : formatActualCarry(log.loadType, log.actual)
         const skipped = log.actual.filter((set) => set.status === 'skipped').length
         return (
           <section key={log.exerciseId} className={styles.card} aria-label={log.name}>
             <h2 className={styles.cardTitle}>
               {log.name}
-              {log.kind === 'carry' && <span className={styles.demo}>{MODE[log.mode]}</span>}
+              {log.kind === 'carry' && <span className={styles.demo}>{CARRY_MODE_LABEL[log.mode]}</span>}
             </h2>
             <p className={styles.line}>
               <span className={styles.label}>Planned</span>
-              <span>{planned}</span>
+              <span>{formatPlanned(log)}</span>
             </p>
             <p className={styles.line}>
               <span className={styles.label}>Actual</span>
               <span className={met ? undefined : styles.warn}>
-                {actual} {met && <span aria-label="target met">✅</span>}
+                {formatActual(log)} {met && <span aria-label="target met">✅</span>}
               </span>
             </p>
             {skipped > 0 && (
@@ -101,31 +92,17 @@ export function SessionDetailScreen() {
         Delete workout
       </Button>
 
-      <Sheet
+      <ConfirmSheet
         open={confirmDelete}
         title="Delete this workout?"
         description="It disappears from History and Progress. Next targets fall back to your previous workout; manual targets you set stay."
+        confirmLabel="Delete workout"
+        onConfirm={() => {
+          setConfirmDelete(false)
+          void deleteWorkout(session.id, Date.now()).then(() => navigate('/history'))
+        }}
         onClose={() => setConfirmDelete(false)}
-        footer={
-          <>
-            <Button
-              variant="danger"
-              block
-              onClick={() => {
-                setConfirmDelete(false)
-                void deleteWorkout(session.id, Date.now()).then(() => navigate('/history'))
-              }}
-            >
-              Delete workout
-            </Button>
-            <Button block onClick={() => setConfirmDelete(false)}>
-              Keep it
-            </Button>
-          </>
-        }
-      >
-        {null}
-      </Sheet>
+      />
     </div>
   )
 }

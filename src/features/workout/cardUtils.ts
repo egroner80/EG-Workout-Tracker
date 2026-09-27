@@ -1,6 +1,6 @@
-import type { ActualSet, ExerciseLog } from '../../domain/types'
+import type { ExerciseLog, SetStatus } from '../../domain/types'
 
-export function loadQualifier(log: { loadType: string; perSide: boolean }): string {
+export function loadQualifier(log: Pick<ExerciseLog, 'loadType' | 'perSide'>): string {
   if (log.perSide) return 'per side'
   if (log.loadType === 'dumbbell') return 'per dumbbell'
   return ''
@@ -8,10 +8,11 @@ export function loadQualifier(log: { loadType: string; perSide: boolean }): stri
 
 export type ChipState = 'pending' | 'done' | 'below' | 'skipped'
 
-export function chipState(set: ActualSet, targetReps: number | undefined): ChipState {
-  if (set.status === 'skipped') return 'skipped'
-  if (set.status === 'pending') return 'pending'
-  return targetReps !== undefined && set.reps < targetReps ? 'below' : 'done'
+/** A set's reps, or a carry side's seconds, against its target. */
+export function chipState(status: SetStatus, actual: number, target: number | undefined): ChipState {
+  if (status === 'skipped') return 'skipped'
+  if (status === 'pending') return 'pending'
+  return target !== undefined && actual < target ? 'below' : 'done'
 }
 
 export function exerciseProgress(log: ExerciseLog): { logged: number; total: number } {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { formatLongDay, formatDay, formatTime } from '../../app/format'
 import { useHasDemo, useMeta, useTargets } from '../../app/liveData'
 import { Button } from '../../components/Button'
+import { ConfirmSheet } from '../../components/ConfirmSheet'
 import { Sheet } from '../../components/Sheet'
 import { updateMeta } from '../../data/repositories/settingsRepo'
 import { isStale, pendingExercises } from '../../domain/session'
@@ -110,7 +111,7 @@ export function HomeScreen() {
         )}
       </div>
 
-      <TargetEditorSheet targetId={editing} onClose={() => setEditing(null)} />
+      <TargetEditorSheet data={data} targetId={editing} onClose={() => setEditing(null)} />
 
       <Sheet
         open={demoChoiceOpen}
@@ -144,9 +145,7 @@ export function HomeScreen() {
             </Button>
           </>
         }
-      >
-        {null}
-      </Sheet>
+      />
     </div>
   )
 }
@@ -201,31 +200,17 @@ function ActiveWorkoutCard({ session, stale }: { session: WorkoutSession; stale:
           {current && <p className={styles.activeText}>Now: {current}</p>}
         </>
       )}
-      <Sheet
+      <ConfirmSheet
         open={confirmDiscard}
         title="Discard this workout?"
         description="Nothing from it will be saved to History, and your next targets stay as they are."
+        confirmLabel="Discard workout"
+        onConfirm={() => {
+          setConfirmDiscard(false)
+          void useWorkoutStore.getState().discard()
+        }}
         onClose={() => setConfirmDiscard(false)}
-        footer={
-          <>
-            <Button
-              variant="danger"
-              block
-              onClick={() => {
-                setConfirmDiscard(false)
-                void useWorkoutStore.getState().discard()
-              }}
-            >
-              Discard workout
-            </Button>
-            <Button block onClick={() => setConfirmDiscard(false)}>
-              Keep it
-            </Button>
-          </>
-        }
-      >
-        {null}
-      </Sheet>
+      />
     </section>
   )
 }

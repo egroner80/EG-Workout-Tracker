@@ -1,4 +1,4 @@
-import { formatActualCarry, formatActualSets, formatPrescription, formatReps } from './format'
+import { formatActual, formatPlanned, formatReps } from './format'
 import type { ExerciseLog, Recommendation, WorkoutSession } from './types'
 
 /**
@@ -45,20 +45,12 @@ export function exerciseRows(exerciseId: string, sessions: readonly WorkoutSessi
     const log = session.exercises.find((e) => e.exerciseId === exerciseId)
     if (!log) continue
     const rec = session.recommendations?.[exerciseId]
-    const target =
-      log.kind === 'reps'
-        ? formatPrescription({ kind: 'reps', loadKg: log.planned.loadKg, reps: log.planned.sets.map((s) => s.reps) }, log.loadType)
-        : formatPrescription(
-            { kind: 'timed', loadKg: log.planned.loadKg, seconds: log.planned.seconds, setsPerSide: log.scheme.setsPerSide },
-            log.loadType,
-          )
-    const actual = log.kind === 'reps' ? formatActualSets(log.loadType, log.actual) : formatActualCarry(log.loadType, log.actual)
     rows.push({
       sessionId: session.id,
       date: session.startedAt,
       demo: session.source === 'demo',
-      target,
-      actual,
+      target: formatPlanned(log),
+      actual: formatActual(log),
       met: isMet(rec),
       outcome: rec?.outcome,
     })

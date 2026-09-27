@@ -43,9 +43,7 @@ export function SoundCheckSheet() {
             </Button>
           </>
         }
-      >
-        {null}
-      </Sheet>
+      />
     )
   }
 
@@ -65,8 +63,6 @@ export function SoundCheckSheet() {
           </Button>
         </>
       }
-    >
-      {null}
-    </Sheet>
+    />
   )
 }
