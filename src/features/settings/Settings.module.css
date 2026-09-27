@@ -1,0 +1,337 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding-bottom: var(--space-6);
+}
+
+.loading {
+  min-height: 60vh;
+}
+
+.note {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sectionTitle {
+  margin: 0;
+  padding: 0 var(--space-1);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+/* A card of rows separated by hairlines. */
+.group,
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.group > * + *,
+.list > * + * {
+  border-top: 1px solid var(--border);
+}
+
+.linkRow,
+.inlineRow,
+.fieldRow,
+.stackRow {
+  padding: var(--space-3) var(--space-4);
+  min-height: 60px;
+}
+
+.linkRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-weight: 700;
+  color: inherit;
+  text-decoration: none;
+}
+
+.linkRow:active,
+.listLink:active {
+  background: var(--surface-2);
+}
+
+.inlineRow,
+.fieldRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.stackRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.stackRow > p,
+.fieldText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  min-width: 0;
+}
+
+.rowLabel {
+  font-weight: 700;
+}
+
+.rowHint {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.group > .rowHint {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+}
+
+.value {
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.ok,
+.error {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.ok {
+  color: var(--accent);
+}
+
+.error {
+  color: var(--danger);
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.version {
+  margin: 0;
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+
+/* Segmented control (theme, load type). */
+.segmented {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+}
+
+.segment,
+.segmentOn {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.segment {
+  color: var(--text-muted);
+}
+
+.segmentOn {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* Warm-up step cards. */
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.removeButton {
+  margin-left: auto;
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.iconButton:disabled {
+  opacity: 0.35;
+}
+
+/* Tap-to-rename name. */
+.nameButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 60px;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+}
+
+.stackRow .nameButton,
+.stackRow .renameForm {
+  min-height: var(--tap);
+  padding: 0;
+}
+
+.nameText {
+  font-size: var(--fs-lg);
+  font-weight: 800;
+}
+
+.nameHint {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.renameForm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+}
+
+/* 16px or larger keeps iOS from zooming into the field. */
+.input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--fs-md);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.formLabel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+/* Exercise list. */
+.listRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-right: var(--space-3);
+}
+
+.listLink {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: 72px;
+  padding: var(--space-3) var(--space-4);
+  color: inherit;
+  text-decoration: none;
+}
+
+.listName {
+  font-weight: 750;
+}
+
+.reorder {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.addLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap-lg);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border-strong);
+  color: var(--text);
+  font-weight: 750;
+  text-decoration: none;
+}

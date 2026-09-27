@@ -3,12 +3,12 @@ import { useTargets } from '../../app/liveData'
 import { Button } from '../../components/Button'
 import { Sheet } from '../../components/Sheet'
 import { Stepper } from '../../components/Stepper'
-import { saveTemplate } from '../../data/repositories/templateRepo'
+import { modifyTemplate } from '../../data/repositories/templateRepo'
 import { formatDuration, formatLoad, formatReps } from '../../domain/format'
 import { stepLoad } from '../../domain/load'
 import type { ResolvedPrescription } from '../../domain/prescription'
 import { bottomRung, buildLadder, rungIndex } from '../../domain/progression/staircase'
-import type { ExerciseDef, Prescription, WarmupStepDef, WorkoutTemplate } from '../../domain/types'
+import type { ExerciseDef, Prescription, WarmupStepDef } from '../../domain/types'
 import { createOverride } from '../../services/dataCommands'
 import { useWorkoutStore } from '../../state/workoutStore'
 import styles from './TargetEditorSheet.module.css'
@@ -29,7 +29,6 @@ export function TargetEditorSheet({ targetId, onClose }: TargetEditorSheetProps)
   return (
     <EditorBody
       key={targetId}
-      template={data.template}
       exercise={exercise}
       step={step}
       resolved={resolved}
@@ -39,14 +38,13 @@ export function TargetEditorSheet({ targetId, onClose }: TargetEditorSheetProps)
 }
 
 interface EditorBodyProps {
-  template: WorkoutTemplate
   exercise?: ExerciseDef
   step?: WarmupStepDef
   resolved: ResolvedPrescription
   onClose: () => void
 }
 
-function EditorBody({ template, exercise, step, resolved, onClose }: EditorBodyProps) {
+function EditorBody({ exercise, step, resolved, onClose }: EditorBodyProps) {
   const workoutActive = useWorkoutStore((state) => state.session !== null)
   const [draft, setDraft] = useState<Prescription>(() => structuredClone(resolved.prescription))
   const [error, setError] = useState<string | null>(null)
@@ -57,13 +55,16 @@ function EditorBody({ template, exercise, step, resolved, onClose }: EditorBodyP
     try {
       if (exercise?.kind === 'reps' && draft.kind === 'reps' && draft.reps.length !== exercise.scheme.sets) {
         // The number of sets belongs to the exercise, so it changes there too.
-        await saveTemplate({
-          ...template,
-          exercises: template.exercises.map((e) =>
-            e.id === exercise.id && e.kind === 'reps' ? { ...e, scheme: { ...e.scheme, sets: draft.reps.length } } : e,
-          ),
-          updatedAt: Date.now(),
-        })
+        const sets = draft.reps.length
+        await modifyTemplate(
+          (t) => ({
+            ...t,
+            exercises: t.exercises.map((e) =>
+              e.id === exercise.id && e.kind === 'reps' ? { ...e, scheme: { ...e.scheme, sets } } : e,
+            ),
+          }),
+          Date.now(),
+        )
       }
       await createOverride(exercise?.id ?? step!.id, draft, Date.now())
       onClose()

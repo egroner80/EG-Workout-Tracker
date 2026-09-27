@@ -5,7 +5,8 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { resetDatabase } from '../data/db'
 import { bootstrap } from '../data/seed/bootstrap'
 import { DEFAULT_SETTINGS, type AppSettings, type WorkoutSession } from '../domain/types'
-import type { ActionContext, ActionResult } from '../domain/workout/actions'
+import type { PendingResolution } from '../domain/session'
+import { startStrength, type ActionContext, type ActionResult } from '../domain/workout/actions'
 import { clearMirror } from '../state/mirror'
 import { useClock } from '../state/useTicker'
 import { useWorkoutStore } from '../state/workoutStore'
@@ -33,6 +34,17 @@ export async function startWorkout(): Promise<WorkoutSession> {
   const session = await useWorkoutStore.getState().start()
   useClock.setState({ now: Date.now() })
   return session
+}
+
+/** Runs a whole workout through the store: `record` logs actuals, everything else counts as done. */
+export async function completeWorkout(record: () => void = () => {}): Promise<string> {
+  const session = await startWorkout()
+  act(startStrength)
+  record()
+  const resolutions: Record<string, PendingResolution> = Object.fromEntries(
+    session.exercises.map((e) => [e.exerciseId, 'done' as const]),
+  )
+  return useWorkoutStore.getState().finish(resolutions)
 }
 
 /** Applies a domain action through the store, as a tap would. */
