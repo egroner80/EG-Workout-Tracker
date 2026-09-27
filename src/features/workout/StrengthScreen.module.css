@@ -1,0 +1,37 @@
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.top {
+  padding: calc(var(--safe-top) + var(--status-bar-offset, 0px)) calc(var(--space-2) + var(--safe-right)) 0
+    calc(var(--space-2) + var(--safe-left));
+  border-bottom: 1px solid var(--border);
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  /* Leave room for the collapsed rest bar that floats above the action bar. */
+  padding: var(--space-3) calc(var(--gutter) + var(--safe-right)) calc(var(--tap) + var(--space-8))
+    calc(var(--gutter) + var(--safe-left));
+}
+
+.actionBar {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-3) calc(var(--gutter) + var(--safe-right)) calc(var(--safe-bottom) + var(--space-3))
+    calc(var(--gutter) + var(--safe-left));
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}

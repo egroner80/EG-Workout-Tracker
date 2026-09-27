@@ -76,7 +76,7 @@ export class SaveNotConfirmedError extends Error {
 }
 
 export function createWorkoutStore(deps: WorkoutStoreDeps = {}) {
-  const clock = deps.clock ?? Date.now
+  const clock = deps.clock ?? (() => Date.now())
   const isVisible = deps.isVisible ?? defaultVisible
   const events = deps.events ?? workoutEvents
 

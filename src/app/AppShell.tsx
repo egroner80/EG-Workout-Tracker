@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from 'react-router'
+import { useWorkoutStore } from '../state/workoutStore'
 import styles from './AppShell.module.css'
 import { TabBar } from './TabBar'
 import { UpdateBanner } from './UpdateBanner'
@@ -6,8 +7,9 @@ import { UpdateBanner } from './UpdateBanner'
 /** Routes that run full-screen, without the tab bar. */
 const FOCUS_ROUTES = ['/workout', '/summary']
 
-export function AppShell({ workoutActive = false }: { workoutActive?: boolean }) {
+export function AppShell() {
   const { pathname } = useLocation()
+  const workoutActive = useWorkoutStore((state) => state.session !== null)
   const focused = FOCUS_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`))
 
   return (

@@ -1,0 +1,14 @@
+.empty {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  padding: var(--space-8) var(--gutter);
+}
+
+.emptyTitle {
+  font-size: var(--fs-xl);
+  font-weight: 800;
+}

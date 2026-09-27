@@ -62,7 +62,7 @@ export function installFeedback(store: WorkoutStore, events: EventBus, deps: Fee
   const wake =
     deps.wakeLock ?? createWakeLock((needsTap) => useDeviceState.setState({ needsTapForWakeLock: needsTap }))
   const persist = deps.requestPersistence ?? requestPersistenceOnce
-  const now = deps.now ?? Date.now
+  const now = deps.now ?? (() => Date.now())
 
   let primedUntil = 0
   let wanted: boolean | null = null

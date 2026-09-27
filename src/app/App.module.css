@@ -1,0 +1,31 @@
+.center {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-8) var(--gutter);
+  text-align: center;
+}
+
+.logo {
+  border-radius: 18px;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.title {
+  font-size: var(--fs-xl);
+  font-weight: 800;
+}
+
+.text {
+  color: var(--text-muted);
+  max-width: 32ch;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.6;
+  }
+}

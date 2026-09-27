@@ -9,6 +9,8 @@ export interface AppMeta {
   lastBackupAt?: number
   soundCheckDone?: boolean
   installTipDismissed?: boolean
+  /** The user chose to keep demo history when starting their first workout. */
+  keepDemo?: boolean
   persistResult?: PersistResult
   /** Real workouts finished since the last backup; drives the backup reminder. */
   workoutsSinceBackup?: number

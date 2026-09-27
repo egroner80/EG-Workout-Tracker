@@ -1,0 +1,35 @@
+.bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: calc(44px + var(--safe-top));
+  padding: var(--safe-top) var(--gutter) 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.warning {
+  background: var(--warn);
+  color: #1a1204;
+}
+
+.info {
+  background: var(--rest-soft);
+  color: var(--rest);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.action {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  background: rgb(0 0 0 / 15%);
+  font-weight: 800;
+}
