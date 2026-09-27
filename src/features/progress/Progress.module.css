@@ -1,0 +1,129 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.loading {
+  min-height: 60vh;
+}
+
+.list,
+.log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.list li + li,
+.log li + li {
+  border-top: 1px solid var(--border);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 60px;
+  padding: var(--space-3) var(--space-4);
+}
+
+.row:active,
+.logEntry:active {
+  background: var(--surface-2);
+}
+
+.name {
+  flex: 1;
+  font-weight: 700;
+}
+
+.value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.chevron {
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sectionTitle {
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.logRow,
+.logEntry {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  font-variant-numeric: tabular-nums;
+}
+
+.logRow {
+  justify-content: space-between;
+  font-weight: 650;
+}
+
+.logDate {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 4.5em;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.logText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-weight: 650;
+}
+
+.logTarget {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.repeat {
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--warn);
+}
+
+.demo {
+  align-self: flex-start;
+  font-size: 0.625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  color: var(--text-muted);
+}
+
+.muted {
+  color: var(--text-muted);
+}
