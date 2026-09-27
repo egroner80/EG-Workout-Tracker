@@ -16,7 +16,7 @@ export function WarmupComplete() {
 
   return (
     <div className={styles.screen}>
-      <main className={styles.content}>
+      <div className={styles.content}>
         <div className={styles.badge} aria-hidden="true">
           <IconCheck size={40} />
         </div>
@@ -34,7 +34,7 @@ export function WarmupComplete() {
             )
           })}
         </ul>
-      </main>
+      </div>
       <footer className={styles.controls}>
         <Button variant="primary" size="xl" block onClick={() => apply(startStrength)}>
           Start strength workout

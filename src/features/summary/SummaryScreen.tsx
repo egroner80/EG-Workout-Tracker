@@ -7,6 +7,7 @@ import { Button } from '../../components/Button'
 import { getSession } from '../../data/repositories/sessions'
 import { formatDuration } from '../../domain/format'
 import { isProgressiveStep } from '../../domain/progression/warmup'
+import type { WarmupStepLog, WorkoutSession } from '../../domain/types'
 import { createBackup, recordBackup } from '../../services/dataCommands'
 import { useWorkoutStore } from '../../state/workoutStore'
 import { shareOrDownloadJson } from '../settings/exportFile'
@@ -14,6 +15,14 @@ import { TargetEditorSheet } from '../targets/TargetEditorSheet'
 import { ExerciseResult } from './ExerciseResult'
 import { NextWorkoutSection } from './NextWorkoutSection'
 import styles from './SummaryScreen.module.css'
+
+/** "Unlocks at 5:00 of jump rope" — the trigger step and threshold come from the step itself. */
+function unlockText(session: WorkoutSession, step: WarmupStepLog): string {
+  const activation = step.activation
+  if (!activation) return 'Not unlocked yet'
+  const trigger = session.warmup.find((s) => s.stepId === activation.afterStepId)
+  return `Unlocks at ${formatDuration(activation.whenDurationReachesSec)} of ${trigger?.name.toLowerCase() ?? 'its trigger step'}`
+}
 
 /** How many real workouts without a backup before the summary nudges one. */
 export const BACKUP_REMINDER_AFTER = 5
@@ -94,7 +103,7 @@ export function SummaryScreen() {
                   {rec.outcome === 'activate'
                     ? `Starts next time at ${formatDuration(next?.durationSec ?? 0)}`
                     : rec.outcome === 'inactive'
-                      ? 'Unlocks at 5:00 of jump rope'
+                      ? unlockText(session, step)
                       : `Next: ${rec.outcome === 'repeat' ? 'Repeat ' : ''}${formatDuration(next?.durationSec ?? 0)}`}
                 </span>
               </p>

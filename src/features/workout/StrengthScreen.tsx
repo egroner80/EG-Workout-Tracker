@@ -64,13 +64,13 @@ export function StrengthScreen() {
         />
       </div>
 
-      <main className={styles.content} key={log.exerciseId}>
+      <div className={styles.content} key={log.exerciseId}>
         {log.kind === 'reps' ? (
           <RepsExerciseCard log={log} lastTime={lastTime} previousOutcome={previousOutcome} />
         ) : (
           <CarryExerciseCard log={log} lastTime={lastTime} previousOutcome={previousOutcome} />
         )}
-      </main>
+      </div>
 
       <div className={styles.actionBar}>
         {isLast ? (

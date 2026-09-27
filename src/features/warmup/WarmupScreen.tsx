@@ -96,7 +96,7 @@ export function WarmupScreen() {
         </button>
       </header>
 
-      <main className={styles.stage}>
+      <div className={styles.stage}>
         <h1 className={styles.stepName}>{view.step.name}</h1>
         {view.mode === 'get-ready' ? (
           <p className={styles.getReady} aria-live="assertive" aria-label={`Starting in ${view.getReadySeconds}`}>
@@ -111,7 +111,7 @@ export function WarmupScreen() {
           <div className={styles.progressFill} style={{ transform: `scaleX(${Math.min(1, Math.max(0, view.progress))})` }} />
         </div>
         <p className={styles.status}>{status}</p>
-      </main>
+      </div>
 
       <footer className={styles.controls}>
         <Button variant={view.mode === 'running' ? 'secondary' : 'primary'} size="xl" block onClick={primary.action}>
