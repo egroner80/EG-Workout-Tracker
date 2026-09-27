@@ -27,3 +27,4 @@ playwright/.cache/
 *.log
 .claude/worktrees/
 .context/
+.gstack/

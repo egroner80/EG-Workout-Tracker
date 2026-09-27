@@ -408,7 +408,7 @@ function NewExerciseForm() {
               }}
             />
           </Field>
-          <Field label={loadType === 'dumbbell' ? 'Starting weight (one dumbbell)' : 'Starting weight'}>
+          <Field label={loadType === 'dumbbell' ? 'Starting weight (one dumbbell)' : 'Starting weight'} stacked>
             <Stepper
               size="md"
               label="starting weight"

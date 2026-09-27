@@ -36,7 +36,7 @@ describe('timed suitcase carry', () => {
   it('shows modes, load, the time target, and both sides for each set', async () => {
     await openCarry()
     expect(screen.getByRole('radio', { name: 'Carry' })).toHaveAttribute('aria-checked', 'true')
-    expect(screen.getByText('40 s per side × 2')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: "Today's target" })).toHaveTextContent('40 s per side × 2')
     expect(screen.getAllByRole('button', { name: /^(Left|Right), set \d: .*Tap to start the timer/ })).toHaveLength(4)
   })
 

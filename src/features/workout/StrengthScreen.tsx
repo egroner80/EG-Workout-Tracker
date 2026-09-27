@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router'
 import { Button } from '../../components/Button'
 import { ConfirmSheet } from '../../components/ConfirmSheet'
 import { IconChevronRight } from '../../components/icons'
-import { goToExercise } from '../../domain/workout/actions'
+import { goToExercise, setRestExpanded } from '../../domain/workout/actions'
 import { loadLastTimes } from '../../services/queries'
 import { useWorkoutStore } from '../../state/workoutStore'
 import { RestTimerSheet } from '../rest/RestTimerSheet'
@@ -84,7 +84,14 @@ export function StrengthScreen() {
         />
       </div>
 
-      <div className={styles.content} key={log.exerciseId}>
+      <div
+        className={styles.content}
+        key={log.exerciseId}
+        onPointerDownCapture={() => {
+          // Touching the card tucks the rest timer away without swallowing the tap.
+          if (session.runtime?.rest?.expanded) apply((s) => setRestExpanded(s, false))
+        }}
+      >
         {log.kind === 'reps' ? (
           <RepsExerciseCard log={log} lastTime={lastTime} previousOutcome={previousOutcome} />
         ) : (

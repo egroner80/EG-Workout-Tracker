@@ -117,6 +117,17 @@ describe('rest timer', () => {
     expect(screen.getByRole('timer', { name: /Rest/ })).toBeInTheDocument()
   })
 
+  it('logs the next set in one tap while the rest sheet is open', async () => {
+    const user = userEvent.setup()
+    await openExercise('db-row')
+    await user.click(setChip(1))
+    expect(screen.getByRole('region', { name: 'Rest timer' })).toBeInTheDocument()
+    // The same tap collapses the sheet and logs set 2; its own rest then opens.
+    await user.click(setChip(2))
+    expect(setChip(2)).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('region', { name: 'Rest timer' })).toBeInTheDocument()
+  })
+
   it('offers the next exercise once the current one is fully logged', async () => {
     const user = userEvent.setup()
     await openExercise('hammer-curls')

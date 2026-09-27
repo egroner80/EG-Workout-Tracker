@@ -79,11 +79,9 @@ function Row({
       <span className={styles.name}>
         {name}
         {detail && <span className={styles.detail}>{detail}</span>}
-      </span>
-      <span className={styles.value}>
         {badge && <span className={styles.badge}>{badge}</span>}
-        {value}
       </span>
+      <span className={styles.value}>{value}</span>
       {onEdit && <IconChevronRight size={18} className={styles.chevron} />}
     </>
   )

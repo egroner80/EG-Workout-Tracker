@@ -60,3 +60,8 @@
 .changed .value {
   color: var(--warn);
 }
+
+/* Compact steppers sit beside a label; keep values like "10 kg" on one line. */
+.md .value {
+  white-space: nowrap;
+}

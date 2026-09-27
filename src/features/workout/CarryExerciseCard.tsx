@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CARRY_MODE_LABEL, formatDuration, formatTimedTarget } from '../../domain/format'
+import { CARRY_MODE_LABEL, formatDuration } from '../../domain/format'
 import type { LastTime as LastTimeData } from '../../domain/prescription'
 import type { CarryExerciseLog, CarryMode, Outcome } from '../../domain/types'
 import {
@@ -56,7 +56,9 @@ export function CarryExerciseCard({ log, lastTime }: CarryExerciseCardProps) {
 
       <section className={cardStyles.today} aria-label="Today's target">
         <h2 className={cardStyles.label}>Today</h2>
-        <p className={cardStyles.targets}>{formatTimedTarget(log.planned.seconds, log.scheme.setsPerSide)}</p>
+        <p className={cardStyles.targets}>
+          {log.planned.seconds} s<span className={styles.targetMeta}> per side × {log.scheme.setsPerSide}</span>
+        </p>
       </section>
 
       <section className={cardStyles.actual} aria-label="Actual">

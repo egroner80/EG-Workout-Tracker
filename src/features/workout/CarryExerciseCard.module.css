@@ -121,3 +121,11 @@
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* Seconds stay display-size; the rest of the target reads as a label so it fits a phone. */
+.targetMeta {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--text-muted);
+}

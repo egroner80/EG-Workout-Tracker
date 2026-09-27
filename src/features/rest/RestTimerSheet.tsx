@@ -21,7 +21,8 @@ interface RestTimerSheetProps {
 
 /**
  * The rest countdown. Expanded, it dominates the lower screen; touching the
- * card above collapses it to a slim bar that follows you between exercises.
+ * card above collapses it to a slim bar (without swallowing that tap, so the
+ * next set still logs in one tap) that follows you between exercises.
  */
 export function RestTimerSheet({ next }: RestTimerSheetProps) {
   const rest = useWorkoutStore((state) => state.session?.runtime?.rest ?? null)
@@ -55,66 +56,58 @@ export function RestTimerSheet({ next }: RestTimerSheetProps) {
   }
 
   return (
-    <>
-      <button
-        type="button"
-        className={styles.catcher}
-        aria-label="Collapse rest timer"
-        onClick={() => apply((s) => setRestExpanded(s, false))}
-      />
-      <section className={`${styles.sheet} ${rest.finishedAt ? styles.done : ''}`} aria-label="Rest timer">
-        <header className={styles.header}>
-          <p className={styles.title}>
-            {rest.finishedAt ? 'Rest done' : 'Rest'}
-            {exerciseName && <span className={styles.subtitle}> · {exerciseName}</span>}
-          </p>
-          <button
-            type="button"
-            className={styles.collapse}
-            aria-label="Collapse rest timer"
-            onClick={() => apply((s) => setRestExpanded(s, false))}
-          >
-            <IconChevronDown size={26} />
-          </button>
-        </header>
-        <p className={styles.time} role="timer" aria-live="off">
-          {display}
+    <section className={`${styles.sheet} ${rest.finishedAt ? styles.done : ''}`} aria-label="Rest timer">
+      <header className={styles.header}>
+        <p className={styles.title}>
+          {rest.finishedAt ? 'Rest done' : 'Rest'}
+          {exerciseName && <span className={styles.subtitle}> · {exerciseName}</span>}
         </p>
-        <div className={styles.controls}>
-          <Button size="lg" onClick={() => apply((s, ctx) => addRestTime(s, 15, ctx))}>
-            +15 s
-          </Button>
-          <Button size="lg" onClick={() => apply((s, ctx) => addRestTime(s, 30, ctx))}>
-            +30 s
-          </Button>
-          <Button
-            size="lg"
-            disabled={Boolean(rest.finishedAt)}
-            onClick={() => apply(paused ? resumeRest : pauseRest)}
-          >
-            {paused ? 'Resume' : 'Pause'}
-          </Button>
-          <Button size="lg" variant="rest" onClick={() => apply((s, ctx) => endRest(s, ctx))}>
-            {rest.finishedAt ? 'Close' : 'Skip'}
-          </Button>
-        </div>
-        {next && (
-          <Button
-            variant="secondary"
-            size="lg"
-            block
-            onClick={() =>
-              apply((s, ctx) => {
-                const moved = goToExercise(s, next.exerciseId, ctx)
-                return setRestExpanded(moved.session, false)
-              })
-            }
-          >
-            Next: {next.name}
-            <IconChevronRight size={20} />
-          </Button>
-        )}
-      </section>
-    </>
+        <button
+          type="button"
+          className={styles.collapse}
+          aria-label="Collapse rest timer"
+          onClick={() => apply((s) => setRestExpanded(s, false))}
+        >
+          <IconChevronDown size={26} />
+        </button>
+      </header>
+      <p className={styles.time} role="timer" aria-live="off">
+        {display}
+      </p>
+      <div className={styles.controls}>
+        <Button size="lg" onClick={() => apply((s, ctx) => addRestTime(s, 15, ctx))}>
+          +15 s
+        </Button>
+        <Button size="lg" onClick={() => apply((s, ctx) => addRestTime(s, 30, ctx))}>
+          +30 s
+        </Button>
+        <Button
+          size="lg"
+          disabled={Boolean(rest.finishedAt)}
+          onClick={() => apply(paused ? resumeRest : pauseRest)}
+        >
+          {paused ? 'Resume' : 'Pause'}
+        </Button>
+        <Button size="lg" variant="rest" onClick={() => apply((s, ctx) => endRest(s, ctx))}>
+          {rest.finishedAt ? 'Close' : 'Skip'}
+        </Button>
+      </div>
+      {next && (
+        <Button
+          variant="secondary"
+          size="lg"
+          block
+          onClick={() =>
+            apply((s, ctx) => {
+              const moved = goToExercise(s, next.exerciseId, ctx)
+              return setRestExpanded(moved.session, false)
+            })
+          }
+        >
+          Next: {next.name}
+          <IconChevronRight size={20} />
+        </Button>
+      )}
+    </section>
   )
 }

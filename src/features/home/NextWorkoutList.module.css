@@ -53,7 +53,10 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Under the name, so a long target keeps its line on a narrow phone. */
 .badge {
+  align-self: flex-start;
+  margin-top: 4px;
   font-family: var(--font-ui);
   font-size: 0.6875rem;
   font-weight: 800;
