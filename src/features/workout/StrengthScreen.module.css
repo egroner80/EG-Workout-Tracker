@@ -35,3 +35,34 @@
   border-top: 1px solid var(--border);
   background: var(--bg);
 }
+
+.error {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-2) calc(var(--gutter) + var(--safe-right)) 0 calc(var(--gutter) + var(--safe-left));
+  color: var(--danger);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-8) calc(var(--gutter) + var(--safe-right)) var(--space-8) calc(var(--gutter) + var(--safe-left));
+  text-align: center;
+}
+
+.emptyTitle {
+  font-size: var(--fs-xl);
+  font-weight: 800;
+}
+
+.emptyText {
+  color: var(--text-muted);
+  max-width: 32ch;
+}

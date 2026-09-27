@@ -32,4 +32,17 @@ describe('Stepper', () => {
     fireEvent.click(plus)
     expect(onIncrement).toHaveBeenCalledTimes(4)
   })
+
+  it('stops repeating when a held button reaches its limit', () => {
+    vi.useFakeTimers()
+    const onIncrement = vi.fn()
+    const { rerender } = render(<Stepper label="sets" value={7} onIncrement={onIncrement} onDecrement={() => {}} />)
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Increase sets' }))
+    vi.advanceTimersByTime(420)
+    expect(onIncrement).toHaveBeenCalledTimes(1)
+    // The limit disables the button; a disabled button never receives pointerup.
+    rerender(<Stepper label="sets" value={8} onIncrement={onIncrement} onDecrement={() => {}} canIncrement={false} />)
+    vi.advanceTimersByTime(110 * 10)
+    expect(onIncrement).toHaveBeenCalledTimes(1)
+  })
 })

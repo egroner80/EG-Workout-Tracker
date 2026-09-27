@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { listHistory } from '../../data/repositories/sessions'
 import { updateMeta } from '../../data/repositories/settingsRepo'
-import { getTemplate } from '../../data/repositories/templateRepo'
+import { getTemplate, saveTemplate } from '../../data/repositories/templateRepo'
 import { getCurrentPrescriptions } from '../../services/queries'
 import { useWorkoutStore } from '../../state/workoutStore'
 import { completeWorkout, renderAt, resetApp, startWorkout } from '../../test/workoutHarness'
@@ -119,5 +119,13 @@ describe('exercise editor', () => {
     expect(await screen.findByRole('button', { name: 'Edit target' })).toBeDisabled()
     expect(screen.getByText('Finish the workout in progress to change it.')).toBeInTheDocument()
     expect(useWorkoutStore.getState().session).not.toBeNull()
+  })
+
+  it('keeps at least one exercise in the workout', async () => {
+    const template = await getTemplate()
+    await saveTemplate({ ...template, exercises: template.exercises.filter((e) => e.id === 'pull-ups') })
+    renderSettings('/settings/exercises/pull-ups')
+    expect(await screen.findByRole('button', { name: 'Remove from workout' })).toBeDisabled()
+    expect(screen.getByText('A workout needs at least one exercise.')).toBeInTheDocument()
   })
 })

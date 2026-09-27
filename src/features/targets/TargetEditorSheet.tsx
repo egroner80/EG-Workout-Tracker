@@ -14,6 +14,8 @@ import { createOverride } from '../../services/dataCommands'
 import { useWorkoutStore } from '../../state/workoutStore'
 import styles from './TargetEditorSheet.module.css'
 
+const MAX_SETS = 8
+
 interface TargetEditorSheetProps {
   /** The screen's own `useTargets()` result, so the sheet adds no second query. */
   data: TargetsData | undefined
@@ -50,10 +52,12 @@ function EditorBody({ exercise, step, resolved, onClose }: EditorBodyProps) {
   const workoutActive = useWorkoutStore((state) => state.session !== null)
   const [draft, setDraft] = useState<Prescription>(() => structuredClone(resolved.prescription))
   const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
   const title = exercise?.name ?? step?.name ?? 'Target'
 
   const save = async () => {
     setError(null)
+    setSaving(true)
     try {
       if (exercise?.kind === 'reps' && draft.kind === 'reps' && draft.reps.length !== exercise.scheme.sets) {
         // The number of sets belongs to the exercise, so it changes there too.
@@ -72,6 +76,8 @@ function EditorBody({ exercise, step, resolved, onClose }: EditorBodyProps) {
       onClose()
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not save the target')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -88,7 +94,7 @@ function EditorBody({ exercise, step, resolved, onClose }: EditorBodyProps) {
               {error}
             </p>
           )}
-          <Button variant="primary" size="lg" block disabled={workoutActive} onClick={() => void save()}>
+          <Button variant="primary" size="lg" block disabled={workoutActive || saving} onClick={() => void save()}>
             Save target
           </Button>
           <Button block onClick={onClose}>
@@ -163,7 +169,8 @@ function RepsEditor({
   const { minReps, maxReps } = exercise.scheme
   const ladder = buildLadder(draft.reps.length, minReps, maxReps)
   const current = rungIndex(draft.reps, ladder)
-  const setCount = (count: number) => {
+  const setCount = (requested: number) => {
+    const count = clamp(requested, 1, MAX_SETS)
     const next = count > draft.reps.length ? [...draft.reps, ...bottomRung(count - draft.reps.length, minReps)] : draft.reps.slice(0, count)
     onChange({ ...draft, reps: next })
   }
@@ -210,7 +217,7 @@ function RepsEditor({
           label="number of sets"
           value={draft.reps.length}
           canDecrement={draft.reps.length > 1}
-          canIncrement={draft.reps.length < 8}
+          canIncrement={draft.reps.length < MAX_SETS}
           onDecrement={() => setCount(draft.reps.length - 1)}
           onIncrement={() => setCount(draft.reps.length + 1)}
         />

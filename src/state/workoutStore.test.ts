@@ -13,7 +13,7 @@ import {
 import { createEventBus } from './events'
 import { installLifecycle } from './lifecycle'
 import { clearMirror, readMirror, writeMirror } from './mirror'
-import { SaveNotConfirmedError, createWorkoutStore, type WorkoutStoreDeps } from './workoutStore'
+import { SaveNotConfirmedError, StoreBusyError, createWorkoutStore, type WorkoutStoreDeps } from './workoutStore'
 
 const T0 = Date.UTC(2026, 8, 27, 17, 0)
 let now = T0
@@ -130,6 +130,18 @@ describe('finish, reopen, cancel, discard', () => {
     await expect(store.getState().reopen(id)).rejects.toThrow(/in progress/)
   })
 
+  it('a double-tapped Finish finishes once', async () => {
+    const { store } = makeStore()
+    await store.getState().hydrate()
+    const session = await store.getState().start()
+    const resolutions = Object.fromEntries(session.exercises.map((e) => [e.exerciseId, 'done' as const]))
+    const results = await Promise.allSettled([store.getState().finish(resolutions), store.getState().finish(resolutions)])
+    expect(results.map((r) => r.status).sort()).toEqual(['fulfilled', 'rejected'])
+    expect((results.find((r) => r.status === 'rejected') as PromiseRejectedResult).reason).toBeInstanceOf(StoreBusyError)
+    expect((await getSession(session.id))?.status).toBe('completed')
+    expect(store.getState().busy).toBe(false)
+  })
+
   it('discards a workout and leaves no active session', async () => {
     const { store } = makeStore()
     await store.getState().hydrate()
@@ -222,6 +234,71 @@ describe('persistence safety', () => {
     store.getState().resync(true)
     expect(store.getState().session?.runtime?.rest?.finishedAt).toBe(T0 + 90_000)
     expect(cues).toEqual([])
+  })
+
+  it('restores a START whose insert never landed, from the mirror', async () => {
+    const first = makeStore().store
+    await first.getState().hydrate()
+    const started = await first.getState().start()
+    await first.getState().flush()
+    // The app died before IndexedDB kept the new workout; only the mirror has it.
+    await db.sessions.delete(started.id)
+    expect(readMirror()?.id).toBe(started.id)
+
+    const second = makeStore().store
+    await second.getState().hydrate()
+    expect(second.getState().session?.id).toBe(started.id)
+    expect((await getActiveSession())?.id).toBe(started.id)
+  })
+
+  it('drops a mirror whose workout has already finished or been replaced', async () => {
+    const first = makeStore().store
+    await first.getState().hydrate()
+    const started = await first.getState().start()
+    await first.getState().flush()
+    const stale = readMirror()!
+    await first.getState().discard()
+    writeMirror(stale)
+
+    const second = makeStore().store
+    await second.getState().hydrate()
+    expect(second.getState().session).toBeNull()
+    expect(readMirror()).toBeNull()
+    expect((await getSession(started.id))?.status).toBe('discarded')
+  })
+
+  it('keeps the mirror when restoring it fails for a storage reason', async () => {
+    const first = makeStore().store
+    await first.getState().hydrate()
+    const started = await first.getState().start()
+    await first.getState().flush()
+    await db.sessions.delete(started.id)
+    const add = vi.spyOn(db.sessions, 'add').mockRejectedValueOnce(new Error('QuotaExceededError'))
+
+    const second = makeStore().store
+    await expect(second.getState().hydrate()).rejects.toThrow('QuotaExceededError')
+    expect(readMirror()?.id).toBe(started.id)
+    add.mockRestore()
+
+    // The next launch succeeds and the workout comes back.
+    const third = makeStore().store
+    await third.getState().hydrate()
+    expect(third.getState().session?.id).toBe(started.id)
+  })
+
+  it('keeps an in-progress workout when re-inserting it fails for a storage reason', async () => {
+    const { store } = makeStore()
+    await store.getState().hydrate()
+    const started = await store.getState().start()
+    await store.getState().flush()
+    await db.sessions.delete(started.id)
+    const add = vi.spyOn(db.sessions, 'add').mockRejectedValue(new Error('QuotaExceededError'))
+
+    store.getState().apply((s, ctx) => toggleSet(s, 'pull-ups', 0, ctx))
+    await vi.waitFor(() => expect(store.getState().saveError).toMatch('QuotaExceededError'))
+    expect(store.getState().session?.id).toBe(started.id)
+    expect(readMirror()?.id).toBe(started.id)
+    add.mockRestore()
   })
 
   it('opens the recovery state for an unreadable stored workout', async () => {

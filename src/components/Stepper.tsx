@@ -36,6 +36,10 @@ export function RepeatButton({
     timers.current = {}
   }
   useEffect(() => stop, [])
+  // A disabled button gets no pointerup, so a hold that reaches the limit must end here.
+  useEffect(() => {
+    if (disabled) stop()
+  }, [disabled])
 
   return (
     <button

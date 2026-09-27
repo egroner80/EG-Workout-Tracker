@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { db } from '../data/db'
+import { createDefaultTemplate } from '../data/seed/defaultTemplate'
+import type { WorkoutTemplate } from '../domain/types'
 import { resetApp } from '../test/workoutHarness'
 import { App } from './App'
 
@@ -34,5 +37,14 @@ describe('App shell', () => {
     render(<App />)
     expect(await screen.findByRole('heading', { name: 'No workout in progress' })).toBeInTheDocument()
     expect(screen.queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument()
+  })
+
+  it('keeps the tab bar and a way to Settings when a screen fails to render', async () => {
+    const broken = { ...createDefaultTemplate(), exercises: [{ id: 'x', kind: 'reps', name: 'X' }] }
+    await db.kv.put({ key: 'template', value: broken as unknown as WorkoutTemplate })
+    render(<App />)
+    expect(await screen.findByRole('heading', { name: 'This screen couldn’t be shown' })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open Settings' })).toBeInTheDocument()
   })
 })

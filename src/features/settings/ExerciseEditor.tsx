@@ -53,6 +53,7 @@ export function ExerciseEditor() {
 
 function EditExercise({ exercise, data }: { exercise: ExerciseDef; data: TargetsData }) {
   const resolved = data.targets.get(exercise.id)
+  const isOnlyExercise = data.template.exercises.length === 1
   const navigate = useNavigate()
   const workoutActive = useWorkoutStore((state) => state.session !== null)
   const [editingTarget, setEditingTarget] = useState(false)
@@ -161,9 +162,10 @@ function EditExercise({ exercise, data }: { exercise: ExerciseDef; data: Targets
         </div>
       </section>
 
-      <Button variant="danger" block onClick={() => setRemoving(true)}>
+      <Button variant="danger" block disabled={isOnlyExercise} onClick={() => setRemoving(true)}>
         Remove from workout
       </Button>
+      {isOnlyExercise && <p className={styles.note}>A workout needs at least one exercise.</p>}
 
       <TargetEditorSheet data={data} targetId={editingTarget ? exercise.id : null} onClose={() => setEditingTarget(false)} />
       <ConfirmSheet

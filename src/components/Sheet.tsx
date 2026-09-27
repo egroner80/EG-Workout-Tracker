@@ -16,16 +16,22 @@ export interface SheetProps {
 export function Sheet({ open, title, onClose, children, description, footer }: SheetProps) {
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
+  // Callers pass inline handlers; keeping the latest in a ref stops a parent
+  // re-render (four a second during a workout) from re-running the effect and stealing focus.
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
 
   useEffect(() => {
     if (!open) return
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') onCloseRef.current()
     }
     document.addEventListener('keydown', onKey)
     panelRef.current?.focus()
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
   return createPortal(

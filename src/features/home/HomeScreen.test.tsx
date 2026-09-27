@@ -62,4 +62,15 @@ describe('Home', () => {
     expect(await db.sessions.where('source').equals('demo').count()).toBe(0)
     expect(useWorkoutStore.getState().session).not.toBeNull()
   })
+
+  it('routes an unreadable stored workout to the recovery screen instead of offering START', async () => {
+    const user = userEvent.setup()
+    useWorkoutStore.setState({ recovery: { message: 'The saved workout could not be read.', raw: { id: 'broken' } } })
+    renderAt(<HomeScreen />, '/')
+    expect(await screen.findByText('A saved workout can’t be opened')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Start workout' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Review it' }))
+    expect(screen.getByTestId('location')).toHaveTextContent('/workout')
+    useWorkoutStore.setState({ recovery: null })
+  })
 })

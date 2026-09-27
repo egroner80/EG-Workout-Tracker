@@ -2,6 +2,7 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { updateMeta } from '../../data/repositories/settingsRepo'
+import { getTemplate, saveTemplate } from '../../data/repositories/templateRepo'
 import { goToExercise, startStrength } from '../../domain/workout/actions'
 import { useWorkoutStore } from '../../state/workoutStore'
 import { act, advance, advanceFrames, renderAt, resetApp, startWorkout } from '../../test/workoutHarness'
@@ -177,5 +178,16 @@ describe('navigation and finish', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Finish workout' }))
     await vi.waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/summary\//))
     expect(useWorkoutStore.getState().session).toBeNull()
+  })
+
+  it('shows an empty state instead of crashing when the workout has no exercises', async () => {
+    const user = userEvent.setup()
+    await saveTemplate({ ...(await getTemplate()), exercises: [] })
+    await startWorkout()
+    act(startStrength)
+    renderAt(<WorkoutRoute />)
+    expect(await screen.findByRole('heading', { name: 'No exercises in this workout' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Finish workout' }))
+    expect(await screen.findByRole('dialog', { name: 'Nothing logged yet' })).toBeInTheDocument()
   })
 })

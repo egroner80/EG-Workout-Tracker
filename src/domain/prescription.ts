@@ -23,11 +23,14 @@ export interface ResolvedPrescription {
   override?: PrescriptionOverride
 }
 
+/** A finished, not deleted, real workout: the only kind that feeds targets and LAST TIME. */
+export function isRealSession(session: WorkoutSession): boolean {
+  return session.status === 'completed' && session.source === 'real' && session.deletedAt === undefined
+}
+
 /** Completed, non-deleted, real sessions, newest first by (original) finish time. */
 export function realHistory(sessions: readonly WorkoutSession[]): WorkoutSession[] {
-  return sessions
-    .filter((s) => s.status === 'completed' && s.source === 'real' && s.deletedAt === undefined)
-    .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0))
+  return sessions.filter(isRealSession).sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0))
 }
 
 export function baselineFor(target: ExerciseDef | WarmupStepDef): Prescription {

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Button } from '../../components/Button'
 import { useWorkoutStore } from '../../state/workoutStore'
@@ -8,7 +9,19 @@ import styles from './RecoveryScreen.module.css'
 export function RecoveryScreen() {
   const navigate = useNavigate()
   const recovery = useWorkoutStore((state) => state.recovery)
+  const [error, setError] = useState<string | null>(null)
   if (!recovery) return null
+
+  const discard = async () => {
+    setError(null)
+    try {
+      await useWorkoutStore.getState().dismissRecovery()
+      navigate('/')
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not discard it. Try again.')
+    }
+  }
+
   return (
     <div className={styles.screen} role="alert">
       <h1 className={styles.title}>This workout can’t be opened</h1>
@@ -19,16 +32,11 @@ export function RecoveryScreen() {
         <Button variant="primary" block onClick={() => downloadJson('overload-unreadable-workout.json', recovery.raw)}>
           Export the workout data
         </Button>
-        <Button
-          variant="danger"
-          block
-          onClick={() => {
-            void useWorkoutStore.getState().dismissRecovery().then(() => navigate('/'))
-          }}
-        >
+        <Button variant="danger" block onClick={() => void discard()}>
           Discard it
         </Button>
       </div>
+      {error && <p className={styles.error}>{error}</p>}
     </div>
   )
 }

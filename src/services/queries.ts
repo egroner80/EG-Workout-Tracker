@@ -3,6 +3,7 @@ import { getTemplate } from '../data/repositories/templateRepo'
 import {
   deriveCurrentPrescriptions,
   findLastTime,
+  isRealSession,
   type LastTime,
   type ResolvedPrescription,
 } from '../domain/prescription'
@@ -15,8 +16,6 @@ export interface PrescriptionContext {
   sessions: WorkoutSession[]
   overrides: PrescriptionOverride[]
 }
-
-const isRealHistory = (s: WorkoutSession) => s.status === 'completed' && s.source === 'real' && s.deletedAt === undefined
 
 /**
  * Reads everything derivation needs in one read transaction, scanning finished
@@ -35,7 +34,7 @@ export async function loadPrescriptionContext(): Promise<PrescriptionContext> {
       .reverse()
       .until(() => missing.size === 0)
       .each((session) => {
-        if (!isRealHistory(session)) return
+        if (!isRealSession(session)) return
         sessions.push(session)
         for (const targetId of Object.keys(session.recommendations ?? {})) missing.delete(targetId)
       })
@@ -52,7 +51,7 @@ export async function getLatestRealSession(): Promise<WorkoutSession | undefined
     .reverse()
     .until(() => latest !== undefined)
     .each((session) => {
-      if (isRealHistory(session)) latest = session
+      if (isRealSession(session)) latest = session
     })
   return latest
 }
@@ -68,12 +67,15 @@ export async function loadLastTimes(
 ): Promise<Map<string, LastTime>> {
   const wanted = new Set(exerciseIds)
   const found = new Map<string, LastTime>()
+  // Only earlier sessions are read, so a live query built on this ignores saves of the current workout.
+  // Timestamps are whole milliseconds; an open `below` bound would still be observed inclusively by Dexie.
   await db.sessions
-    .orderBy('startedAt')
+    .where('startedAt')
+    .belowOrEqual(beforeStartedAt - 1)
     .reverse()
     .until(() => found.size === wanted.size)
     .each((session) => {
-      if (!isRealHistory(session) || session.startedAt >= beforeStartedAt) return
+      if (!isRealSession(session)) return
       for (const exerciseId of wanted) {
         if (found.has(exerciseId)) continue
         const lastTime = findLastTime(exerciseId, [session], beforeStartedAt)

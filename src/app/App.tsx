@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { RouterProvider } from 'react-router/dom'
+import { Button } from '../components/Button'
 import { bootstrap } from '../data/seed/bootstrap'
 import { installFeedback } from '../platform/feedback'
 import { workoutEvents } from '../state/events'
@@ -56,8 +57,11 @@ export function App() {
         <h1 className={styles.title}>Storage is unavailable</h1>
         <p className={styles.text}>
           This browser is blocking on-device storage, so workouts can't be saved. Leave private browsing, or open the app
-          from your Home Screen.
+          from your Home Screen. A workout in progress stays on this device.
         </p>
+        <Button variant="primary" onClick={() => window.location.reload()}>
+          Try again
+        </Button>
       </div>
     )
   }

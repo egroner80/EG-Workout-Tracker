@@ -24,6 +24,7 @@ let launchRedirectDone = false
 export function HomeScreen() {
   const navigate = useNavigate()
   const session = useWorkoutStore((state) => state.session)
+  const unreadable = useWorkoutStore((state) => state.recovery !== null)
   const busy = useWorkoutStore((state) => state.busy)
   const data = useTargets()
   const meta = useMeta()
@@ -37,8 +38,9 @@ export function HomeScreen() {
   useEffect(() => {
     if (launchRedirectDone) return
     launchRedirectDone = true
-    if (session && !isStale(session, Date.now())) navigate('/workout', { replace: true })
-  }, [session, navigate])
+    // The workout route shows the recovery screen for a stored workout that can't be read.
+    if (unreadable || (session && !isStale(session, Date.now()))) navigate('/workout', { replace: true })
+  }, [session, unreadable, navigate])
 
   const start = async () => {
     setStartError(null)
@@ -72,6 +74,17 @@ export function HomeScreen() {
       {meta && !meta.installTipDismissed && <InstallTip onDismiss={() => void updateMeta({ installTipDismissed: true })} />}
 
       {session && <ActiveWorkoutCard session={session} stale={stale} />}
+      {unreadable && (
+        <section className={styles.activeCard} aria-label="Unreadable workout">
+          <p className={styles.activeTitle}>A saved workout can’t be opened</p>
+          <p className={styles.activeText}>Export a copy or discard it before starting a new workout.</p>
+          <div className={styles.activeActions}>
+            <Button variant="primary" block onClick={() => navigate('/workout')}>
+              Review it
+            </Button>
+          </div>
+        </section>
+      )}
 
       <section className={styles.section} aria-labelledby="next-workout-heading">
         <div className={styles.sectionHeader}>
@@ -105,7 +118,7 @@ export function HomeScreen() {
             </Button>
           )
         ) : (
-          <Button variant="primary" size="xl" block onClick={onStartTap} disabled={busy || !data}>
+          <Button variant="primary" size="xl" block onClick={onStartTap} disabled={busy || !data || unreadable}>
             Start workout
           </Button>
         )}
@@ -152,7 +165,9 @@ export function HomeScreen() {
 
 function ActiveWorkoutCard({ session, stale }: { session: WorkoutSession; stale: boolean }) {
   const navigate = useNavigate()
+  const busy = useWorkoutStore((state) => state.busy)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const reopened = Boolean(session.reopenSnapshot)
   const runtime = session.runtime
   const current =
@@ -160,11 +175,22 @@ function ActiveWorkoutCard({ session, stale }: { session: WorkoutSession; stale:
       ? session.exercises.find((e) => e.exerciseId === runtime.currentExerciseId)?.name
       : 'Warm-up'
 
-  const finishWithWhatsLogged = async () => {
-    const resolutions = Object.fromEntries(pendingExercises(session).map((p) => [p.exerciseId, 'skipped' as const]))
-    const id = await useWorkoutStore.getState().finish(resolutions, { stale: true })
-    navigate(`/summary/${id}`)
+  /** Runs a store action and shows a failure instead of dropping it. */
+  const run = async (action: () => Promise<void>) => {
+    setError(null)
+    try {
+      await action()
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'That did not work. Try again.')
+    }
   }
+
+  const finishWithWhatsLogged = () =>
+    run(async () => {
+      const resolutions = Object.fromEntries(pendingExercises(session).map((p) => [p.exerciseId, 'skipped' as const]))
+      const id = await useWorkoutStore.getState().finish(resolutions, { stale: true })
+      navigate(`/summary/${id}`)
+    })
 
   return (
     <section className={styles.activeCard} aria-label="Workout in progress">
@@ -178,19 +204,29 @@ function ActiveWorkoutCard({ session, stale }: { session: WorkoutSession; stale:
             <Button variant="primary" block onClick={() => navigate('/workout')}>
               Resume
             </Button>
-            <Button block onClick={() => void finishWithWhatsLogged()}>
+            <Button block disabled={busy} onClick={() => void finishWithWhatsLogged()}>
               Finish &amp; save
             </Button>
             {reopened ? (
-              <Button variant="ghost" block onClick={() => void useWorkoutStore.getState().cancelEdits()}>
+              <Button
+                variant="ghost"
+                block
+                disabled={busy}
+                onClick={() => void run(() => useWorkoutStore.getState().cancelEdits())}
+              >
                 Cancel edits
               </Button>
             ) : (
-              <Button variant="danger" block onClick={() => setConfirmDiscard(true)}>
+              <Button variant="danger" block disabled={busy} onClick={() => setConfirmDiscard(true)}>
                 Discard
               </Button>
             )}
           </div>
+          {error && (
+            <p className={styles.error} role="alert">
+              {error}
+            </p>
+          )}
         </>
       ) : (
         <>
@@ -207,7 +243,7 @@ function ActiveWorkoutCard({ session, stale }: { session: WorkoutSession; stale:
         confirmLabel="Discard workout"
         onConfirm={() => {
           setConfirmDiscard(false)
-          void useWorkoutStore.getState().discard()
+          void run(() => useWorkoutStore.getState().discard())
         }}
         onClose={() => setConfirmDiscard(false)}
       />

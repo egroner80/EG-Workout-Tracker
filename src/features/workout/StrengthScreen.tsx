@@ -21,6 +21,7 @@ export function StrengthScreen() {
   const apply = useWorkoutStore((state) => state.apply)
   const [finishOpen, setFinishOpen] = useState(false)
   const [discardOpen, setDiscardOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const sessionId = session?.id
   const startedAt = session?.startedAt
   const exerciseIds = session?.exerciseIds
@@ -31,6 +32,20 @@ export function StrengthScreen() {
   if (!session?.runtime) return null
 
   const exercises = session.exercises
+  if (exercises.length === 0) {
+    return (
+      <div className={styles.screen}>
+        <div className={styles.empty}>
+          <h1 className={styles.emptyTitle}>No exercises in this workout</h1>
+          <p className={styles.emptyText}>Add exercises in Settings for your next workout.</p>
+          <Button variant="primary" size="lg" onClick={() => setFinishOpen(true)}>
+            Finish workout
+          </Button>
+        </div>
+        <FinishSheet open={finishOpen} onClose={() => setFinishOpen(false)} />
+      </div>
+    )
+  }
   const found = exercises.findIndex((e) => e.exerciseId === session.runtime?.currentExerciseId)
   const index = found >= 0 ? found : 0
   const log = exercises[index]
@@ -43,14 +58,19 @@ export function StrengthScreen() {
 
   const discard = async () => {
     setDiscardOpen(false)
-    if (reopened) {
-      const id = session.id
-      await useWorkoutStore.getState().cancelEdits()
-      navigate(`/summary/${id}`)
-      return
+    setError(null)
+    try {
+      if (reopened) {
+        const id = session.id
+        await useWorkoutStore.getState().cancelEdits()
+        navigate(`/summary/${id}`)
+        return
+      }
+      await useWorkoutStore.getState().discard()
+      navigate('/')
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'That did not work. Try again.')
     }
-    await useWorkoutStore.getState().discard()
-    navigate('/')
   }
 
   return (
@@ -71,6 +91,12 @@ export function StrengthScreen() {
           <CarryExerciseCard log={log} lastTime={lastTime} previousOutcome={previousOutcome} />
         )}
       </div>
+
+      {error && (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      )}
 
       <div className={styles.actionBar}>
         {isLast ? (

@@ -39,11 +39,16 @@ interface BackupSource {
 
 /**
  * Everything worth keeping: all real workouts (including discarded and
- * deleted ones), manual targets, the template, and settings. The in-progress
- * workout and demo data are left out.
+ * deleted ones), manual targets, the template, and settings. Demo data and a
+ * workout in progress are left out; a finished workout reopened for edits is
+ * saved as it was when it was finished.
  */
 export function buildBackup(source: BackupSource, now: number, appVersion: string): BackupFile {
-  const sessions = source.sessions.filter((s) => s.source === 'real' && s.status !== 'active')
+  const sessions = source.sessions.flatMap((s): WorkoutSession[] => {
+    if (s.source !== 'real') return []
+    if (s.status !== 'active') return [s]
+    return s.reopenSnapshot ? [s.reopenSnapshot] : []
+  })
   return {
     format: BACKUP_FORMAT,
     appVersion,
@@ -126,6 +131,12 @@ export interface ImportPlan {
   }
 }
 
+/** Imported workouts are finished records: fields only an active workout carries are dropped. */
+function finishedRecord(session: WorkoutSession): WorkoutSession {
+  const { activeSlot: _activeSlot, runtime: _runtime, reopenSnapshot: _reopenSnapshot, ...record } = session
+  return record
+}
+
 /**
  * Merge rules: the newer `updatedAt` wins and ties keep the local copy
  * (deletes bump `updatedAt`, so an old backup cannot resurrect a deleted
@@ -147,7 +158,7 @@ export function planImport(backup: BackupFile, local: LocalState): ImportPlan {
     }
     const existing = localById.get(incoming.id)
     if (!existing) {
-      sessionsToPut.push(incoming)
+      sessionsToPut.push(finishedRecord(incoming))
       newWorkouts++
       continue
     }
@@ -160,7 +171,7 @@ export function planImport(backup: BackupFile, local: LocalState): ImportPlan {
       skippedWorkouts++
       continue
     }
-    sessionsToPut.push(incoming)
+    sessionsToPut.push(finishedRecord(incoming))
     updatedWorkouts++
   }
 

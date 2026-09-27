@@ -6,8 +6,10 @@ import { ProgressScreen } from '../features/progress/ProgressScreen'
 import { SessionDetailScreen } from '../features/history/SessionDetailScreen'
 import { SettingsScreen } from '../features/settings/SettingsScreen'
 import { SummaryScreen } from '../features/summary/SummaryScreen'
+import { WorkoutError } from '../features/recovery/WorkoutError'
 import { WorkoutRoute } from '../features/workout/WorkoutRoute'
 import { AppShell } from './AppShell'
+import { ScreenError } from './ScreenError'
 
 /** Hash routing works on any static host without server rewrites. */
 export function createAppRouter() {
@@ -15,15 +17,16 @@ export function createAppRouter() {
     {
       path: '/',
       element: <AppShell />,
+      errorElement: <ScreenError />,
       children: [
-        { index: true, element: <HomeScreen /> },
-        { path: 'workout', element: <WorkoutRoute /> },
-        { path: 'summary/:sessionId', element: <SummaryScreen /> },
-        { path: 'history', element: <HistoryScreen /> },
-        { path: 'history/:sessionId', element: <SessionDetailScreen /> },
-        { path: 'progress', element: <ProgressScreen /> },
-        { path: 'progress/:targetId', element: <ExerciseProgressScreen /> },
-        { path: 'settings/*', element: <SettingsScreen /> },
+        { index: true, element: <HomeScreen />, errorElement: <ScreenError /> },
+        { path: 'workout', element: <WorkoutRoute />, errorElement: <WorkoutError /> },
+        { path: 'summary/:sessionId', element: <SummaryScreen />, errorElement: <ScreenError /> },
+        { path: 'history', element: <HistoryScreen />, errorElement: <ScreenError /> },
+        { path: 'history/:sessionId', element: <SessionDetailScreen />, errorElement: <ScreenError /> },
+        { path: 'progress', element: <ProgressScreen />, errorElement: <ScreenError /> },
+        { path: 'progress/:targetId', element: <ExerciseProgressScreen />, errorElement: <ScreenError /> },
+        { path: 'settings/*', element: <SettingsScreen />, errorElement: <ScreenError /> },
       ],
     },
   ])

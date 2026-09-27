@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { db } from '../data/db'
 import {
+  ActiveSessionExistsError,
   getActiveSession,
   getSession,
   insertActiveSession,
@@ -67,6 +68,14 @@ export interface WorkoutStoreDeps {
 
 const defaultVisible = () => typeof document === 'undefined' || document.visibilityState !== 'hidden'
 
+/** A second START, Finish, Discard, Reopen, or Cancel edits while one is still running. */
+export class StoreBusyError extends Error {
+  constructor() {
+    super('Still saving. Try again in a moment.')
+    this.name = 'StoreBusyError'
+  }
+}
+
 export class SaveNotConfirmedError extends Error {
   constructor() {
     super('The workout has not been saved yet. Try again in a moment, or export it from the banner.')
@@ -101,20 +110,26 @@ export function createWorkoutStore(deps: WorkoutStoreDeps = {}) {
     })
 
     async function handleRejection(snapshot: WorkoutSession, rejection: GuardRejection) {
-      if (rejection.reason === 'missing') {
-        // The insert never landed (the app died right after START). Restore it if nothing else is active.
-        try {
-          await insertActiveSession(snapshot)
-          set({ saveError: null })
-          return
-        } catch {
-          // Another workout exists; fall through and adopt the stored state.
+      try {
+        if (rejection.reason === 'missing') {
+          // The insert never landed (the app died right after START). Restore it if nothing else is active.
+          try {
+            await insertActiveSession(snapshot)
+            set({ saveError: null })
+            return
+          } catch (error) {
+            // Only a workout that already owns the active slot supersedes this one.
+            if (!(error instanceof ActiveSessionExistsError)) throw error
+          }
         }
+        // Another window or a finished transition wrote a newer record: adopt it rather than overwrite it.
+        const stored = await getActiveSession()
+        if (!stored || stored.id !== get().session?.id) clearMirror()
+        set({ session: stored ?? null, saveError: null })
+      } catch (error) {
+        // Storage failed: keep the workout on screen and in the mirror; the next change tries again.
+        set({ saveError: error instanceof Error ? error.message : 'Saving failed' })
       }
-      // Another window or a finished transition wrote a newer record: adopt it rather than overwrite it.
-      const stored = await getActiveSession()
-      if (!stored || stored.id !== get().session?.id) clearMirror()
-      set({ session: stored ?? null, saveError: null })
     }
 
     function commit(previous: WorkoutSession, result: ActionResult, now: number) {
@@ -147,7 +162,10 @@ export function createWorkoutStore(deps: WorkoutStoreDeps = {}) {
         try {
           await insertActiveSession(mirror)
           return mirror
-        } catch {
+        } catch (error) {
+          // A storage failure keeps the mirror so the next launch can try again;
+          // only a workout that already owns the active slot makes it obsolete.
+          if (!(error instanceof ActiveSessionExistsError)) throw error
           clearMirror()
           return null
         }
@@ -185,7 +203,7 @@ export function createWorkoutStore(deps: WorkoutStoreDeps = {}) {
       },
 
       async start() {
-        if (get().busy) throw new Error('Already starting')
+        if (get().busy) throw new StoreBusyError()
         set({ busy: true })
         try {
           const session = await startWorkout(clock())
@@ -228,7 +246,8 @@ export function createWorkoutStore(deps: WorkoutStoreDeps = {}) {
       },
 
       async finish(resolutions = {}, options = {}) {
-        const { session } = get()
+        const { session, busy } = get()
+        if (busy) throw new StoreBusyError()
         if (!session) throw new Error('No workout in progress')
         set({ busy: true })
         try {
@@ -250,7 +269,8 @@ export function createWorkoutStore(deps: WorkoutStoreDeps = {}) {
       },
 
       async discard() {
-        const { session } = get()
+        const { session, busy } = get()
+        if (busy) throw new StoreBusyError()
         if (!session) return
         set({ busy: true })
         try {
@@ -265,6 +285,7 @@ export function createWorkoutStore(deps: WorkoutStoreDeps = {}) {
       },
 
       async reopen(sessionId) {
+        if (get().busy) throw new StoreBusyError()
         set({ busy: true })
         try {
           const reopened = await reopenWorkout(sessionId, clock())
@@ -276,7 +297,8 @@ export function createWorkoutStore(deps: WorkoutStoreDeps = {}) {
       },
 
       async cancelEdits() {
-        const { session } = get()
+        const { session, busy } = get()
+        if (busy) throw new StoreBusyError()
         if (!session) return
         set({ busy: true })
         try {
