@@ -1,0 +1,58 @@
+.shell,
+.focusShell {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: calc(var(--safe-top) + var(--space-4)) calc(var(--gutter) + var(--safe-right))
+    calc(var(--tabbar-height) + var(--safe-bottom) + var(--space-6)) calc(var(--gutter) + var(--safe-left));
+}
+
+.focusMain {
+  flex: 1;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.updateBanner {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: calc(var(--safe-top) + var(--space-3)) var(--gutter) var(--space-3);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-sm);
+}
+
+.updateActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.updateLater,
+.updateNow {
+  min-height: var(--tap);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+}
+
+.updateLater {
+  color: var(--text-muted);
+}
+
+.updateNow {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
