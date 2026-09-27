@@ -15,7 +15,7 @@ import {
   deleteWorkout,
   previewImport,
   recordBackup,
-  useSuggestion,
+  applySuggestion,
 } from './dataCommands'
 import { getCurrentPrescriptions, loadLastTimes } from './queries'
 
@@ -71,7 +71,7 @@ describe('overrides and workouts', () => {
     expect(override.replacedRecommendation).toEqual({ kind: 'reps', loadKg: 18, reps: [5, 5, 6] })
     expect((await getCurrentPrescriptions()).get('db-row')?.source).toBe('override')
 
-    await useSuggestion('db-row')
+    await applySuggestion('db-row')
     expect((await getCurrentPrescriptions()).get('db-row')).toMatchObject({
       source: 'recommendation',
       prescription: { loadKg: 18, reps: [5, 5, 6] },

@@ -45,11 +45,12 @@ function LocationProbe() {
   return <output data-testid="location">{location.pathname}</output>
 }
 
-export function renderAt(ui: ReactElement, path = '/workout') {
+export function renderAt(ui: ReactElement, path = '/workout', routePath = '*') {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="*" element={ui} />
+        <Route path={routePath} element={ui} />
+        {routePath !== '*' && <Route path="*" element={null} />}
       </Routes>
       <LocationProbe />
     </MemoryRouter>,

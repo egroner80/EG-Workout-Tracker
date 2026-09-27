@@ -11,6 +11,7 @@ import { feedback } from '../../platform/feedback'
 import { clearDemoData } from '../../services/dataCommands'
 import { useClock } from '../../state/useTicker'
 import { useWorkoutStore } from '../../state/workoutStore'
+import { TargetEditorSheet } from '../targets/TargetEditorSheet'
 import { DemoBanner } from './DemoBanner'
 import styles from './HomeScreen.module.css'
 import { InstallTip } from './InstallTip'
@@ -19,11 +20,7 @@ import { NextWorkoutList } from './NextWorkoutList'
 /** The first Home render after launch jumps straight back into a workout in progress. */
 let launchRedirectDone = false
 
-export interface HomeScreenProps {
-  onEditTarget?: (targetId: string) => void
-}
-
-export function HomeScreen({ onEditTarget }: HomeScreenProps = {}) {
+export function HomeScreen() {
   const navigate = useNavigate()
   const session = useWorkoutStore((state) => state.session)
   const busy = useWorkoutStore((state) => state.busy)
@@ -32,6 +29,7 @@ export function HomeScreen({ onEditTarget }: HomeScreenProps = {}) {
   const hasDemo = useHasDemo()
   const [demoChoiceOpen, setDemoChoiceOpen] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
+  const [editing, setEditing] = useState<string | null>(null)
   const now = useClock((state) => state.now)
   const stale = session ? isStale(session, now) : false
 
@@ -85,7 +83,7 @@ export function HomeScreen({ onEditTarget }: HomeScreenProps = {}) {
           <NextWorkoutList
             template={data.template}
             targets={data.targets}
-            onEdit={session ? undefined : onEditTarget}
+            onEdit={session ? undefined : setEditing}
           />
         ) : (
           <div className={styles.placeholder} aria-busy="true" />
@@ -111,6 +109,8 @@ export function HomeScreen({ onEditTarget }: HomeScreenProps = {}) {
           </Button>
         )}
       </div>
+
+      <TargetEditorSheet targetId={editing} onClose={() => setEditing(null)} />
 
       <Sheet
         open={demoChoiceOpen}

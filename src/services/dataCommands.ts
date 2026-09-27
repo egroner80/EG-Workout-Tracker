@@ -42,7 +42,7 @@ export async function createOverride(
 }
 
 /** Drops manual targets for a target so the stored recommendation applies again. */
-export async function useSuggestion(targetId: string): Promise<void> {
+export async function applySuggestion(targetId: string): Promise<void> {
   await db.overrides.where('targetId').equals(targetId).delete()
 }
 
