@@ -15,14 +15,14 @@ describe('App shell', () => {
 
   it('boots into Today with the tab bar and a START button', async () => {
     render(<App />)
-    expect(await screen.findByRole('button', { name: 'Start workout' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Start upper body' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
   })
 
   it('navigates between tabs and marks the active tab', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await screen.findByRole('button', { name: 'Start workout' })
+    await screen.findByRole('button', { name: 'Start upper body' })
 
     await user.click(screen.getByRole('link', { name: 'History' }))
     expect(screen.getByRole('link', { name: 'History' })).toHaveAttribute('aria-current', 'page')

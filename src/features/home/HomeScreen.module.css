@@ -33,13 +33,6 @@
   gap: var(--space-3);
 }
 
-.sectionHeader {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
 .sectionTitle {
   font-size: var(--fs-xs);
   font-weight: 800;
@@ -48,9 +41,20 @@
   color: var(--text-muted);
 }
 
-.sectionNote {
-  font-size: var(--fs-xs);
-  color: var(--text-faint);
+/* Under the workout switch: the suggestion, or which workout comes after the one in progress. */
+.caption {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.caption strong {
+  font-weight: 750;
+  color: var(--text);
+}
+
+/* Wraps as a unit on a narrow phone, so a date or time never splits from its words. */
+.phrase {
+  display: inline-block;
 }
 
 .placeholder {
