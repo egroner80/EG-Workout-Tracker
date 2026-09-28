@@ -20,6 +20,7 @@ import { NameField } from './NameField'
 import styles from './Settings.module.css'
 import { Field, SegmentedControl } from './SettingsControls'
 import { updateExercise, updateTemplate } from './settingsActions'
+import { useTemplateParam } from './useTemplateParam'
 
 const LOAD_TYPES: { value: LoadType; label: string }[] = [
   { value: 'dumbbell', label: 'Dumbbell' },
@@ -35,8 +36,9 @@ const SOURCE_TEXT: Record<ResolvedPrescription['source'], string> = {
 }
 
 export function ExerciseEditor() {
+  const templateId = useTemplateParam()
   const { exerciseId } = useParams()
-  const data = useTargets()
+  const data = useTargets(templateId)
   if (exerciseId === 'new') return <NewExerciseForm />
   if (!data) return <div className={styles.loading} aria-busy="true" />
   const exercise = data.template.exercises.find((e) => e.id === exerciseId)
@@ -52,13 +54,14 @@ export function ExerciseEditor() {
 }
 
 function EditExercise({ exercise, data }: { exercise: ExerciseDef; data: TargetsData }) {
+  const templateId = useTemplateParam()
   const resolved = data.targets.get(exercise.id)
   const isOnlyExercise = data.template.exercises.length === 1
   const navigate = useNavigate()
   const workoutActive = useWorkoutStore((state) => state.session !== null)
   const [editingTarget, setEditingTarget] = useState(false)
   const [removing, setRemoving] = useState(false)
-  const update = (recipe: (e: ExerciseDef) => ExerciseDef) => void updateExercise(exercise.id, recipe)
+  const update = (recipe: (e: ExerciseDef) => ExerciseDef) => void updateExercise(templateId, exercise.id, recipe)
 
   return (
     <div className={styles.screen}>
@@ -175,7 +178,7 @@ function EditExercise({ exercise, data }: { exercise: ExerciseDef; data: Targets
         confirmLabel="Remove"
         onConfirm={() => {
           setRemoving(false)
-          void updateTemplate((t) => ({ ...t, exercises: t.exercises.filter((e) => e.id !== exercise.id) })).then(() =>
+          void updateTemplate(templateId, (t) => ({ ...t, exercises: t.exercises.filter((e) => e.id !== exercise.id) })).then(() =>
             navigate('/settings/exercises', { replace: true }),
           )
         }}
@@ -347,6 +350,7 @@ function CarrySchemeFields({ exercise, update }: { exercise: CarryExerciseDef; u
 
 /** New exercises use the rep ladder; they join the end of the workout. */
 function NewExerciseForm() {
+  const templateId = useTemplateParam()
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [loadType, setLoadType] = useState<LoadType>('dumbbell')
@@ -372,7 +376,7 @@ function NewExerciseForm() {
       scheme: { type: 'staircase', sets, minReps, maxReps },
       baseline: { kind: 'reps', loadKg, reps: bottomRung(sets, minReps) },
     }
-    await updateTemplate((t) => ({ ...t, exercises: [...t.exercises, exercise] }))
+    await updateTemplate(templateId, (t) => ({ ...t, exercises: [...t.exercises, exercise] }))
     navigate('/settings/exercises', { replace: true })
   }
 

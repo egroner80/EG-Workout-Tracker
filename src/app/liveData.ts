@@ -3,8 +3,8 @@ import { getMeta } from '../data/repositories/settingsRepo'
 import { hasDemoSessions, listHistory } from '../data/repositories/sessions'
 import type { AppMeta } from '../data/db'
 import { deriveCurrentPrescriptions, type ResolvedPrescription } from '../domain/prescription'
-import type { WorkoutSession, WorkoutTemplate } from '../domain/types'
-import { loadPrescriptionContext } from '../services/queries'
+import type { TemplateId, WorkoutSession, WorkoutTemplate } from '../domain/types'
+import { loadPrescriptionContext, loadRecentWorkouts, type RecentWorkout } from '../services/queries'
 
 /**
  * Live reads for screens other than the active workout. Dexie re-runs them
@@ -16,11 +16,17 @@ export interface TargetsData {
   targets: Map<string, ResolvedPrescription>
 }
 
-export function useTargets(): TargetsData | undefined {
+/** One workout's template and its current targets. */
+export function useTargets(templateId: TemplateId): TargetsData | undefined {
   return useLiveQuery(async () => {
-    const context = await loadPrescriptionContext()
+    const context = await loadPrescriptionContext(templateId)
     return { template: context.template, targets: deriveCurrentPrescriptions(context) }
-  }, [])
+  }, [templateId])
+}
+
+/** The newest finished real workouts, newest first. */
+export function useRecentWorkouts(limit: number): RecentWorkout[] | undefined {
+  return useLiveQuery(() => loadRecentWorkouts(limit), [limit])
 }
 
 export function useMeta(): AppMeta | undefined {

@@ -11,7 +11,7 @@ import {
 import { getSettings } from '../data/repositories/settingsRepo'
 import { isValidSession } from '../domain/migrate'
 import type { PendingResolution } from '../domain/session'
-import { DEFAULT_SETTINGS, type AppSettings, type WorkoutSession } from '../domain/types'
+import { DEFAULT_SETTINGS, type AppSettings, type TemplateId, type WorkoutSession } from '../domain/types'
 import type { ActionContext, ActionResult } from '../domain/workout/actions'
 import { countdownTicks } from '../domain/workout/cues'
 import { resync } from '../domain/workout/resync'
@@ -45,7 +45,7 @@ export interface WorkoutState {
 
   hydrate: () => Promise<void>
   setSettings: (settings: AppSettings) => void
-  start: () => Promise<WorkoutSession>
+  start: (templateId: TemplateId) => Promise<WorkoutSession>
   apply: (action: WorkoutAction) => void
   tick: (now?: number) => void
   resync: (visible: boolean) => void
@@ -202,11 +202,11 @@ export function createWorkoutStore(deps: WorkoutStoreDeps = {}) {
         set({ settings })
       },
 
-      async start() {
+      async start(templateId) {
         if (get().busy) throw new StoreBusyError()
         set({ busy: true })
         try {
-          const session = await startWorkout(clock())
+          const session = await startWorkout(templateId, clock())
           writeMirror(session)
           lastTickAt = clock()
           set({ session, saveError: null })

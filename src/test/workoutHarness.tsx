@@ -4,7 +4,7 @@ import { vi } from 'vitest'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { resetDatabase } from '../data/db'
 import { bootstrap } from '../data/seed/bootstrap'
-import { DEFAULT_SETTINGS, type AppSettings, type WorkoutSession } from '../domain/types'
+import { DEFAULT_SETTINGS, type AppSettings, type TemplateId, type WorkoutSession } from '../domain/types'
 import type { PendingResolution } from '../domain/session'
 import { startStrength, type ActionContext, type ActionResult } from '../domain/workout/actions'
 import { clearMirror } from '../state/mirror'
@@ -30,8 +30,8 @@ export async function resetApp(options: { demo?: boolean; settings?: Partial<App
   useWorkoutStore.setState({ status: 'ready' })
 }
 
-export async function startWorkout(): Promise<WorkoutSession> {
-  const session = await useWorkoutStore.getState().start()
+export async function startWorkout(templateId: TemplateId = 'upper'): Promise<WorkoutSession> {
+  const session = await useWorkoutStore.getState().start(templateId)
   useClock.setState({ now: Date.now() })
   return session
 }

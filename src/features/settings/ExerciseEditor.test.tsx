@@ -21,7 +21,7 @@ describe('exercise editor', () => {
   it('applies a set-count change at the current load and a new rest time to the next workout', async () => {
     const user = userEvent.setup({ delay: null })
     await completeWorkout()
-    expect((await getCurrentPrescriptions()).get('db-row')?.prescription).toMatchObject({ loadKg: 18, reps: [5, 5, 6] })
+    expect((await getCurrentPrescriptions('upper')).get('db-row')?.prescription).toMatchObject({ loadKg: 18, reps: [5, 5, 6] })
 
     renderSettings('/settings/exercises/db-row')
     await screen.findByRole('heading', { level: 1, name: 'One-arm DB row' })
@@ -68,13 +68,13 @@ describe('exercise editor', () => {
     expect((await screen.findByText('Face pulls')).closest('li')).toHaveTextContent('20 kg · 10 / 10 / 10')
 
     const sessionId = await completeWorkout()
-    const face = (await getTemplate()).exercises.find((e) => e.name === 'Face pulls')!
+    const face = (await getTemplate('upper')).exercises.find((e) => e.name === 'Face pulls')!
     expect(face).toMatchObject({ restSec: 60, loadType: 'weight', scheme: { sets: 3, minReps: 10, maxReps: 12 } })
 
     renderSettings(`/settings/exercises/${face.id}`)
     await user.click(await screen.findByRole('button', { name: 'Remove from workout' }))
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }))
-    await vi.waitFor(async () => expect((await getTemplate()).exercises.some((e) => e.id === face.id)).toBe(false))
+    await vi.waitFor(async () => expect((await getTemplate('upper')).exercises.some((e) => e.id === face.id)).toBe(false))
 
     const history = await listHistory()
     expect(history.find((s) => s.id === sessionId)?.exercises.some((e) => e.name === 'Face pulls')).toBe(true)
@@ -85,7 +85,7 @@ describe('exercise editor', () => {
     renderSettings('/settings/exercises')
     await user.click(await screen.findByRole('button', { name: 'Move DB bench press up' }))
     await vi.waitFor(async () =>
-      expect((await getTemplate()).exercises.map((e) => e.id).slice(0, 4)).toEqual(['pull-ups', 'dips', 'db-bench', 'db-row']),
+      expect((await getTemplate('upper')).exercises.map((e) => e.id).slice(0, 4)).toEqual(['pull-ups', 'dips', 'db-bench', 'db-row']),
     )
     expect(screen.getByRole('button', { name: 'Move Pull-ups up' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Move Suitcase carry down' })).toBeDisabled()
@@ -108,7 +108,7 @@ describe('exercise editor', () => {
     await user.click(await screen.findByRole('button', { name: 'Increase top time' }))
     await user.click(screen.getByRole('button', { name: 'Decrease weight step' }))
     await vi.waitFor(async () => {
-      const carry = (await getTemplate()).exercises.find((e) => e.id === 'suitcase-carry')
+      const carry = (await getTemplate('upper')).exercises.find((e) => e.id === 'suitcase-carry')
       expect(carry).toMatchObject({ loadStepKg: 1.25, scheme: { minSec: 40, maxSec: 65, stepSec: 5, setsPerSide: 2 } })
     })
   })
@@ -122,7 +122,7 @@ describe('exercise editor', () => {
   })
 
   it('keeps at least one exercise in the workout', async () => {
-    const template = await getTemplate()
+    const template = await getTemplate('upper')
     await saveTemplate({ ...template, exercises: template.exercises.filter((e) => e.id === 'pull-ups') })
     renderSettings('/settings/exercises/pull-ups')
     expect(await screen.findByRole('button', { name: 'Remove from workout' })).toBeDisabled()

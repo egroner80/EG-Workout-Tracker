@@ -7,6 +7,7 @@ import type { ExerciseDef } from '../../domain/types'
 import styles from './Settings.module.css'
 import { ReorderButtons } from './SettingsControls'
 import { moveById, updateTemplate } from './settingsActions'
+import { useTemplateParam } from './useTemplateParam'
 
 /** "3 × 5–6 · 1:30 rest" or "2 × 40–60 s per side · 1:00 rest". */
 function schemeSummary(exercise: ExerciseDef): string {
@@ -20,7 +21,8 @@ function schemeSummary(exercise: ExerciseDef): string {
 }
 
 export function ExerciseListEditor() {
-  const data = useTargets()
+  const templateId = useTemplateParam()
+  const data = useTargets(templateId)
   if (!data) return <div className={styles.loading} aria-busy="true" />
   const { exercises } = data.template
 
@@ -47,7 +49,7 @@ export function ExerciseListEditor() {
                   first={index === 0}
                   last={index === exercises.length - 1}
                   onMove={(direction) =>
-                    void updateTemplate((t) => ({ ...t, exercises: moveById(t.exercises, exercise.id, direction) }))
+                    void updateTemplate(templateId, (t) => ({ ...t, exercises: moveById(t.exercises, exercise.id, direction) }))
                   }
                 />
               </div>

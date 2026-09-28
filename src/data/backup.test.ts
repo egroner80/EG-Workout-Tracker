@@ -1,29 +1,34 @@
 import { describe, expect, it } from 'vitest'
 import { isValidSession, isValidSettings, isValidTemplate } from '../domain/migrate'
 import { buildSession, finishSession, reopenSession, resolvePending, softDeleteSession } from '../domain/session'
-import { DEFAULT_SETTINGS, type WorkoutSession } from '../domain/types'
+import { SQUAT_ROUTINE } from '../domain/sharedWarmup'
+import { DEFAULT_SETTINGS, type WorkoutSession, type WorkoutTemplate } from '../domain/types'
 import { BackupError, buildBackup, parseBackup, planImport } from './backup'
-import { createDefaultTemplate } from './seed/defaultTemplate'
+import { createDefaultTemplates, createTemplate } from './seed/defaultTemplate'
 import { generateDemoHistory } from './seed/demoHistory'
 
 const T0 = Date.UTC(2026, 8, 1, 17, 0)
 const HOUR = 3600_000
+/** When the file is opened: a week after it was made. */
+const OPENED = T0 + 7 * 24 * HOUR
 
 function workout(id: string, startedAt: number, source: 'real' | 'demo' = 'real'): WorkoutSession {
-  const session = buildSession({ id, now: startedAt, template: createDefaultTemplate(), prescriptions: new Map(), source })
+  const session = buildSession({ id, now: startedAt, template: createTemplate('upper'), prescriptions: new Map(), source })
   return finishSession(resolvePending(session, { dips: 'done' }), { now: startedAt + HOUR })
 }
 
 const local = (sessions: WorkoutSession[] = []) => ({
   sessions,
   overrides: [],
-  template: createDefaultTemplate(),
+  templates: createDefaultTemplates(),
   settings: { ...DEFAULT_SETTINGS },
 })
 
+const parse = (file: unknown) => parseBackup(JSON.stringify(file), OPENED)
+
 describe('buildBackup and parseBackup', () => {
-  it('round-trips every real record and leaves out active and demo sessions', () => {
-    const active = buildSession({ id: 'live', now: T0, template: createDefaultTemplate(), prescriptions: new Map() })
+  it('round-trips every real record and both workouts, and leaves out active and demo sessions', () => {
+    const active = buildSession({ id: 'live', now: T0, template: createTemplate('upper'), prescriptions: new Map() })
     const deleted = softDeleteSession(workout('gone', T0 - 48 * HOUR), T0)
     const source = {
       ...local([workout('a', T0), workout('demo-01', T0, 'demo'), active, deleted]),
@@ -34,19 +39,58 @@ describe('buildBackup and parseBackup', () => {
     const backup = buildBackup(source, T0 + HOUR, '0.1.0')
     expect(backup.sessions.map((s) => s.id).sort()).toEqual(['a', 'gone'])
     expect(backup.counts).toEqual({ sessions: 2, overrides: 1 })
+    expect(backup.templates.map((t) => t.id)).toEqual(['upper', 'lower'])
 
-    const parsed = parseBackup(JSON.stringify(backup))
+    const parsed = parse(backup)
     expect(parsed.sessions).toEqual(backup.sessions)
     expect(parsed.overrides).toEqual(backup.overrides)
-    expect(parsed.template).toEqual(backup.template)
+    expect(parsed.templates).toEqual(backup.templates)
   })
 
   it('rejects malformed JSON, foreign files, truncated files, and newer schema versions', () => {
     const backup = buildBackup(local([workout('a', T0)]), T0, '0.1.0')
-    expect(() => parseBackup('{not json')).toThrow(BackupError)
-    expect(() => parseBackup(JSON.stringify({ hello: 'world' }))).toThrow(/not an Overload backup/)
-    expect(() => parseBackup(JSON.stringify({ ...backup, counts: { sessions: 5, overrides: 0 } }))).toThrow(/truncated/)
-    expect(() => parseBackup(JSON.stringify({ ...backup, schemaVersion: 99 }))).toThrow(/newer version/)
+    expect(() => parseBackup('{not json', OPENED)).toThrow(BackupError)
+    expect(() => parse({ hello: 'world' })).toThrow(/not an Overload backup/)
+    expect(() => parse({ ...backup, counts: { sessions: 5, overrides: 0 } })).toThrow(/truncated/)
+    expect(() => parse({ ...backup, schemaVersion: 99 })).toThrow(/newer version/)
+  })
+})
+
+describe('schema-1 backups', () => {
+  /** A backup as the first version wrote it: one template, workouts without a type. */
+  function v1Backup(sessions: unknown[] = [workout('a', T0)]) {
+    const { templates: _templates, ...rest } = buildBackup(local(), T0, '0.1.0')
+    const template = createTemplate('upper')
+    const squatIds = new Set(SQUAT_ROUTINE.map((step) => step.id))
+    const untyped = sessions.map((s) => {
+      const { templateId: _templateId, ...record } = structuredClone(s as WorkoutSession)
+      return record
+    })
+    return {
+      ...rest,
+      schemaVersion: 1,
+      counts: { sessions: untyped.length, overrides: 0 },
+      sessions: untyped,
+      template: { ...template, id: 'default', warmup: template.warmup.filter((s) => !squatIds.has(s.id)), updatedAt: T0 },
+    }
+  }
+
+  it('restores the workouts as upper body and the template as the upper-body workout with the squat routine', () => {
+    const parsed = parse(v1Backup())
+    expect(parsed.sessions.map((s) => s.templateId)).toEqual(['upper'])
+    expect(parsed.templates.map((t) => t.id)).toEqual(['upper'])
+    expect(parsed.templates[0].warmup.map((s) => s.id)).toContain('deep-squat-hold')
+    expect(parsed.templates[0].updatedAt).toBe(T0)
+  })
+
+  it('merges the restored upper template and leaves the local lower one to the shared-step sync', () => {
+    const plan = planImport(parse(v1Backup()), local())
+    expect(plan.templates.map((t) => t.id)).toEqual(['upper'])
+  })
+
+  it('rejects a workout record that cannot be migrated', () => {
+    const file = v1Backup([{ ...workout('a', T0), exercises: [{ kind: 'reps' }] }])
+    expect(() => parse(file)).toThrow(/workout record is malformed/)
   })
 })
 
@@ -55,40 +99,58 @@ describe('backup validation', () => {
   const reject = (mutate: (file: Record<string, unknown>) => void, message: RegExp) => {
     const file = JSON.parse(JSON.stringify(valid())) as Record<string, unknown>
     mutate(file)
-    expect(() => parseBackup(JSON.stringify(file))).toThrow(BackupError)
-    expect(() => parseBackup(JSON.stringify(file))).toThrow(message)
+    expect(() => parse(file)).toThrow(BackupError)
+    expect(() => parse(file)).toThrow(message)
   }
   const firstSession = (file: Record<string, unknown>) => (file.sessions as Record<string, unknown>[])[0]
+  const firstTemplate = (file: Record<string, unknown>) => (file.templates as Record<string, unknown>[])[0]
 
   it('accepts everything the app itself writes', () => {
-    const template = createDefaultTemplate()
-    const demo = generateDemoHistory({ now: T0, template })
-    const active = buildSession({ id: 'live', now: T0, template, prescriptions: new Map() })
+    const templates = createDefaultTemplates()
+    const demo = generateDemoHistory({ now: T0, templates })
+    const active = buildSession({ id: 'live', now: T0, template: templates.lower, prescriptions: new Map() })
     const reopened = reopenSession(workout('b', T0), T0 + 2 * HOUR)
     for (const session of [...demo, active, reopened, workout('a', T0)]) expect(isValidSession(session)).toBe(true)
-    expect(isValidTemplate(template)).toBe(true)
+    expect(isValidTemplate(templates.upper)).toBe(true)
+    expect(isValidTemplate(templates.lower)).toBe(true)
     expect(isValidSettings(DEFAULT_SETTINGS)).toBe(true)
-    expect(() => parseBackup(JSON.stringify(buildBackup(local([workout('a', T0), reopened]), T0, '0.1.0')))).not.toThrow()
+    expect(() => parse(buildBackup(local([workout('a', T0), reopened]), T0, '0.1.0'))).not.toThrow()
   })
 
   it('rejects a template whose exercises or warm-up steps are incomplete', () => {
     reject((file) => {
-      const exercises = (file.template as { exercises: Record<string, unknown>[] }).exercises
-      delete exercises[0].baseline
-    }, /malformed template or settings/)
+      delete (firstTemplate(file).exercises as Record<string, unknown>[])[0].baseline
+    }, /workout template is malformed/)
     reject((file) => {
-      const exercises = (file.template as { exercises: Record<string, unknown>[] }).exercises
-      exercises[0].scheme = { type: 'staircase', sets: 3, minReps: 6, maxReps: 5 }
-    }, /malformed template or settings/)
+      ;(firstTemplate(file).exercises as Record<string, unknown>[])[0].scheme = {
+        type: 'staircase',
+        sets: 3,
+        minReps: 6,
+        maxReps: 5,
+      }
+    }, /workout template is malformed/)
     reject((file) => {
-      ;(file.template as { warmup: unknown[] }).warmup.push(null)
-    }, /malformed template or settings/)
+      ;(firstTemplate(file).warmup as unknown[]).push(null)
+    }, /workout template is malformed/)
+  })
+
+  it('rejects unknown, missing, or repeated workouts', () => {
+    reject((file) => {
+      firstTemplate(file).id = 'legs'
+    }, /workout template is malformed/)
+    reject((file) => {
+      file.templates = []
+    }, /no workout template/)
+    reject((file) => {
+      const templates = file.templates as unknown[]
+      templates[1] = structuredClone(templates[0])
+    }, /same workout twice/)
   })
 
   it('rejects settings with unknown values', () => {
     reject((file) => {
       ;(file.settings as Record<string, unknown>).theme = 'neon'
-    }, /malformed template or settings/)
+    }, /malformed settings/)
   })
 
   it('rejects workouts with malformed sets, recommendations, or an active slot', () => {
@@ -110,6 +172,31 @@ describe('backup validation', () => {
       file.overrides = [{ id: 'o1', targetId: 'db-row', prescription: { kind: 'reps', reps: [] }, createdAt: T0, updatedAt: T0 }]
       ;(file.counts as Record<string, number>).overrides = 1
     }, /manual target record is malformed/)
+  })
+
+  it('refuses dates that would outrank every later workout, and dates before 1970', () => {
+    reject((file) => {
+      firstSession(file).finishedAt = OPENED + 2 * 24 * HOUR
+    }, /dates in the future/)
+    reject((file) => {
+      file.overrides = [
+        {
+          id: 'o1',
+          targetId: 'db-row',
+          prescription: { kind: 'reps', loadKg: 20, reps: [5, 5, 5] },
+          createdAt: OPENED + 30 * 24 * HOUR,
+          updatedAt: OPENED + 30 * 24 * HOUR,
+        },
+      ]
+      ;(file.counts as Record<string, number>).overrides = 1
+    }, /dates in the future/)
+    reject((file) => {
+      firstTemplate(file).updatedAt = -1
+    }, /before 1970/)
+    // A few hours of clock difference between devices is fine.
+    const skewed = JSON.parse(JSON.stringify(valid())) as Record<string, unknown>
+    firstSession(skewed).updatedAt = OPENED + 3 * HOUR
+    expect(() => parse(skewed)).not.toThrow()
   })
 
   it('backs up a reopened workout as it was when finished', () => {
@@ -172,18 +259,18 @@ describe('planImport', () => {
     const backup = buildBackup(local([workout('a', T0)]), T0, '0.1.0')
     backup.sessions.push(workout('demo-01', T0, 'demo'))
     backup.counts.sessions = backup.sessions.length
-    const activeLocal = buildSession({ id: 'a', now: T0, template: createDefaultTemplate(), prescriptions: new Map() })
+    const activeLocal = buildSession({ id: 'a', now: T0, template: createTemplate('upper'), prescriptions: new Map() })
     const plan = planImport(backup, local([activeLocal]))
     expect(plan.sessionsToPut).toEqual([])
     expect(plan.preview.skippedWorkouts).toBe(2)
   })
 
-  it('restores a template edited after the seed but keeps a newer local template', () => {
-    const edited = { ...createDefaultTemplate(), updatedAt: T0 }
-    const plan = planImport(buildBackup({ ...local(), template: edited }, T0, '0.1.0'), local())
-    expect(plan.template).toEqual(edited)
+  it('restores each workout edited after the seed but keeps a newer local copy of it', () => {
+    const editedLower: WorkoutTemplate = { ...createTemplate('lower'), updatedAt: T0 }
+    const source = { ...local(), templates: { ...createDefaultTemplates(), lower: editedLower } }
+    expect(planImport(buildBackup(source, T0, '0.1.0'), local()).templates).toEqual([editedLower])
 
-    const newerLocal = { ...local(), template: { ...createDefaultTemplate(), updatedAt: T0 + 1 } }
-    expect(planImport(buildBackup({ ...local(), template: edited }, T0, '0.1.0'), newerLocal).template).toBeUndefined()
+    const newerLocal = { ...local(), templates: { ...createDefaultTemplates(), lower: { ...editedLower, updatedAt: T0 + 1 } } }
+    expect(planImport(buildBackup(source, T0, '0.1.0'), newerLocal).templates).toEqual([])
   })
 })

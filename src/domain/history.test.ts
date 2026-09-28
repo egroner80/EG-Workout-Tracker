@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createDefaultTemplate } from '../data/seed/defaultTemplate'
+import { createTemplate } from '../data/seed/defaultTemplate'
 import { exerciseRows, increaseDates, ladderGroups, loadSeries, volumeSeries, warmupSeries } from './history'
 import { buildSession, finishSession, resolvePending } from './session'
 import type { Prescription, RepsExerciseLog, WorkoutSession } from './types'
@@ -9,7 +9,7 @@ const T0 = Date.UTC(2026, 6, 1, 17, 0)
 
 /** A finished workout with a planned DB row target; `short` makes the last set one rep short. */
 function rowWorkout(day: number, loadKg: number, reps: number[], opts: { short?: boolean; skipSet?: number } = {}) {
-  const template = createDefaultTemplate()
+  const template = createTemplate('upper')
   const prescriptions = new Map<string, Prescription>([['db-row', { kind: 'reps', loadKg, reps }]])
   let session = buildSession({ id: `w${day}`, now: T0 + day * DAY, template, prescriptions })
   session = resolvePending(session, { 'db-row': 'done' })

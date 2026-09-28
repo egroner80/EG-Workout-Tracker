@@ -7,7 +7,7 @@ import styles from './Progress.module.css'
 
 /** Every exercise and the jump rope, each opening its ladder, charts, and log. */
 export function ProgressScreen() {
-  const data = useTargets()
+  const data = useTargets('upper')
   if (!data) return <div className={styles.loading} aria-busy="true" />
   const rope = data.template.warmup.find((s) => s.id === 'jump-rope')
   const ropeTarget = rope ? data.targets.get(rope.id) : undefined

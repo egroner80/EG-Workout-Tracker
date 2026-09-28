@@ -1,4 +1,4 @@
-import type { TemplateId, WorkoutSession } from './types'
+import type { TemplateId, WorkoutSession, WorkoutTemplate } from './types'
 
 /** Both workouts, in the order they are listed. */
 export const TEMPLATE_IDS: readonly TemplateId[] = ['upper', 'lower']
@@ -20,4 +20,9 @@ export function otherTemplate(id: TemplateId): TemplateId {
 /** Workouts saved before the lower-body workout existed carry no type: they were upper body. */
 export function workoutTypeOf(session: Pick<WorkoutSession, 'templateId'>): TemplateId {
   return session.templateId ?? 'upper'
+}
+
+/** Whether an exercise or warm-up step with this id is part of the workout. */
+export function templateHasTarget(template: WorkoutTemplate, targetId: string): boolean {
+  return template.exercises.some((e) => e.id === targetId) || template.warmup.some((s) => s.id === targetId)
 }

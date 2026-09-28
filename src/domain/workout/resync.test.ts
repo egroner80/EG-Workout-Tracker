@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createDefaultTemplate } from '../../data/seed/defaultTemplate'
+import { createTemplate } from '../../data/seed/defaultTemplate'
 import { buildSession } from '../session'
 import type { CarryExerciseLog, WorkoutSession } from '../types'
 import { startEffort, startRest, startWarmupStep } from './actions'
@@ -10,7 +10,7 @@ const T0 = Date.UTC(2026, 8, 27, 17, 0)
 const live = (now: number): ResyncContext => ({ now, visible: true, getReadyCountdown: true })
 
 function session(): WorkoutSession {
-  return buildSession({ id: 's1', now: T0, template: createDefaultTemplate(), prescriptions: new Map() })
+  return buildSession({ id: 's1', now: T0, template: createTemplate('upper'), prescriptions: new Map() })
 }
 
 const carry = (s: WorkoutSession) => s.exercises.find((e) => e.kind === 'carry') as CarryExerciseLog
@@ -41,7 +41,7 @@ describe('resync — warm-up', () => {
 
   it('reaches the warm-up-complete state after the last step', () => {
     let s = session()
-    s = { ...s, runtime: { ...s.runtime!, warmup: { index: 5, timer: null, getReady: null } } }
+    s = { ...s, runtime: { ...s.runtime!, warmup: { index: s.warmup.length - 1, timer: null, getReady: null } } }
     s = startWarmupStep(s, { now: T0, getReadyCountdown: false }).session
     const { session: next } = resync(s, live(T0 + 45_100))
     expect(next.runtime?.phase).toBe('warmup-complete')

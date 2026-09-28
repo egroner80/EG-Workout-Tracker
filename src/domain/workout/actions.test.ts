@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { createDefaultTemplate } from '../../data/seed/defaultTemplate'
+import { createTemplate } from '../../data/seed/defaultTemplate'
 import { buildSession } from '../session'
 import type { CarryExerciseLog, RepsExerciseLog, WorkoutSession } from '../types'
 import {
   addSet,
   currentLoad,
   deleteAddedSet,
+  activeStepIndexes,
   nextWarmupStep,
   pauseWarmup,
   previousWarmupStep,
@@ -28,7 +29,7 @@ const T0 = Date.UTC(2026, 8, 27, 17, 0)
 const ctx = (now: number, getReadyCountdown = true): ActionContext => ({ now, getReadyCountdown })
 
 function session(): WorkoutSession {
-  return buildSession({ id: 's1', now: T0, template: createDefaultTemplate(), prescriptions: new Map() })
+  return buildSession({ id: 's1', now: T0, template: createTemplate('upper'), prescriptions: new Map() })
 }
 
 const reps = (s: WorkoutSession, id: string) => s.exercises.find((e) => e.exerciseId === id) as RepsExerciseLog
@@ -82,7 +83,8 @@ describe('warm-up actions', () => {
 
   it('skipping the last active step completes the warm-up', () => {
     let s = session()
-    for (let i = 0; i < 5; i++) s = skipWarmupStep(s, ctx(T0 + i)).session
+    const steps = activeStepIndexes(s).length
+    for (let i = 0; i < steps; i++) s = skipWarmupStep(s, ctx(T0 + i)).session
     expect(s.runtime?.phase).toBe('warmup-complete')
   })
 })

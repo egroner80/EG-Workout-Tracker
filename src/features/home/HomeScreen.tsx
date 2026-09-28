@@ -26,7 +26,7 @@ export function HomeScreen() {
   const session = useWorkoutStore((state) => state.session)
   const unreadable = useWorkoutStore((state) => state.recovery !== null)
   const busy = useWorkoutStore((state) => state.busy)
-  const data = useTargets()
+  const data = useTargets('upper')
   const meta = useMeta()
   const hasDemo = useHasDemo()
   const [demoChoiceOpen, setDemoChoiceOpen] = useState(false)
@@ -45,7 +45,7 @@ export function HomeScreen() {
   const start = async () => {
     setStartError(null)
     try {
-      await useWorkoutStore.getState().start()
+      await useWorkoutStore.getState().start('upper')
       navigate('/workout')
     } catch (error) {
       setStartError(error instanceof Error ? error.message : 'Could not start the workout')

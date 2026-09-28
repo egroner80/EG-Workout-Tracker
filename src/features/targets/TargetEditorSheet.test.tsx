@@ -12,7 +12,7 @@ beforeEach(async () => {
 })
 
 function Editor({ targetId }: { targetId: string }) {
-  return <TargetEditorSheet data={useTargets()} targetId={targetId} onClose={() => {}} />
+  return <TargetEditorSheet data={useTargets('upper')} targetId={targetId} onClose={() => {}} />
 }
 
 async function open(targetId: string) {
@@ -27,10 +27,10 @@ describe('target editor', () => {
     await user.click(screen.getByRole('button', { name: 'Increase number of sets' }))
     await user.click(screen.getByRole('button', { name: 'Save target' }))
     await vi.waitFor(async () => {
-      const pullUps = (await getCurrentPrescriptions()).get('pull-ups')
+      const pullUps = (await getCurrentPrescriptions('upper')).get('pull-ups')
       expect(pullUps?.prescription).toEqual({ kind: 'reps', loadKg: 0, reps: [5, 5, 5, 5] })
     })
-    const template = await getTemplate()
+    const template = await getTemplate('upper')
     const pullUps = template.exercises.find((e) => e.id === 'pull-ups')
     expect(pullUps?.kind === 'reps' && pullUps.scheme.sets).toBe(4)
   })
@@ -42,7 +42,7 @@ describe('target editor', () => {
     await user.click(screen.getByRole('button', { name: 'Increase time per side' }))
     await user.click(screen.getByRole('button', { name: 'Save target' }))
     await vi.waitFor(async () =>
-      expect((await getCurrentPrescriptions()).get('suitcase-carry')?.prescription).toMatchObject({ seconds: 50 }),
+      expect((await getCurrentPrescriptions('upper')).get('suitcase-carry')?.prescription).toMatchObject({ seconds: 50 }),
     )
   })
 
@@ -52,7 +52,7 @@ describe('target editor', () => {
     for (let i = 0; i < 6; i++) await user.click(screen.getByRole('button', { name: 'Increase duration' }))
     await user.click(screen.getByRole('button', { name: 'Save target' }))
     await vi.waitFor(async () =>
-      expect((await getCurrentPrescriptions()).get('jump-rope')?.prescription).toEqual({
+      expect((await getCurrentPrescriptions('upper')).get('jump-rope')?.prescription).toEqual({
         kind: 'warmup',
         durationSec: 150,
         active: true,

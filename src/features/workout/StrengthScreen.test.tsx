@@ -193,7 +193,7 @@ describe('navigation and finish', () => {
 
   it('shows an empty state instead of crashing when the workout has no exercises', async () => {
     const user = userEvent.setup()
-    await saveTemplate({ ...(await getTemplate()), exercises: [] })
+    await saveTemplate({ ...(await getTemplate('upper')), exercises: [] })
     await startWorkout()
     act(startStrength)
     renderAt(<WorkoutRoute />)

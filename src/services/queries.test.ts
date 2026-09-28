@@ -1,10 +1,13 @@
 import { liveQuery } from 'dexie'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { resetDatabase } from '../data/db'
+import { db, resetDatabase } from '../data/db'
 import { saveActiveSession } from '../data/repositories/sessions'
 import { bootstrap } from '../data/seed/bootstrap'
-import type { LastTime } from '../domain/prescription'
-import { loadLastTimes } from './queries'
+import { createTemplate } from '../data/seed/defaultTemplate'
+import { deriveCurrentPrescriptions, type LastTime } from '../domain/prescription'
+import { buildSession, discardSession, finishSession, softDeleteSession } from '../domain/session'
+import type { TemplateId, WorkoutSession } from '../domain/types'
+import { loadLastTimes, loadPrescriptionContext, loadRecentWorkouts } from './queries'
 import { finishWorkout, startWorkout } from './workoutCommands'
 
 const T0 = Date.UTC(2026, 8, 27, 17, 0)
@@ -17,10 +20,10 @@ beforeEach(async () => {
 
 describe('LAST TIME', () => {
   it('reads only earlier workouts, so saving the current one does not re-run a live query', async () => {
-    const earlier = await startWorkout(T0)
+    const earlier = await startWorkout('upper', T0)
     const resolutions = Object.fromEntries(earlier.exercises.map((e) => [e.exerciseId, 'done' as const]))
     await finishWorkout({ sessionId: earlier.id, resolutions, now: T0 + HOUR })
-    const current = await startWorkout(T0 + 48 * HOUR)
+    const current = await startWorkout('upper', T0 + 48 * HOUR)
 
     const emissions: Map<string, LastTime>[] = []
     const subscription = liveQuery(() => loadLastTimes(current.exerciseIds, current.startedAt)).subscribe((value) =>
@@ -33,5 +36,58 @@ describe('LAST TIME', () => {
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(emissions).toHaveLength(1)
     subscription.unsubscribe()
+  })
+})
+
+describe('targets across workouts', () => {
+  it('carries the jump rope from an upper-body workout into the next lower-body one', async () => {
+    const upper = await startWorkout('upper', T0)
+    const warmup = upper.warmup.map((step) =>
+      step.stepId === 'jump-rope' ? { ...step, completed: true, elapsedMs: step.plannedSec * 1000 } : step,
+    )
+    await saveActiveSession({ ...upper, warmup, rev: upper.rev + 1, updatedAt: T0 + 1000 })
+    const resolutions = Object.fromEntries(upper.exercises.map((e) => [e.exerciseId, 'done' as const]))
+    await finishWorkout({ sessionId: upper.id, resolutions, now: T0 + HOUR })
+
+    const context = await loadPrescriptionContext('lower')
+    expect(context.template.id).toBe('lower')
+    expect(deriveCurrentPrescriptions(context).get('jump-rope')?.prescription).toEqual({
+      kind: 'warmup',
+      durationSec: 130,
+      active: true,
+    })
+    const lower = await startWorkout('lower', T0 + 48 * HOUR)
+    expect(lower.templateId).toBe('lower')
+    expect(lower.warmup.find((s) => s.stepId === 'jump-rope')?.plannedSec).toBe(130)
+  })
+})
+
+describe('recent workouts', () => {
+  function finished(id: string, templateId: TemplateId, at: number, source: 'real' | 'demo' = 'real'): WorkoutSession {
+    const session = buildSession({ id, now: at - HOUR, template: createTemplate(templateId), prescriptions: new Map(), source })
+    return finishSession(session, { now: at })
+  }
+
+  it('lists finished real workouts newest first with their type; older untyped ones count as upper', async () => {
+    const { templateId: _untyped, ...legacy } = finished('legacy', 'upper', T0)
+    const discarded = discardSession(
+      buildSession({ id: 'thrown', now: T0 + 30 * HOUR, template: createTemplate('lower'), prescriptions: new Map() }),
+      T0 + 31 * HOUR,
+    )
+    await db.sessions.bulkAdd([
+      legacy,
+      finished('u1', 'upper', T0 + 24 * HOUR),
+      finished('l1', 'lower', T0 + 48 * HOUR),
+      discarded,
+      softDeleteSession(finished('gone', 'lower', T0 + 60 * HOUR), T0 + 61 * HOUR),
+      finished('demo-01', 'lower', T0 + 70 * HOUR, 'demo'),
+    ])
+
+    expect(await loadRecentWorkouts(5)).toEqual([
+      { id: 'l1', templateId: 'lower', startedAt: T0 + 47 * HOUR, finishedAt: T0 + 48 * HOUR },
+      { id: 'u1', templateId: 'upper', startedAt: T0 + 23 * HOUR, finishedAt: T0 + 24 * HOUR },
+      { id: 'legacy', templateId: 'upper', startedAt: T0 - HOUR, finishedAt: T0 },
+    ])
+    expect((await loadRecentWorkouts(2)).map((w) => w.id)).toEqual(['l1', 'u1'])
   })
 })

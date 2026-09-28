@@ -12,7 +12,7 @@ import { formatDuration, formatPrescription } from '../../domain/format'
 import { clamp } from '../../domain/math'
 import type { ResolvedPrescription } from '../../domain/prescription'
 import { isProgressiveStep } from '../../domain/progression/warmup'
-import type { WarmupStepDef } from '../../domain/types'
+import type { TemplateId, WarmupStepDef } from '../../domain/types'
 import { createOverride } from '../../services/dataCommands'
 import { useWorkoutStore } from '../../state/workoutStore'
 import { TargetEditorSheet } from '../targets/TargetEditorSheet'
@@ -20,12 +20,14 @@ import { NameField } from './NameField'
 import styles from './Settings.module.css'
 import { Field, ReorderButtons } from './SettingsControls'
 import { moveById, updateTemplate, updateWarmupStep } from './settingsActions'
+import { useTemplateParam } from './useTemplateParam'
 
 const MIN_SEC = 5
 const MAX_SEC = 1800
 
 export function WarmupEditor() {
-  const data = useTargets()
+  const templateId = useTemplateParam()
+  const data = useTargets(templateId)
   const workoutActive = useWorkoutStore((state) => state.session !== null)
   const [adding, setAdding] = useState(false)
   const [removing, setRemoving] = useState<WarmupStepDef | null>(null)
@@ -80,7 +82,7 @@ export function WarmupEditor() {
           onClose={() => setAdding(false)}
           onAdd={(name, durationSec) => {
             setAdding(false)
-            void updateTemplate((t) => ({ ...t, warmup: [...t.warmup, { id: newId(), name, durationSec }] }))
+            void updateTemplate(templateId, (t) => ({ ...t, warmup: [...t.warmup, { id: newId(), name, durationSec }] }))
           }}
         />
       )}
@@ -93,7 +95,7 @@ export function WarmupEditor() {
         onConfirm={() => {
           const id = removing?.id
           setRemoving(null)
-          if (id) void updateTemplate((t) => ({ ...t, warmup: t.warmup.filter((s) => s.id !== id) }))
+          if (id) void updateTemplate(templateId, (t) => ({ ...t, warmup: t.warmup.filter((s) => s.id !== id) }))
         }}
         onClose={() => setRemoving(null)}
       />
@@ -126,16 +128,17 @@ function StepCard({
   onToggleIncluded,
   onRemove,
 }: StepCardProps) {
+  const templateId = useTemplateParam()
   const progressive = isProgressiveStep(step)
   const next = resolved?.prescription.kind === 'warmup' ? resolved.prescription : undefined
-  const move = (direction: -1 | 1) => void updateTemplate((t) => ({ ...t, warmup: moveById(t.warmup, step.id, direction) }))
+  const move = (direction: -1 | 1) => void updateTemplate(templateId, (t) => ({ ...t, warmup: moveById(t.warmup, step.id, direction) }))
 
   return (
     <article className={styles.card} aria-label={step.name}>
       <NameField
         name={step.name}
         label="Warm-up exercise name"
-        onSave={(name) => void updateWarmupStep(step.id, (s) => ({ ...s, name }))}
+        onSave={(name) => void updateWarmupStep(templateId, step.id, (s) => ({ ...s, name }))}
       />
 
       {progressive ? (
@@ -155,8 +158,8 @@ function StepCard({
             label={`${step.name} duration`}
             value={formatDuration(step.durationSec)}
             canDecrement={step.durationSec > MIN_SEC}
-            onDecrement={() => void updateWarmupStep(step.id, (s) => ({ ...s, durationSec: clamp(s.durationSec - 5, MIN_SEC, MAX_SEC) }))}
-            onIncrement={() => void updateWarmupStep(step.id, (s) => ({ ...s, durationSec: clamp(s.durationSec + 5, MIN_SEC, MAX_SEC) }))}
+            onDecrement={() => void updateWarmupStep(templateId, step.id, (s) => ({ ...s, durationSec: clamp(s.durationSec - 5, MIN_SEC, MAX_SEC) }))}
+            onIncrement={() => void updateWarmupStep(templateId, step.id, (s) => ({ ...s, durationSec: clamp(s.durationSec + 5, MIN_SEC, MAX_SEC) }))}
           />
         </Field>
       )}
@@ -179,8 +182,8 @@ function StepCard({
               label={`${step.name} increase per workout`}
               value={`${step.progression.stepSec} s`}
               canDecrement={step.progression.stepSec > 5}
-              onDecrement={() => void updateProgression(step.id, (p) => ({ ...p, stepSec: clamp(p.stepSec - 5, 5, 120) }))}
-              onIncrement={() => void updateProgression(step.id, (p) => ({ ...p, stepSec: clamp(p.stepSec + 5, 5, 120) }))}
+              onDecrement={() => void updateProgression(templateId, step.id, (p) => ({ ...p, stepSec: clamp(p.stepSec - 5, 5, 120) }))}
+              onIncrement={() => void updateProgression(templateId, step.id, (p) => ({ ...p, stepSec: clamp(p.stepSec + 5, 5, 120) }))}
             />
           </Field>
           <Field label="Up to">
@@ -189,8 +192,8 @@ function StepCard({
               label={`${step.name} maximum`}
               value={formatDuration(step.progression.maxSec)}
               canDecrement={step.progression.maxSec > 15}
-              onDecrement={() => void updateProgression(step.id, (p) => ({ ...p, maxSec: clamp(p.maxSec - 15, 15, MAX_SEC) }))}
-              onIncrement={() => void updateProgression(step.id, (p) => ({ ...p, maxSec: clamp(p.maxSec + 15, 15, MAX_SEC) }))}
+              onDecrement={() => void updateProgression(templateId, step.id, (p) => ({ ...p, maxSec: clamp(p.maxSec - 15, 15, MAX_SEC) }))}
+              onIncrement={() => void updateProgression(templateId, step.id, (p) => ({ ...p, maxSec: clamp(p.maxSec + 15, 15, MAX_SEC) }))}
             />
           </Field>
         </>
@@ -217,10 +220,11 @@ async function includeStep(step: WarmupStepDef, resolved: ResolvedPrescription |
  * duration, so double unders still join when jump rope tops out.
  */
 function updateProgression(
+  templateId: TemplateId,
   id: string,
   recipe: (progression: NonNullable<WarmupStepDef['progression']>) => NonNullable<WarmupStepDef['progression']>,
 ) {
-  return updateTemplate((t) => {
+  return updateTemplate(templateId, (t) => {
     const step = t.warmup.find((s) => s.id === id)
     if (!step?.progression) return t
     const progression = recipe(step.progression)

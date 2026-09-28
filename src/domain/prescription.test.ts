@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createDefaultTemplate } from '../data/seed/defaultTemplate'
+import { createTemplate } from '../data/seed/defaultTemplate'
 import { deriveCurrentPrescriptions, findLastTime } from './prescription'
 import { buildSession, finishSession, resolvePending } from './session'
 import type { Prescription, PrescriptionOverride, WorkoutSession, WorkoutTemplate } from './types'
@@ -17,7 +17,7 @@ function finished(
     skip?: string[]
   } = {},
 ): WorkoutSession {
-  const template = opts.template ?? createDefaultTemplate()
+  const template = opts.template ?? createTemplate('upper')
   const session = buildSession({
     id,
     now: startedAt,
@@ -41,7 +41,7 @@ function override(targetId: string, createdAt: number, loadKg = 14): Prescriptio
   }
 }
 
-const derive = (sessions: WorkoutSession[], overrides: PrescriptionOverride[] = [], template = createDefaultTemplate()) =>
+const derive = (sessions: WorkoutSession[], overrides: PrescriptionOverride[] = [], template = createTemplate('upper')) =>
   deriveCurrentPrescriptions({ template, sessions, overrides })
 
 describe('deriveCurrentPrescriptions', () => {
@@ -80,7 +80,7 @@ describe('deriveCurrentPrescriptions', () => {
   })
 
   it("applies a newly added exercise's override before its first workout", () => {
-    const template = createDefaultTemplate()
+    const template = createTemplate('upper')
     const bench = template.exercises[3]
     if (bench.kind !== 'reps') throw new Error('expected a reps exercise')
     template.exercises.push({
@@ -126,7 +126,7 @@ describe('deriveCurrentPrescriptions', () => {
 
   it('restarts at the bottom rung when the set count changes', () => {
     const s1 = finished('s1', T0)
-    const template = createDefaultTemplate()
+    const template = createTemplate('upper')
     const pullUps = template.exercises[0]
     if (pullUps.kind === 'reps') pullUps.scheme = { ...pullUps.scheme, sets: 4 }
     expect(derive([s1], [], template).get('pull-ups')?.prescription).toEqual({ kind: 'reps', loadKg: 0, reps: [5, 5, 5, 5] })
@@ -134,7 +134,7 @@ describe('deriveCurrentPrescriptions', () => {
 
   it('restarts at the bottom rung when the rep range changes', () => {
     const s1 = finished('s1', T0, { prescriptions: new Map<string, Prescription>([['db-row', { kind: 'reps', loadKg: 18, reps: [5, 6, 5] }]]) })
-    const template = createDefaultTemplate()
+    const template = createTemplate('upper')
     const row = template.exercises[2]
     if (row.kind === 'reps') row.scheme = { ...row.scheme, minReps: 8, maxReps: 12 }
     expect(derive([s1], [], template).get('db-row')?.prescription).toEqual({ kind: 'reps', loadKg: 18, reps: [8, 8, 8] })

@@ -24,7 +24,7 @@ describe('guided warm-up', () => {
 
     expect(screen.getByRole('heading', { name: 'Jump rope' })).toBeInTheDocument()
     expect(screen.getByRole('timer')).toHaveTextContent('2:00')
-    expect(screen.getByText('1 of 5')).toBeInTheDocument()
+    expect(screen.getByText('1 of 10')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Start' }))
     expect(screen.getByLabelText('Starting in 3')).toBeInTheDocument()
@@ -51,10 +51,10 @@ describe('guided warm-up', () => {
     await user.click(screen.getByRole('button', { name: 'Start' }))
     // Frame-by-frame so the completion is "fresh" and chains.
     advanceFrames(123_500)
-    expect(screen.getByRole('heading', { name: 'Shoulder CARs' })).toBeInTheDocument()
-    expect(screen.getByText('2 of 5')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Deep squat' })).toBeInTheDocument()
+    expect(screen.getByText('2 of 10')).toBeInTheDocument()
     advance(3_000)
-    expect(screen.getByRole('timer')).toHaveTextContent('0:45')
+    expect(screen.getByRole('timer')).toHaveTextContent('0:30')
     expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument()
   })
 
@@ -65,7 +65,7 @@ describe('guided warm-up', () => {
     renderAt(<WorkoutRoute />)
     await user.click(screen.getByRole('button', { name: 'Start' }))
     advanceFrames(120_500)
-    expect(screen.getByRole('heading', { name: 'Shoulder CARs' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Deep squat' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Start' })).toBeInTheDocument()
   })
 
@@ -74,7 +74,7 @@ describe('guided warm-up', () => {
     await startWorkout()
     renderAt(<WorkoutRoute />)
     await user.click(screen.getByRole('button', { name: 'Skip' }))
-    expect(screen.getByRole('heading', { name: 'Shoulder CARs' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Deep squat' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Previous' }))
     expect(screen.getByRole('heading', { name: 'Jump rope' })).toBeInTheDocument()
     expect(screen.getByText('Skipped')).toBeInTheDocument()
@@ -84,7 +84,7 @@ describe('guided warm-up', () => {
     const user = userEvent.setup()
     await startWorkout()
     renderAt(<WorkoutRoute />)
-    for (let i = 0; i < 5; i++) await user.click(screen.getByRole('button', { name: 'Skip' }))
+    for (let i = 0; i < 10; i++) await user.click(screen.getByRole('button', { name: 'Skip' }))
     expect(screen.getByRole('heading', { name: 'Warm-up complete' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Start strength workout' }))
     expect(screen.getByRole('heading', { name: 'Pull-ups' })).toBeInTheDocument()

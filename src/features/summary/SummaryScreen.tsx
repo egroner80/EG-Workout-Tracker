@@ -32,7 +32,7 @@ export function SummaryScreen() {
   const navigate = useNavigate()
   const session = useLiveQuery(() => getSession(sessionId), [sessionId])
   const latestReal = useLiveQuery(() => getLatestRealSession(), [])
-  const targets = useTargets()
+  const targets = useTargets('upper')
   const meta = useMeta()
   const workoutActive = useWorkoutStore((state) => state.session !== null)
   const [editing, setEditing] = useState<string | null>(null)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createDefaultTemplate } from '../data/seed/defaultTemplate'
+import { createTemplate } from '../data/seed/defaultTemplate'
 import {
   MigrationError,
   SCHEMA_VERSION,
@@ -12,7 +12,7 @@ import { buildSession, finishSession, reopenSession } from './session'
 import { SQUAT_ROUTINE } from './sharedWarmup'
 import type { WarmupStepDef, WorkoutSession, WorkoutTemplate } from './types'
 
-const session = buildSession({ id: 's1', now: 1, template: createDefaultTemplate(), prescriptions: new Map() })
+const session = buildSession({ id: 's1', now: 1, template: createTemplate('upper'), prescriptions: new Map() })
 const completed = finishSession(session, { now: 2 })
 const squatIds = SQUAT_ROUTINE.map((step) => step.id)
 
@@ -25,7 +25,7 @@ function v1Session(record: WorkoutSession): Record<string, unknown> {
 
 /** The single template as schema 1 stored it. */
 function v1Template(warmup?: WarmupStepDef[]): Record<string, unknown> {
-  const template = createDefaultTemplate()
+  const template = createTemplate('upper')
   return {
     ...template,
     id: 'default',
@@ -101,12 +101,12 @@ describe('migrateTemplate', () => {
   })
 
   it('passes a current-version template through unchanged', () => {
-    const template = createDefaultTemplate()
+    const template = createTemplate('upper')
     expect(migrateTemplate(structuredClone(template), SCHEMA_VERSION)).toEqual(template)
   })
 
   it('refuses newer versions and malformed templates', () => {
-    expect(() => migrateTemplate(createDefaultTemplate(), SCHEMA_VERSION + 1)).toThrow(MigrationError)
+    expect(() => migrateTemplate(createTemplate('upper'), SCHEMA_VERSION + 1)).toThrow(MigrationError)
     expect(() => migrateTemplate({ id: 'default' }, 1)).toThrow(MigrationError)
     expect(() => migrateTemplate('nope', 1)).toThrow(MigrationError)
   })
@@ -137,7 +137,7 @@ describe('isValidSession', () => {
 })
 
 describe('isValidTemplate', () => {
-  const template = createDefaultTemplate()
+  const template = createTemplate('upper')
   const withStep = (patch: Record<string, unknown>) => ({
     ...template,
     warmup: [...template.warmup, { id: 'extra', name: 'Extra', durationSec: 30, ...patch }],

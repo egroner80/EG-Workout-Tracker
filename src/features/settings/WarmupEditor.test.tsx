@@ -2,6 +2,7 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getTemplate } from '../../data/repositories/templateRepo'
+import { SQUAT_ROUTINE } from '../../domain/sharedWarmup'
 import { useWorkoutStore } from '../../state/workoutStore'
 import { completeWorkout, renderAt, resetApp, startWorkout } from '../../test/workoutHarness'
 import { SettingsScreen } from './SettingsScreen'
@@ -48,6 +49,7 @@ describe('warm-up editor', () => {
     const next = await startWorkout()
     expect(next.warmup.filter((s) => s.active).map((s) => [s.name, s.plannedSec])).toEqual([
       ['Jump rope', 120],
+      ...SQUAT_ROUTINE.map((step) => [step.name, step.durationSec]),
       ['Thoracic rotations', 45],
       ['Arm circles', 50],
       ['Scapular pull-ups', 45],
@@ -95,7 +97,7 @@ describe('warm-up editor', () => {
     await user.click(within(rope).getByRole('button', { name: 'Decrease Jump rope maximum' }))
 
     await vi.waitFor(async () => {
-      const warmup = (await getTemplate()).warmup
+      const warmup = (await getTemplate('upper')).warmup
       expect(warmup.find((s) => s.id === 'jump-rope')?.progression).toEqual({ stepSec: 15, maxSec: 285 })
       expect(warmup.find((s) => s.id === 'double-unders')?.activation?.whenDurationReachesSec).toBe(285)
     })

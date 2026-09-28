@@ -23,7 +23,7 @@ function loadAxis(loadType: LoadType) {
 export function ExerciseProgressScreen() {
   const { targetId = '' } = useParams()
   const history = useHistory()
-  const data = useTargets()
+  const data = useTargets('upper')
   if (!history || !data) return <div className={styles.loading} aria-busy="true" />
 
   const exercise = data.template.exercises.find((e) => e.id === targetId)

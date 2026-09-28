@@ -51,11 +51,11 @@ describe('session detail', () => {
   it('deletes a workout after confirmation and targets fall back', async () => {
     const user = userEvent.setup()
     const id = await finish(() => {})
-    expect((await getCurrentPrescriptions()).get('db-row')?.source).toBe('recommendation')
+    expect((await getCurrentPrescriptions('upper')).get('db-row')?.source).toBe('recommendation')
     renderAt(<SessionDetailScreen />, `/history/${id}`, '/history/:sessionId')
     await user.click(await screen.findByRole('button', { name: 'Delete workout' }))
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete workout' }))
     await vi.waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/history'))
-    expect((await getCurrentPrescriptions()).get('db-row')?.source).toBe('baseline')
+    expect((await getCurrentPrescriptions('upper')).get('db-row')?.source).toBe('baseline')
   })
 })

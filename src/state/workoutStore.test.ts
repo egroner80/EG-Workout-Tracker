@@ -47,7 +47,7 @@ describe('starting and logging', () => {
   it('starts a warm-up session whose persisted copy matches the store', async () => {
     const { store } = makeStore()
     await store.getState().hydrate()
-    const session = await store.getState().start()
+    const session = await store.getState().start('upper')
     expect(session.runtime?.phase).toBe('warmup')
     store.getState().apply((s, ctx) => startWarmupStep(s, ctx))
     await store.getState().flush()
@@ -57,7 +57,7 @@ describe('starting and logging', () => {
   it('a double-tapped START creates one workout', async () => {
     const { store } = makeStore()
     await store.getState().hydrate()
-    const results = await Promise.allSettled([store.getState().start(), store.getState().start()])
+    const results = await Promise.allSettled([store.getState().start('upper'), store.getState().start('upper')])
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1)
     expect(await db.sessions.where('status').equals('active').count()).toBe(1)
   })
@@ -65,7 +65,7 @@ describe('starting and logging', () => {
   it('persists the final state after twenty rapid stepper taps', async () => {
     const { store } = makeStore()
     await store.getState().hydrate()
-    await store.getState().start()
+    await store.getState().start('upper')
     for (let i = 0; i < 20; i++) {
       now += 50
       store.getState().apply((s, ctx) => stepReps(s, 'db-row', 0, i % 2 === 0 ? 1 : -1, ctx))
@@ -79,7 +79,7 @@ describe('starting and logging', () => {
   it('emits cue events from actions and ticks', async () => {
     const { store, cues } = makeStore()
     await store.getState().hydrate()
-    await store.getState().start()
+    await store.getState().start('upper')
     store.getState().apply((s, ctx) => startRest(s, 'db-row', ctx))
     for (let t = now + 86_000; t <= now + 90_250; t += 250) store.getState().tick(t)
     expect(cues).toEqual(['tick', 'tick', 'tick', 'complete'])
@@ -90,7 +90,7 @@ describe('finish, reopen, cancel, discard', () => {
   it('finishes with per-exercise resolutions, stores recommendations, and clears the store', async () => {
     const { store } = makeStore()
     await store.getState().hydrate()
-    const session = await store.getState().start()
+    const session = await store.getState().start('upper')
     store.getState().apply((s, ctx) => toggleSet(s, 'db-row', 0, ctx))
     now += 45 * 60_000
     const resolutions = Object.fromEntries(session.exercises.map((e) => [e.exerciseId, 'done' as const]))
@@ -106,7 +106,7 @@ describe('finish, reopen, cancel, discard', () => {
   it('reopens the latest workout, and cancel edits restores the finished version', async () => {
     const { store } = makeStore()
     await store.getState().hydrate()
-    await store.getState().start()
+    await store.getState().start('upper')
     now += 60_000
     const id = await store.getState().finish({})
     const finished = await getSession(id)
@@ -124,16 +124,16 @@ describe('finish, reopen, cancel, discard', () => {
   it('refuses to reopen while another workout is active', async () => {
     const { store } = makeStore()
     await store.getState().hydrate()
-    await store.getState().start()
+    await store.getState().start('upper')
     const id = await store.getState().finish({})
-    await store.getState().start()
+    await store.getState().start('upper')
     await expect(store.getState().reopen(id)).rejects.toThrow(/in progress/)
   })
 
   it('a double-tapped Finish finishes once', async () => {
     const { store } = makeStore()
     await store.getState().hydrate()
-    const session = await store.getState().start()
+    const session = await store.getState().start('upper')
     const resolutions = Object.fromEntries(session.exercises.map((e) => [e.exerciseId, 'done' as const]))
     const results = await Promise.allSettled([store.getState().finish(resolutions), store.getState().finish(resolutions)])
     expect(results.map((r) => r.status).sort()).toEqual(['fulfilled', 'rejected'])
@@ -145,7 +145,7 @@ describe('finish, reopen, cancel, discard', () => {
   it('discards a workout and leaves no active session', async () => {
     const { store } = makeStore()
     await store.getState().hydrate()
-    const session = await store.getState().start()
+    const session = await store.getState().start('upper')
     await store.getState().discard()
     expect(store.getState().session).toBeNull()
     expect((await getSession(session.id))?.status).toBe('discarded')
@@ -163,7 +163,7 @@ describe('persistence safety', () => {
       },
     })
     await store.getState().hydrate()
-    await store.getState().start()
+    await store.getState().start('upper')
     store.getState().apply((s, ctx) => toggleSet(s, 'db-row', 0, ctx))
     await vi.waitFor(() => expect(store.getState().saveError).toBeTruthy())
     await expect(store.getState().finish({})).rejects.toBeInstanceOf(SaveNotConfirmedError)
@@ -176,7 +176,7 @@ describe('persistence safety', () => {
   it('restores a mirror with a higher revision than the database', async () => {
     const { store } = makeStore()
     await store.getState().hydrate()
-    const session = await store.getState().start()
+    const session = await store.getState().start('upper')
     const newer = structuredClone(session)
     newer.rev = 7
     row(newer).actual[0] = { ...row(newer).actual[0], status: 'done' }
@@ -192,16 +192,16 @@ describe('persistence safety', () => {
   it('ignores a stale mirror after Finish, and after Discard followed by a new START', async () => {
     const { store } = makeStore()
     await store.getState().hydrate()
-    const first = await store.getState().start()
+    const first = await store.getState().start('upper')
     await store.getState().finish({})
     writeMirror({ ...first, rev: 50 })
     const afterFinish = makeStore().store
     await afterFinish.getState().hydrate()
     expect(afterFinish.getState().session).toBeNull()
 
-    const second = await store.getState().start()
+    const second = await store.getState().start('upper')
     await store.getState().discard()
-    const third = await store.getState().start()
+    const third = await store.getState().start('upper')
     writeMirror({ ...second, rev: 50 })
     const afterDiscard = makeStore().store
     await afterDiscard.getState().hydrate()
@@ -212,7 +212,7 @@ describe('persistence safety', () => {
   it('a second window holding an older copy reloads instead of overwriting', async () => {
     const a = makeStore().store
     await a.getState().hydrate()
-    await a.getState().start()
+    await a.getState().start('upper')
     const b = makeStore().store
     await b.getState().hydrate()
 
@@ -228,7 +228,7 @@ describe('persistence safety', () => {
   it('shows overtime without a cue when returning long after a rest ended', async () => {
     const { store, cues } = makeStore()
     await store.getState().hydrate()
-    await store.getState().start()
+    await store.getState().start('upper')
     store.getState().apply((s, ctx) => startRest(s, 'db-row', ctx))
     now += 160_000
     store.getState().resync(true)
@@ -239,7 +239,7 @@ describe('persistence safety', () => {
   it('restores a START whose insert never landed, from the mirror', async () => {
     const first = makeStore().store
     await first.getState().hydrate()
-    const started = await first.getState().start()
+    const started = await first.getState().start('upper')
     await first.getState().flush()
     // The app died before IndexedDB kept the new workout; only the mirror has it.
     await db.sessions.delete(started.id)
@@ -254,7 +254,7 @@ describe('persistence safety', () => {
   it('drops a mirror whose workout has already finished or been replaced', async () => {
     const first = makeStore().store
     await first.getState().hydrate()
-    const started = await first.getState().start()
+    const started = await first.getState().start('upper')
     await first.getState().flush()
     const stale = readMirror()!
     await first.getState().discard()
@@ -270,7 +270,7 @@ describe('persistence safety', () => {
   it('keeps the mirror when restoring it fails for a storage reason', async () => {
     const first = makeStore().store
     await first.getState().hydrate()
-    const started = await first.getState().start()
+    const started = await first.getState().start('upper')
     await first.getState().flush()
     await db.sessions.delete(started.id)
     const add = vi.spyOn(db.sessions, 'add').mockRejectedValueOnce(new Error('QuotaExceededError'))
@@ -289,7 +289,7 @@ describe('persistence safety', () => {
   it('keeps an in-progress workout when re-inserting it fails for a storage reason', async () => {
     const { store } = makeStore()
     await store.getState().hydrate()
-    const started = await store.getState().start()
+    const started = await store.getState().start('upper')
     await store.getState().flush()
     await db.sessions.delete(started.id)
     const add = vi.spyOn(db.sessions, 'add').mockRejectedValue(new Error('QuotaExceededError'))
