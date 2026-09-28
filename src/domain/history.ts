@@ -1,5 +1,14 @@
 import { formatActual, formatPlanned, formatReps } from './format'
-import type { ExerciseLog, Recommendation, WorkoutSession } from './types'
+import type {
+  ExerciseDef,
+  ExerciseLog,
+  Recommendation,
+  TemplateId,
+  WarmupStepDef,
+  WorkoutSession,
+  WorkoutTemplate,
+} from './types'
+import { TEMPLATE_IDS } from './workouts'
 
 /**
  * Read models for History and Progress. Finished, non-deleted workouts count;
@@ -155,4 +164,29 @@ export function warmupSeries(stepId: string, sessions: readonly WorkoutSession[]
 /** Dates on which the series stepped up from the previous point. */
 export function increaseDates(points: readonly SeriesPoint[]): number[] {
   return points.filter((point, i) => i > 0 && point.value > points[i - 1].value).map((point) => point.date)
+}
+
+/** What a Progress page charts: an exercise of one workout, or a warm-up step. */
+export type ProgressTarget =
+  | { kind: 'exercise'; templateId: TemplateId; exercise: ExerciseDef }
+  | { kind: 'warmup'; templateId: TemplateId; step: WarmupStepDef }
+
+/**
+ * Finds a target by id in either workout, exercises before warm-up steps and
+ * upper body first. A warm-up step both workouts share, like the jump rope,
+ * resolves to one entry: it has one target and one history.
+ */
+export function findProgressTarget(
+  templates: Readonly<Record<TemplateId, WorkoutTemplate>>,
+  targetId: string,
+): ProgressTarget | undefined {
+  for (const templateId of TEMPLATE_IDS) {
+    const exercise = templates[templateId].exercises.find((e) => e.id === targetId)
+    if (exercise) return { kind: 'exercise', templateId, exercise }
+  }
+  for (const templateId of TEMPLATE_IDS) {
+    const step = templates[templateId].warmup.find((s) => s.id === targetId)
+    if (step) return { kind: 'warmup', templateId, step }
+  }
+  return undefined
 }

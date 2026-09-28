@@ -6,9 +6,10 @@ import { Button } from '../../components/Button'
 import { ConfirmSheet } from '../../components/ConfirmSheet'
 import { ScreenHeader } from '../../components/ScreenHeader'
 import { getSession } from '../../data/repositories/sessions'
-import { CARRY_MODE_LABEL, formatActual, formatDuration, formatPlanned } from '../../domain/format'
+import { CARRY_MODE_LABEL, formatActual, formatPlanned, formatWarmupTarget } from '../../domain/format'
 import { isMet } from '../../domain/history'
 import { warmupStepStatus } from '../../domain/progression/warmup'
+import { templateLabel, workoutTypeOf } from '../../domain/workouts'
 import { deleteWorkout } from '../../services/dataCommands'
 import styles from './History.module.css'
 
@@ -17,7 +18,8 @@ const STEP_STATUS = { complete: 'done', partial: 'partial', skipped: 'skipped', 
 export function SessionDetailScreen() {
   const { sessionId = '' } = useParams()
   const navigate = useNavigate()
-  const session = useLiveQuery(() => getSession(sessionId), [sessionId])
+  // A missing workout reads as null so it is told apart from one still loading.
+  const session = useLiveQuery(async () => (await getSession(sessionId)) ?? null, [sessionId])
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   if (session === undefined) return <div className={styles.loading} aria-busy="true" />
@@ -31,12 +33,13 @@ export function SessionDetailScreen() {
 
   const duration = (session.finishedAt ?? session.startedAt) - session.startedAt
   const warmup = session.warmup.filter((step) => step.active)
+  const workoutName = `${templateLabel(workoutTypeOf(session))} workout`
 
   return (
     <div className={styles.screen}>
       <ScreenHeader
         title={formatLongDay(session.startedAt)}
-        eyebrow={session.source === 'demo' ? 'Demo workout' : 'Workout'}
+        eyebrow={session.source === 'demo' ? `Demo · ${workoutName}` : workoutName}
         backTo="/history"
         backLabel="History"
       >
@@ -51,7 +54,8 @@ export function SessionDetailScreen() {
           <p key={step.stepId} className={styles.line}>
             <span>{step.name}</span>
             <span className={styles.muted}>
-              {formatDuration(step.plannedSec)} · {STEP_STATUS[warmupStepStatus(step)]}
+              <span className={styles.nowrap}>{formatWarmupTarget(step)}</span> ·{' '}
+              <span className={styles.nowrap}>{STEP_STATUS[warmupStepStatus(step)]}</span>
             </span>
           </p>
         ))}
@@ -64,7 +68,10 @@ export function SessionDetailScreen() {
           <section key={log.exerciseId} className={styles.card} aria-label={log.name}>
             <h2 className={styles.cardTitle}>
               {log.name}
-              {log.kind === 'carry' && <span className={styles.demo}>{CARRY_MODE_LABEL[log.mode]}</span>}
+              {/* A hold has no variations to tell apart. */}
+              {log.kind === 'carry' && log.style !== 'hold' && (
+                <span className={styles.demo}>{CARRY_MODE_LABEL[log.mode]}</span>
+              )}
             </h2>
             <p className={styles.line}>
               <span className={styles.label}>Planned</span>

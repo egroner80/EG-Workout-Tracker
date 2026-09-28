@@ -110,6 +110,11 @@
   color: var(--accent);
 }
 
+.chooseNote {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
 .nextSection {
   display: flex;
   flex-direction: column;

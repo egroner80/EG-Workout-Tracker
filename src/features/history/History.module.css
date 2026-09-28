@@ -62,7 +62,8 @@
   color: var(--text-faint);
 }
 
-.demo {
+.demo,
+.workoutType {
   font-size: 0.625rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -71,6 +72,11 @@
   border-radius: var(--radius-pill);
   background: var(--surface-3);
   color: var(--text-muted);
+}
+
+/* Upper or lower reads before the demo mark: the same pill in body text. */
+.workoutType {
+  color: var(--text);
 }
 
 .card {
@@ -111,6 +117,11 @@
 
 .muted {
   color: var(--text-muted);
+}
+
+/* "30 s each side" and "not done" each stay whole; a narrow line breaks between them. */
+.nowrap {
+  white-space: nowrap;
 }
 
 .warn {

@@ -5,9 +5,10 @@ import { formatLongDay, formatMinutes, formatTime } from '../../app/format'
 import { useMeta, useTargets } from '../../app/liveData'
 import { Button } from '../../components/Button'
 import { getSession } from '../../data/repositories/sessions'
-import { formatDuration } from '../../domain/format'
+import { formatDuration, formatWarmupTarget } from '../../domain/format'
 import { isProgressiveStep } from '../../domain/progression/warmup'
 import type { WarmupStepLog, WorkoutSession } from '../../domain/types'
+import { otherTemplate, templateLabel, workoutTypeOf } from '../../domain/workouts'
 import { getLatestRealSession } from '../../services/queries'
 import { useWorkoutStore } from '../../state/workoutStore'
 import { backUpNow } from '../settings/backupFlow'
@@ -30,14 +31,8 @@ export const BACKUP_REMINDER_AFTER = 5
 export function SummaryScreen() {
   const { sessionId = '' } = useParams()
   const navigate = useNavigate()
-  const session = useLiveQuery(() => getSession(sessionId), [sessionId])
-  const latestReal = useLiveQuery(() => getLatestRealSession(), [])
-  const targets = useTargets('upper')
-  const meta = useMeta()
-  const workoutActive = useWorkoutStore((state) => state.session !== null)
-  const [editing, setEditing] = useState<string | null>(null)
-  const [backupState, setBackupState] = useState<'idle' | 'working' | 'done'>('idle')
-  const [error, setError] = useState<string | null>(null)
+  // A missing workout reads as null so it is told apart from one still loading.
+  const session = useLiveQuery(async () => (await getSession(sessionId)) ?? null, [sessionId])
 
   if (session === undefined) return <div className={styles.loading} aria-busy="true" />
   if (!session || session.status !== 'completed') {
@@ -50,6 +45,24 @@ export function SummaryScreen() {
       </div>
     )
   }
+  return <Summary key={session.id} session={session} />
+}
+
+/**
+ * The finished workout against its own targets, then the other workout's
+ * targets: the two alternate, so that one comes next.
+ */
+function Summary({ session }: { session: WorkoutSession }) {
+  const navigate = useNavigate()
+  const type = workoutTypeOf(session)
+  const own = useTargets(type)
+  const next = useTargets(otherTemplate(type))
+  const latestReal = useLiveQuery(() => getLatestRealSession(), [])
+  const meta = useMeta()
+  const workoutActive = useWorkoutStore((state) => state.session !== null)
+  const [editing, setEditing] = useState<string | null>(null)
+  const [backupState, setBackupState] = useState<'idle' | 'working' | 'done'>('idle')
+  const [error, setError] = useState<string | null>(null)
 
   const recommendations = session.recommendations ?? {}
   const canEdit = !workoutActive && session.source === 'real' && latestReal?.id === session.id
@@ -77,7 +90,7 @@ export function SummaryScreen() {
     <div className={styles.screen}>
       <header className={styles.header}>
         <p className={styles.eyebrow}>{formatLongDay(session.startedAt)} · {formatTime(session.startedAt)}</p>
-        <h1 className={styles.title}>Workout complete</h1>
+        <h1 className={styles.title}>{templateLabel(type)} workout complete</h1>
         <p className={styles.duration}>Duration: {formatMinutes((session.finishedAt ?? session.startedAt) - session.startedAt)}</p>
       </header>
 
@@ -86,19 +99,19 @@ export function SummaryScreen() {
           <h2 className={styles.blockTitle}>Warm-up</h2>
           {warmupRecs.map((step) => {
             const rec = recommendations[step.stepId]
-            const next = rec.prescription.kind === 'warmup' ? rec.prescription : null
+            const nextAmount = formatWarmupTarget(step, rec.prescription.kind === 'warmup' ? rec.prescription.durationSec : 0)
             return (
               <p key={step.stepId} className={styles.line}>
                 <span>
-                  {step.name} {step.active ? formatDuration(step.plannedSec) : ''}
+                  {step.name} {step.active ? formatWarmupTarget(step) : ''}
                   {step.completed && ' ✅'}
                 </span>
                 <span className={styles.next}>
                   {rec.outcome === 'activate'
-                    ? `Starts next time at ${formatDuration(next?.durationSec ?? 0)}`
+                    ? `Starts next time at ${nextAmount}`
                     : rec.outcome === 'inactive'
                       ? unlockText(session, step)
-                      : `Next: ${rec.outcome === 'repeat' ? 'Repeat ' : ''}${formatDuration(next?.durationSec ?? 0)}`}
+                      : `Next: ${rec.outcome === 'repeat' ? 'Repeat ' : ''}${nextAmount}`}
                 </span>
               </p>
             )
@@ -111,13 +124,13 @@ export function SummaryScreen() {
           key={log.exerciseId}
           log={log}
           recommendation={recommendations[log.exerciseId]}
-          resolved={targets?.targets.get(log.exerciseId)}
+          resolved={own?.targets.get(log.exerciseId)}
           canChoose={!workoutActive}
         />
       ))}
 
-      {targets && (
-        <NextWorkoutSection template={targets.template} targets={targets.targets} onEdit={workoutActive ? undefined : setEditing} />
+      {next && (
+        <NextWorkoutSection template={next.template} targets={next.targets} onEdit={workoutActive ? undefined : setEditing} />
       )}
 
       {showBackupReminder && (
@@ -149,7 +162,7 @@ export function SummaryScreen() {
         </Button>
       </div>
 
-      <TargetEditorSheet data={targets} targetId={editing} onClose={() => setEditing(null)} />
+      <TargetEditorSheet data={next} targetId={editing} onClose={() => setEditing(null)} />
     </div>
   )
 }
