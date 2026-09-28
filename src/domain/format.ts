@@ -115,3 +115,16 @@ export function formatNext(rec: Recommendation, loadType: LoadType = 'dumbbell')
   }
   return isRepeat ? `Repeat ${body}` : body
 }
+
+/**
+ * A warm-up step's planned amount: "10 reps", "6 each side", "30 s each side",
+ * or a plain duration. `seconds` overrides the step's own duration (a
+ * progressive step's current target).
+ */
+export function formatWarmupTarget(
+  step: { reps?: number; perSide?: boolean; durationSec?: number; plannedSec?: number },
+  seconds = step.plannedSec ?? step.durationSec ?? 0,
+): string {
+  if (step.reps !== undefined) return step.perSide ? `${step.reps} each side` : `${step.reps} reps`
+  return step.perSide ? `${seconds} s each side` : formatDuration(seconds)
+}
