@@ -37,22 +37,25 @@ export function CarryExerciseCard({ log, lastTime }: CarryExerciseCardProps) {
 
   return (
     <article className={cardStyles.card} aria-labelledby={`exercise-${id}`}>
-      <ExerciseCardHeader log={log} qualifier="one dumbbell" />
+      <ExerciseCardHeader log={log} qualifier={log.loadType === 'dumbbell' ? 'one dumbbell' : ''} />
 
-      <div className={styles.modes} role="radiogroup" aria-label="Variation">
-        {MODES.map((mode) => (
-          <button
-            key={mode}
-            type="button"
-            role="radio"
-            aria-checked={log.mode === mode}
-            className={`${styles.mode} ${log.mode === mode ? styles.modeSelected : ''}`}
-            onClick={() => apply((s, ctx) => setCarryMode(s, id, mode, ctx))}
-          >
-            {CARRY_MODE_LABEL[mode]}
-          </button>
-        ))}
-      </div>
+      {/* A hold (Copenhagen plank) is one movement: no carry variations to pick from. */}
+      {log.style !== 'hold' && (
+        <div className={styles.modes} role="radiogroup" aria-label="Variation">
+          {MODES.map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              role="radio"
+              aria-checked={log.mode === mode}
+              className={`${styles.mode} ${log.mode === mode ? styles.modeSelected : ''}`}
+              onClick={() => apply((s, ctx) => setCarryMode(s, id, mode, ctx))}
+            >
+              {CARRY_MODE_LABEL[mode]}
+            </button>
+          ))}
+        </div>
+      )}
 
       <section className={cardStyles.today} aria-label="Today's target">
         <h2 className={cardStyles.label}>Today</h2>

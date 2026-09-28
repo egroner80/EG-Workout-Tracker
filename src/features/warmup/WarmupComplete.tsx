@@ -1,6 +1,6 @@
 import { Button } from '../../components/Button'
 import { IconCheck } from '../../components/icons'
-import { formatDuration } from '../../domain/format'
+import { formatWarmupTarget } from '../../domain/format'
 import { warmupStepStatus } from '../../domain/progression/warmup'
 import { previousWarmupStep, startStrength } from '../../domain/workout/actions'
 import { useWorkoutStore } from '../../state/workoutStore'
@@ -28,7 +28,7 @@ export function WarmupComplete() {
               <li key={step.stepId} className={`${styles.row} ${styles[status]}`}>
                 <span>{step.name}</span>
                 <span className={styles.meta}>
-                  {formatDuration(step.plannedSec)} · {STATUS_LABEL[status]}
+                  {formatWarmupTarget(step)} · {STATUS_LABEL[status]}
                 </span>
               </li>
             )
