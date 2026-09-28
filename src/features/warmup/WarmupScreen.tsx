@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { Fragment, useRef } from 'react'
 import { useNavigate } from 'react-router'
 import { Button } from '../../components/Button'
 import { IconChevronLeft, IconChevronRight, IconClose, IconSkip } from '../../components/icons'
@@ -140,7 +140,9 @@ export function WarmupScreen() {
       </header>
 
       <div className={styles.stage}>
-        <h1 className={styles.stepName}>{view.step.name}</h1>
+        <h1 className={styles.stepName}>
+          <WholeWords text={view.step.name} />
+        </h1>
         <div className={styles.readout}>
           {view.repStep ? (
             <p className={styles.count}>{view.step.reps}</p>
@@ -190,4 +192,14 @@ export function WarmupScreen() {
       </footer>
     </div>
   )
+}
+
+/** Breaks only between words, so "push-outs" or "90-90" never splits at its hyphen. */
+function WholeWords({ text }: { text: string }) {
+  return text.split(' ').map((word, i) => (
+    <Fragment key={i}>
+      {i > 0 && ' '}
+      <span className={styles.word}>{word}</span>
+    </Fragment>
+  ))
 }

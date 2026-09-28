@@ -35,11 +35,15 @@
 
 .xl {
   min-height: var(--tap-xl);
-  padding: 0 var(--space-6);
+  padding: var(--space-2) var(--space-6);
   font-size: var(--fs-lg);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   border-radius: var(--radius-lg);
+  /* A long label ("Start strength workout") takes two lines rather than an ellipsis. */
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
 }
 
 .block {
