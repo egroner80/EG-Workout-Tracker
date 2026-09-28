@@ -12,12 +12,12 @@ import {
   resolvePending,
   type PendingResolution,
 } from '../domain/session'
-import type { WorkoutSession } from '../domain/types'
+import type { TemplateId, WorkoutSession } from '../domain/types'
 import { getLatestRealSession, loadPrescriptionContext } from './queries'
 
-/** Snapshots today's plan from the current targets and inserts it as the one active workout. */
-export async function startWorkout(now: number): Promise<WorkoutSession> {
-  const context = await loadPrescriptionContext()
+/** Snapshots today's plan for one workout from its current targets and inserts it as the one active workout. */
+export async function startWorkout(templateId: TemplateId, now: number): Promise<WorkoutSession> {
+  const context = await loadPrescriptionContext(templateId)
   const session = buildSession({
     id: newId(),
     now,

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { buildSession, finishSession, resolvePending } from '../../domain/session'
 import type { WorkoutSession } from '../../domain/types'
 import { db, resetDatabase } from '../db'
-import { createDefaultTemplate } from '../seed/defaultTemplate'
+import { createTemplate } from '../seed/defaultTemplate'
 import {
   ActiveSessionExistsError,
   GuardRejection,
@@ -17,7 +17,7 @@ import {
 const NOW = Date.UTC(2026, 8, 27, 17, 0)
 
 function active(id = 's1'): WorkoutSession {
-  return buildSession({ id, now: NOW, template: createDefaultTemplate(), prescriptions: new Map() })
+  return buildSession({ id, now: NOW, template: createTemplate('upper'), prescriptions: new Map() })
 }
 
 beforeEach(async () => {
@@ -73,7 +73,7 @@ describe('session repository', () => {
   })
 
   it('lists finished, non-deleted workouts newest first', async () => {
-    const template = createDefaultTemplate()
+    const template = createTemplate('upper')
     const make = (id: string, start: number) =>
       finishSession(
         resolvePending(buildSession({ id, now: start, template, prescriptions: new Map() }), { dips: 'done' }),

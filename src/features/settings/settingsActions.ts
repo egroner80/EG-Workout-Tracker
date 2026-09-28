@@ -1,6 +1,6 @@
 import { saveSettings } from '../../data/repositories/settingsRepo'
 import { modifyTemplate } from '../../data/repositories/templateRepo'
-import type { AppSettings, ExerciseDef, WarmupStepDef, WorkoutTemplate } from '../../domain/types'
+import type { AppSettings, ExerciseDef, TemplateId, WarmupStepDef, WorkoutTemplate } from '../../domain/types'
 import { useWorkoutStore } from '../../state/workoutStore'
 
 /** Settings apply immediately (the store reads them live) and persist. */
@@ -10,17 +10,31 @@ export async function updateSettings(patch: Partial<AppSettings>): Promise<void>
   await saveSettings(settings)
 }
 
-/** Template edits apply from the next workout; the active one keeps its snapshot. */
-export async function updateTemplate(recipe: (template: WorkoutTemplate) => WorkoutTemplate): Promise<void> {
-  await modifyTemplate(recipe, Date.now())
+/**
+ * Template edits apply from the next workout; the active one keeps its
+ * snapshot. Warm-up steps both workouts share change in both.
+ */
+export async function updateTemplate(
+  templateId: TemplateId,
+  recipe: (template: WorkoutTemplate) => WorkoutTemplate,
+): Promise<void> {
+  await modifyTemplate(templateId, recipe, Date.now())
 }
 
-export function updateWarmupStep(id: string, recipe: (step: WarmupStepDef) => WarmupStepDef): Promise<void> {
-  return updateTemplate((t) => ({ ...t, warmup: t.warmup.map((s) => (s.id === id ? recipe(s) : s)) }))
+export function updateWarmupStep(
+  templateId: TemplateId,
+  id: string,
+  recipe: (step: WarmupStepDef) => WarmupStepDef,
+): Promise<void> {
+  return updateTemplate(templateId, (t) => ({ ...t, warmup: t.warmup.map((s) => (s.id === id ? recipe(s) : s)) }))
 }
 
-export function updateExercise(id: string, recipe: (exercise: ExerciseDef) => ExerciseDef): Promise<void> {
-  return updateTemplate((t) => ({ ...t, exercises: t.exercises.map((e) => (e.id === id ? recipe(e) : e)) }))
+export function updateExercise(
+  templateId: TemplateId,
+  id: string,
+  recipe: (exercise: ExerciseDef) => ExerciseDef,
+): Promise<void> {
+  return updateTemplate(templateId, (t) => ({ ...t, exercises: t.exercises.map((e) => (e.id === id ? recipe(e) : e)) }))
 }
 
 /** Moves the item with `id` one place up or down; a no-op at either end. */

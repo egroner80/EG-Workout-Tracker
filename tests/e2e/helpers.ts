@@ -12,16 +12,30 @@ export const START_TIME = new Date('2026-09-28T07:00:00')
 export async function openApp(page: Page) {
   await page.clock.install({ time: START_TIME })
   await page.goto('./')
-  await expect(page.getByRole('button', { name: 'Start workout' })).toBeEnabled()
+  await expect(startButton(page)).toBeEnabled()
+}
+
+export type WorkoutType = 'upper' | 'lower'
+
+const LABEL: Record<WorkoutType, string> = { upper: 'Upper body', lower: 'Lower body' }
+
+/** Home's START button, whichever workout is picked. */
+export const startButton = (page: Page) => page.getByRole('button', { name: /^Start (upper|lower) body$/ })
+
+/** Picks a workout on Home's switch and taps its START. */
+export async function pickAndStart(page: Page, type: WorkoutType) {
+  await page.getByRole('radio', { name: LABEL[type] }).click()
+  await expect(page.getByRole('radio', { name: LABEL[type] })).toBeChecked()
+  await page.getByRole('button', { name: `Start ${LABEL[type].toLowerCase()}` }).click()
 }
 
 export async function advance(page: Page, ms: number) {
   await page.clock.runFor(ms)
 }
 
-/** START → the demo-data choice → the one-time sound check → the warm-up. */
-export async function startWorkout(page: Page, demo: 'clear' | 'keep' = 'clear') {
-  await page.getByRole('button', { name: 'Start workout' }).click()
+/** The first START on a fresh profile → the demo-data choice → the one-time sound check → the warm-up. */
+export async function startWorkout(page: Page, demo: 'clear' | 'keep' = 'clear', type: WorkoutType = 'upper') {
+  await pickAndStart(page, type)
   const choice = page.getByRole('dialog', { name: 'Start your first real workout?' })
   await choice.getByRole('button', { name: demo === 'clear' ? 'Clear demo & start' : 'Keep demo & start' }).click()
   await page.getByRole('dialog', { name: 'Did you hear a chime?' }).getByRole('button', { name: 'Yes, I heard it' }).click()

@@ -11,7 +11,7 @@ export function InstallTip({ onDismiss }: { onDismiss: () => void }) {
   return (
     <aside className={styles.banner} aria-label="Install the app">
       <p className={styles.text}>
-        <strong>Install Overload</strong> from the Share menu → Add to Home Screen. The installed app works offline and
+        <strong>Install EG Workout Tracker</strong> from the Share menu → Add to Home Screen. The installed app works offline and
         keeps its history separately from browser tabs.
       </p>
       <button type="button" className={styles.action} onClick={onDismiss}>

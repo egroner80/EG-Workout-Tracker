@@ -45,7 +45,7 @@ export function DataSettings() {
     if (!file) return
     setMessage(null)
     try {
-      setPlan(await previewImport(await file.text()))
+      setPlan(await previewImport(await file.text(), Date.now()))
     } catch (error) {
       setMessage({ tone: 'error', text: error instanceof Error ? error.message : 'That file could not be read' })
     } finally {
@@ -56,7 +56,7 @@ export function DataSettings() {
   const confirmImport = async () => {
     if (!plan) return
     try {
-      await applyImport(plan)
+      await applyImport(plan, Date.now())
       setMessage({
         tone: 'ok',
         text: `Restored ${plan.preview.newWorkouts} new and ${plural(plan.preview.updatedWorkouts, 'updated workout')}.`,

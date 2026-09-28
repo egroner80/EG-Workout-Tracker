@@ -21,6 +21,8 @@
   font-weight: 850;
   line-height: 1.05;
   text-transform: uppercase;
+  /* Wraps on a phone: keep "Set 1" together rather than leave the number on a line of its own. */
+  text-wrap: pretty;
 }
 
 .subline {

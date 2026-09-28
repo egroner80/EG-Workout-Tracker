@@ -33,7 +33,7 @@ export function WorkoutError() {
       <div className={styles.actions}>
         {session && (
           <>
-            <Button variant="primary" block onClick={() => downloadJson('overload-workout.json', session)}>
+            <Button variant="primary" block onClick={() => downloadJson('eg-workout-tracker-workout.json', session)}>
               Export the workout data
             </Button>
             <Button variant="danger" block disabled={busy} onClick={() => void leave()}>

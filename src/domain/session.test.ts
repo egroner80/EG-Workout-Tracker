@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createDefaultTemplate } from '../data/seed/defaultTemplate'
+import { createTemplate } from '../data/seed/defaultTemplate'
 import {
   SessionStateError,
   buildSession,
@@ -14,12 +14,13 @@ import {
   resolvePending,
   STALE_AFTER_MS,
 } from './session'
+import { SQUAT_ROUTINE } from './sharedWarmup'
 import type { Prescription, WorkoutSession } from './types'
 
 const NOW = Date.UTC(2026, 8, 27, 17, 0)
 
 function newSession(prescriptions: ReadonlyMap<string, Prescription> = new Map()): WorkoutSession {
-  return buildSession({ id: 's1', now: NOW, template: createDefaultTemplate(), prescriptions })
+  return buildSession({ id: 's1', now: NOW, template: createTemplate('upper'), prescriptions })
 }
 
 function markAllDone(session: WorkoutSession): WorkoutSession {
@@ -58,6 +59,7 @@ describe('buildSession', () => {
     expect(du?.active).toBe(false)
     expect(session.warmup.filter((s) => s.active).map((s) => s.stepId)).toEqual([
       'jump-rope',
+      ...SQUAT_ROUTINE.map((step) => step.id),
       'shoulder-cars',
       'thoracic-rotations',
       'scapular-pull-ups',
@@ -67,7 +69,7 @@ describe('buildSession', () => {
     const unlocked = buildSession({
       id: 's2',
       now: NOW,
-      template: createDefaultTemplate(),
+      template: createTemplate('upper'),
       prescriptions: new Map<string, Prescription>([['double-unders', { kind: 'warmup', durationSec: 30, active: true }]]),
     })
     expect(unlocked.warmup.find((s) => s.stepId === 'double-unders')?.active).toBe(true)

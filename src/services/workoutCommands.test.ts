@@ -8,7 +8,7 @@ const T0 = Date.UTC(2026, 8, 27, 17, 0)
 const HOUR = 3600_000
 
 async function finishedWorkout(startedAt: number) {
-  const session = await startWorkout(startedAt)
+  const session = await startWorkout('upper', startedAt)
   const resolutions = Object.fromEntries(session.exercises.map((e) => [e.exerciseId, 'done' as const]))
   return finishWorkout({ sessionId: session.id, resolutions, now: startedAt + HOUR })
 }
@@ -37,7 +37,7 @@ describe('workout command guards', () => {
 
   it('refuses to reopen while another workout is in progress', async () => {
     const latest = await finishedWorkout(T0)
-    await startWorkout(T0 + 2 * HOUR)
+    await startWorkout('upper', T0 + 2 * HOUR)
     await expect(reopenWorkout(latest.id, T0 + 3 * HOUR)).rejects.toThrow('Finish or discard the workout in progress first')
   })
 

@@ -17,11 +17,13 @@ export function SegmentedControl<T extends string>({
   value,
   options,
   onChange,
+  disabled = false,
 }: {
   label: string
   value: T
   options: readonly { value: T; label: string }[]
   onChange: (value: T) => void
+  disabled?: boolean
 }) {
   return (
     <div className={styles.segmented} role="radiogroup" aria-label={label}>
@@ -31,6 +33,7 @@ export function SegmentedControl<T extends string>({
           type="button"
           role="radio"
           aria-checked={value === option.value}
+          disabled={disabled}
           className={value === option.value ? styles.segmentOn : styles.segment}
           onClick={() => onChange(option.value)}
         >

@@ -1,39 +1,68 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { formatLongDay, formatDay, formatTime } from '../../app/format'
-import { useHasDemo, useMeta, useTargets } from '../../app/liveData'
+import { useHasDemo, useMeta, useRecentWorkouts, useTargets } from '../../app/liveData'
 import { Button } from '../../components/Button'
 import { ConfirmSheet } from '../../components/ConfirmSheet'
 import { Sheet } from '../../components/Sheet'
 import { updateMeta } from '../../data/repositories/settingsRepo'
+import { nextTemplateId } from '../../domain/alternation'
 import { isStale, pendingExercises } from '../../domain/session'
-import type { WorkoutSession } from '../../domain/types'
+import type { TemplateId, WorkoutSession } from '../../domain/types'
+import { TEMPLATE_IDS, templateLabel, workoutTypeOf } from '../../domain/workouts'
 import { feedback } from '../../platform/feedback'
 import { clearDemoData } from '../../services/dataCommands'
+import type { RecentWorkout } from '../../services/queries'
 import { useClock } from '../../state/useTicker'
 import { useWorkoutStore } from '../../state/workoutStore'
+import { SegmentedControl } from '../settings/SettingsControls'
 import { TargetEditorSheet } from '../targets/TargetEditorSheet'
 import { DemoBanner } from './DemoBanner'
 import styles from './HomeScreen.module.css'
 import { InstallTip } from './InstallTip'
 import { NextWorkoutList } from './NextWorkoutList'
+import { RecentWorkouts } from './RecentWorkouts'
 
 /** The first Home render after launch jumps straight back into a workout in progress. */
 let launchRedirectDone = false
+
+/** How many of the newest workouts Home lists; the newest one also decides the suggestion. */
+const RECENT_COUNT = 4
+
+const TYPE_OPTIONS = TEMPLATE_IDS.map((id) => ({ value: id, label: templateLabel(id) }))
+
+/** Each workout inside a sentence: "last workout was upper", "Unfinished lower-body workout". */
+const IN_SENTENCE: Record<TemplateId, { short: string; adjective: string }> = {
+  upper: { short: 'upper', adjective: 'upper-body' },
+  lower: { short: 'lower', adjective: 'lower-body' },
+}
 
 export function HomeScreen() {
   const navigate = useNavigate()
   const session = useWorkoutStore((state) => state.session)
   const unreadable = useWorkoutStore((state) => state.recovery !== null)
   const busy = useWorkoutStore((state) => state.busy)
-  const data = useTargets()
+  // Both workouts stay loaded, so the switch swaps lists without waiting.
+  const targets = { upper: useTargets('upper'), lower: useTargets('lower') }
+  const recent = useRecentWorkouts(RECENT_COUNT)
   const meta = useMeta()
   const hasDemo = useHasDemo()
-  const [demoChoiceOpen, setDemoChoiceOpen] = useState(false)
+  // A tap on the switch. It lives only as long as Home, so every visit starts from the suggestion.
+  const [picked, setPicked] = useState<TemplateId | null>(null)
+  // The workout to start once the demo-data choice is made.
+  const [demoChoice, setDemoChoice] = useState<TemplateId | null>(null)
   const [startError, setStartError] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const now = useClock((state) => state.now)
   const stale = session ? isStale(session, now) : false
+
+  // Known at once while a workout is in progress; otherwise once history has loaded.
+  const suggested = session || recent ? nextTemplateId(session, recent ?? []) : undefined
+  // A workout in progress previews the one after it; otherwise the switch decides.
+  const shown = !session && picked ? picked : suggested
+  const data = shown && targets[shown]
+  // START waits for everything its tap reads, so the demo-data choice is never skipped.
+  const ready = data !== undefined && meta !== undefined && hasDemo !== undefined
 
   useEffect(() => {
     if (launchRedirectDone) return
@@ -42,25 +71,25 @@ export function HomeScreen() {
     if (unreadable || (session && !isStale(session, Date.now()))) navigate('/workout', { replace: true })
   }, [session, unreadable, navigate])
 
-  const start = async () => {
+  const start = async (templateId: TemplateId) => {
     setStartError(null)
     try {
-      await useWorkoutStore.getState().start()
+      await useWorkoutStore.getState().start(templateId)
       navigate('/workout')
     } catch (error) {
       setStartError(error instanceof Error ? error.message : 'Could not start the workout')
     }
   }
 
-  const onStartTap = () => {
+  const onStartTap = (templateId: TemplateId) => {
     // Inside the gesture: unlock audio and keep the screen awake before any awaited work.
     feedback()?.prime()
     if (!meta?.soundCheckDone) feedback()?.testSound()
     if (hasDemo && !meta?.keepDemo) {
-      setDemoChoiceOpen(true)
+      setDemoChoice(templateId)
       return
     }
-    void start()
+    void start(templateId)
   }
 
   return (
@@ -87,18 +116,34 @@ export function HomeScreen() {
       )}
 
       <section className={styles.section} aria-labelledby="next-workout-heading">
-        <div className={styles.sectionHeader}>
-          <h2 id="next-workout-heading" className={styles.sectionTitle}>
-            {session ? 'Next workout after this one' : 'Next workout'}
-          </h2>
-          {session && <span className={styles.sectionNote}>Edit targets after finishing</span>}
-        </div>
-        {data ? (
-          <NextWorkoutList
-            template={data.template}
-            targets={data.targets}
-            onEdit={session ? undefined : setEditing}
-          />
+        <h2 id="next-workout-heading" className={styles.sectionTitle}>
+          {session ? 'Next workout after this one' : 'Next workout'}
+        </h2>
+        {shown && data ? (
+          <>
+            {session ? (
+              <p className={styles.caption}>
+                <strong>{templateLabel(shown)}</strong> · edit targets after finishing
+              </p>
+            ) : (
+              <>
+                {/* Locked while a start is in progress, so the workout that opens is the one shown. */}
+                <SegmentedControl
+                  label="Workout type"
+                  value={shown}
+                  options={TYPE_OPTIONS}
+                  onChange={setPicked}
+                  disabled={busy}
+                />
+                {suggested && <Suggestion suggested={suggested} newest={recent?.[0]} />}
+              </>
+            )}
+            <NextWorkoutList
+              template={data.template}
+              targets={data.targets}
+              onEdit={session ? undefined : setEditing}
+            />
+          </>
         ) : (
           <div className={styles.placeholder} aria-busy="true" />
         )}
@@ -118,48 +163,77 @@ export function HomeScreen() {
             </Button>
           )
         ) : (
-          <Button variant="primary" size="xl" block onClick={onStartTap} disabled={busy || !data || unreadable}>
-            Start workout
+          <Button
+            variant="primary"
+            size="xl"
+            block
+            onClick={() => {
+              if (shown) onStartTap(shown)
+            }}
+            disabled={busy || !ready || unreadable}
+          >
+            {shown ? `Start ${templateLabel(shown).toLowerCase()}` : 'Start workout'}
           </Button>
         )}
       </div>
 
+      <RecentWorkouts workouts={recent} />
+
       <TargetEditorSheet data={data} targetId={editing} onClose={() => setEditing(null)} />
 
       <Sheet
-        open={demoChoiceOpen}
+        open={demoChoice !== null}
         title="Start your first real workout?"
         description="Demo history is still loaded so the charts have something to show. Your targets already come from real workouts only; clearing just tidies History and Progress."
-        onClose={() => setDemoChoiceOpen(false)}
+        onClose={() => setDemoChoice(null)}
         footer={
-          <>
-            <Button
-              variant="primary"
-              size="lg"
-              block
-              onClick={() => {
-                feedback()?.prime()
-                setDemoChoiceOpen(false)
-                void clearDemoData().then(start)
-              }}
-            >
-              Clear demo &amp; start
-            </Button>
-            <Button
-              size="lg"
-              block
-              onClick={() => {
-                feedback()?.prime()
-                setDemoChoiceOpen(false)
-                void updateMeta({ keepDemo: true }).then(start)
-              }}
-            >
-              Keep demo &amp; start
-            </Button>
-          </>
+          demoChoice && (
+            <>
+              <Button
+                variant="primary"
+                size="lg"
+                block
+                onClick={() => {
+                  feedback()?.prime()
+                  setDemoChoice(null)
+                  void clearDemoData().then(() => start(demoChoice))
+                }}
+              >
+                Clear demo &amp; start
+              </Button>
+              <Button
+                size="lg"
+                block
+                onClick={() => {
+                  feedback()?.prime()
+                  setDemoChoice(null)
+                  void updateMeta({ keepDemo: true }).then(() => start(demoChoice))
+                }}
+              >
+                Keep demo &amp; start
+              </Button>
+            </>
+          )
         }
       />
     </div>
+  )
+}
+
+/** "Suggested: Lower body · last workout was upper, Mon 21 Sep"; the last part keeps to one line. */
+function Suggestion({ suggested, newest }: { suggested: TemplateId; newest: RecentWorkout | undefined }) {
+  return (
+    <p className={styles.caption}>
+      Suggested: <strong>{templateLabel(suggested)}</strong>
+      {newest && (
+        <>
+          {' · '}
+          <span className={styles.phrase}>
+            last workout was {IN_SENTENCE[newest.templateId].short}, {formatDay(newest.startedAt)}
+          </span>
+        </>
+      )}
+    </p>
   )
 }
 
@@ -168,7 +242,9 @@ function ActiveWorkoutCard({ session, stale }: { session: WorkoutSession; stale:
   const busy = useWorkoutStore((state) => state.busy)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const type = workoutTypeOf(session)
   const reopened = Boolean(session.reopenSnapshot)
+  const status = reopened ? `Editing a finished ${IN_SENTENCE[type].adjective} workout` : `${templateLabel(type)} in progress`
   const runtime = session.runtime
   const current =
     runtime?.phase === 'strength'
@@ -197,7 +273,10 @@ function ActiveWorkoutCard({ session, stale }: { session: WorkoutSession; stale:
       {stale ? (
         <>
           <p className={styles.activeTitle}>
-            Unfinished workout from {formatDay(session.startedAt)} {formatTime(session.startedAt)}
+            Unfinished {IN_SENTENCE[type].adjective} workout from{' '}
+            <span className={styles.phrase}>
+              {formatDay(session.startedAt)} {formatTime(session.startedAt)}
+            </span>
           </p>
           <p className={styles.activeText}>Pick up where you left off, save what you logged, or throw it away.</p>
           <div className={styles.activeActions}>
@@ -231,7 +310,7 @@ function ActiveWorkoutCard({ session, stale }: { session: WorkoutSession; stale:
       ) : (
         <>
           <p className={styles.activeTitle}>
-            {reopened ? 'Editing a finished workout' : 'Workout in progress'} · started {formatTime(session.startedAt)}
+            {status} · <span className={styles.phrase}>started {formatTime(session.startedAt)}</span>
           </p>
           {current && <p className={styles.activeText}>Now: {current}</p>}
         </>

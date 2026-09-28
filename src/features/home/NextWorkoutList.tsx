@@ -1,4 +1,4 @@
-import { formatDuration, formatPrescription } from '../../domain/format'
+import { formatDuration, formatPrescription, formatWarmupTarget } from '../../domain/format'
 import type { ResolvedPrescription } from '../../domain/prescription'
 import { isProgressiveStep } from '../../domain/progression/warmup'
 import type { WorkoutTemplate } from '../../domain/types'
@@ -30,7 +30,7 @@ function badgeFor(resolved: ResolvedPrescription | undefined): string | null {
 
 export function NextWorkoutList({ template, targets, onEdit }: NextWorkoutListProps) {
   const warmup = warmupPlan(template, targets)
-  const warmupTotal = warmup.reduce((sum, entry) => sum + entry.durationSec, 0)
+  const warmupTotal = warmup.reduce((sum, entry) => sum + entry.totalSec, 0)
   const progressive = warmup.filter((entry) => isProgressiveStep(entry.step))
 
   return (
@@ -38,7 +38,7 @@ export function NextWorkoutList({ template, targets, onEdit }: NextWorkoutListPr
       <li>
         <Row
           name="Warm-up"
-          detail={progressive.map((e) => `${e.step.name} ${formatDuration(e.durationSec)}`).join(' · ')}
+          detail={progressive.map((e) => `${e.step.name} ${formatWarmupTarget(e.step, e.durationSec)}`).join(' · ')}
           value={formatDuration(warmupTotal)}
           onEdit={onEdit && progressive[0] ? () => onEdit(progressive[0].step.id) : undefined}
         />
@@ -58,6 +58,18 @@ export function NextWorkoutList({ template, targets, onEdit }: NextWorkoutListPr
         )
       })}
     </ul>
+  )
+}
+
+/** "BW · 20 s per side × 2" wraps after the load, never mid-phrase. */
+function valueParts(value: string) {
+  const at = value.indexOf(' · ')
+  if (at < 0) return value
+  return (
+    <>
+      <span>{value.slice(0, at + 3)}</span>
+      <span>{value.slice(at + 3)}</span>
+    </>
   )
 }
 
@@ -81,7 +93,7 @@ function Row({
         {detail && <span className={styles.detail}>{detail}</span>}
         {badge && <span className={styles.badge}>{badge}</span>}
       </span>
-      <span className={styles.value}>{value}</span>
+      <span className={styles.value}>{valueParts(value)}</span>
       {onEdit && <IconChevronRight size={18} className={styles.chevron} />}
     </>
   )

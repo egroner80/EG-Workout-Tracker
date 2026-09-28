@@ -7,14 +7,36 @@ import {
   openApp,
   setChip,
   skipRest,
+  startButton,
   startWorkout,
   warmupTimer,
 } from './helpers'
 
-const WARMUP = ['Jump rope', 'Shoulder CARs', 'Thoracic rotations', 'Scapular pull-ups', 'Easy push-ups']
+const WARMUP = [
+  'Jump rope',
+  'Deep squat',
+  'Deep squat · knee push-outs',
+  'Deep squat · side to side',
+  'Deep squat · breathe',
+  'Slow bodyweight squats',
+  'Shoulder CARs',
+  'Thoracic rotations',
+  'Scapular pull-ups',
+  'Easy push-ups',
+]
 
-/** What every exercise should prescribe after this workout, as Home and the summary list it. */
-const NEXT_WORKOUT: [string, string][] = [
+/** The lower-body workout comes next: its first targets, with the jump rope shared with today. */
+const NEXT_LOWER: [string, string][] = [
+  ['Jump rope', '2:10'],
+  ['Split squat', '12 kg · 5 / 5 / 5'],
+  ['SL RDL', '16 kg · 5 / 5 / 5'],
+  ['Hip thrust', '40 kg · 5 / 5 / 5'],
+  ['Ham curl', 'BW · 8 / 8'],
+  ['Copenhagen', 'BW · 20 s per side × 2'],
+]
+
+/** What every upper-body exercise should prescribe after this workout, as Home lists it. */
+const NEXT_UPPER: [string, string][] = [
   ['Pull-ups', 'BW · 5 / 5 / 6'],
   ['Dips', 'BW · 5 / 5 / 5'],
   ['DB Row', '18 kg · 5 / 5 / 5'],
@@ -38,7 +60,7 @@ test('the real-life workout: guided warm-up, a failed set, a lighter load, corre
   await startWorkout(page, 'clear')
 
   // --- Guided warm-up: one START, then every step counts down and hands over by itself ---
-  await expect(page.getByText('1 of 5')).toBeVisible()
+  await expect(page.getByText('1 of 10')).toBeVisible()
   await expect(warmupTimer(page)).toHaveText('2:00')
   await page.getByRole('button', { name: 'Start', exact: true }).click()
   await expect(page.getByLabel(/^Starting in [123]$/)).toBeVisible()
@@ -47,13 +69,18 @@ test('the real-life workout: guided warm-up, a failed set, a lighter load, corre
   await advance(page, 60_000)
   await expect(warmupTimer(page)).toHaveText(/^(1:00|0:59|0:58)$/)
   await advance(page, 60_000)
-  await expect(exerciseHeading(page, 'Shoulder CARs')).toBeVisible()
-  await expect(page.getByText('2 of 5')).toBeVisible()
+  await expect(exerciseHeading(page, 'Deep squat')).toBeVisible()
+  await expect(page.getByText('2 of 10')).toBeVisible()
+  // The squat routine: a get-ready, then four 30 s holds back to back, then five squats to tap off.
+  await advance(page, 3_000 + 4 * 30_000 + 500)
+  await expect(exerciseHeading(page, 'Slow bodyweight squats')).toBeVisible()
+  await page.getByRole('button', { name: 'Done', exact: true }).click()
   // Four more steps: a 3 s get-ready and 45 s each.
+  await expect(exerciseHeading(page, 'Shoulder CARs')).toBeVisible()
   await advance(page, 4 * 48_000 + 2_000)
   await expect(page.getByRole('heading', { level: 1, name: 'Warm-up complete' })).toBeVisible()
   for (const step of WARMUP) {
-    await expect(page.getByRole('listitem').filter({ hasText: step })).toContainText('Done')
+    await expect(page.getByRole('listitem').filter({ has: page.getByText(step, { exact: true }) })).toContainText('Done')
   }
   await page.getByRole('button', { name: 'Start strength workout' }).click()
 
@@ -112,7 +139,7 @@ test('the real-life workout: guided warm-up, a failed set, a lighter load, corre
   const finish = page.getByRole('dialog', { name: 'Finish workout?' })
   await expect(finish).toContainText('Everything is logged')
   await finish.getByRole('button', { name: 'Finish workout' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Workout complete' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Upper body workout complete' })).toBeVisible()
 
   // The summary: target vs actual, ✅ only when met, and what comes next.
   const warmup = result(page, 'Warm-up')
@@ -137,8 +164,9 @@ test('the real-life workout: guided warm-up, a failed set, a lighter load, corre
   await expect(row).toContainText(/Next\s*Repeat 18 kg · 5 \/ 5 \/ 5/)
 
   await expect(result(page, 'Suitcase carry')).toContainText(/Actual\s*18 kg · L 40 \/ 40 s · R 40 \/ 40 s/)
-  const next = page.getByRole('region', { name: 'Next workout' })
-  for (const [name, value] of NEXT_WORKOUT) {
+  // Next comes the lower-body workout, which shares today's jump rope.
+  const next = page.getByRole('region', { name: 'Next workout · Lower body' })
+  for (const [name, value] of NEXT_LOWER) {
     await expect(next.getByRole('listitem').filter({ hasText: name }).first()).toContainText(value)
   }
 
@@ -146,19 +174,26 @@ test('the real-life workout: guided warm-up, a failed set, a lighter load, corre
   await page.close()
   const reopened = await context.newPage()
   await reopened.goto('./')
-  await expect(reopened.getByRole('button', { name: 'Start workout' })).toBeEnabled()
+  await expect(startButton(reopened)).toHaveText('Start lower body')
 
-  // Home: NEXT WORKOUT carries the progression.
-  for (const [name, value] of NEXT_WORKOUT) {
+  // Home suggests lower body next and lists today's workout.
+  await expect(reopened.getByRole('radio', { name: 'Lower body' })).toBeChecked()
+  await expect(reopened.getByText(/Suggested: Lower body/)).toBeVisible()
+  await expect(reopened.getByRole('region', { name: 'Recent' })).toContainText('Upper body')
+
+  // Switching to upper body shows its NEXT WORKOUT with the progression carried.
+  await reopened.getByRole('radio', { name: 'Upper body' }).click()
+  for (const [name, value] of NEXT_UPPER) {
     await expect(reopened.getByRole('button', { name: `${name}: ${value}. Edit next target` })).toBeVisible()
   }
-  await expect(reopened.getByRole('button', { name: /^Warm-up: 5:10\. Edit next target$/ })).toContainText('Jump rope 2:10')
+  await expect(reopened.getByRole('button', { name: /^Warm-up: 7:40\. Edit next target$/ })).toContainText('Jump rope 2:10')
 
   // History: the workout with its planned and actual values; the demo workouts are gone.
   await reopened.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'History' }).click()
   const entries = reopened.getByRole('main').getByRole('listitem')
   await expect(entries).toHaveCount(1)
   await expect(entries.first()).toContainText('6/8 targets met')
+  await expect(entries.first()).toContainText('Upper')
   await entries.first().getByRole('link').click()
 
   const dipsDetail = result(reopened, 'Dips')

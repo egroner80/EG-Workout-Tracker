@@ -1,21 +1,25 @@
 import { describe, expect, it } from 'vitest'
-import { createDefaultTemplate } from '../../data/seed/defaultTemplate'
+import { createTemplate } from '../../data/seed/defaultTemplate'
 import { buildSession } from '../session'
 import type { CarryExerciseLog, RepsExerciseLog, WorkoutSession } from '../types'
 import {
   addSet,
   currentLoad,
   deleteAddedSet,
+  activeStepIndexes,
+  completeRepStep,
   nextWarmupStep,
   pauseWarmup,
   previousWarmupStep,
   resumeWarmup,
   setRestSec,
+  sideAt,
   skipWarmupStep,
   startEffort,
   startRest,
   startWarmupStep,
   stepExerciseLoad,
+  stepWorkMs,
   stepReps,
   stopEffort,
   toggleSet,
@@ -28,7 +32,7 @@ const T0 = Date.UTC(2026, 8, 27, 17, 0)
 const ctx = (now: number, getReadyCountdown = true): ActionContext => ({ now, getReadyCountdown })
 
 function session(): WorkoutSession {
-  return buildSession({ id: 's1', now: T0, template: createDefaultTemplate(), prescriptions: new Map() })
+  return buildSession({ id: 's1', now: T0, template: createTemplate('upper'), prescriptions: new Map() })
 }
 
 const reps = (s: WorkoutSession, id: string) => s.exercises.find((e) => e.exerciseId === id) as RepsExerciseLog
@@ -82,7 +86,8 @@ describe('warm-up actions', () => {
 
   it('skipping the last active step completes the warm-up', () => {
     let s = session()
-    for (let i = 0; i < 5; i++) s = skipWarmupStep(s, ctx(T0 + i)).session
+    const steps = activeStepIndexes(s).length
+    for (let i = 0; i < steps; i++) s = skipWarmupStep(s, ctx(T0 + i)).session
     expect(s.runtime?.phase).toBe('warmup-complete')
   })
 })
@@ -174,5 +179,64 @@ describe('carry efforts', () => {
     const stopped = stopEffort(running, ctx(T0 + 32_500)).session
     expect(carry(stopped).actual[0]).toMatchObject({ seconds: 32, status: 'done' })
     expect(stopped.runtime?.effort).toBeNull()
+  })
+})
+
+describe('rep-counted and per-side warm-up steps', () => {
+  function lower(stepId: string, template = createTemplate('lower')): WorkoutSession {
+    const s = buildSession({ id: 'l1', now: T0, template, prescriptions: new Map() })
+    const index = s.warmup.findIndex((step) => step.stepId === stepId)
+    return { ...s, runtime: { ...s.runtime!, warmup: { index, timer: null, getReady: null } } }
+  }
+  const indexOf = (s: WorkoutSession, stepId: string) => s.warmup.findIndex((step) => step.stepId === stepId)
+
+  it('Done completes a rep step and moves on in one tap, with no timer before another rep step', () => {
+    const { session: s, events } = completeRepStep(lower('hip-hinges'), ctx(T0))
+    expect(s.warmup[indexOf(s, 'hip-hinges')]).toMatchObject({ completed: true, skipped: false, elapsedMs: 30_000 })
+    expect(s.runtime?.warmup).toEqual({ index: indexOf(s, 'bw-split-squats'), timer: null, getReady: null })
+    expect(events).toEqual([])
+  })
+
+  it('counts in the next timed step when the get-ready setting is on, and waits for START when it is off', () => {
+    const on = completeRepStep(lower('slow-squats'), ctx(T0))
+    expect(on.session.runtime?.warmup.index).toBe(indexOf(on.session, 'ankle-rocks'))
+    expect(on.session.runtime?.warmup.getReady).toMatchObject({ running: true, endsAt: T0 + 3000 })
+    expect(on.events).toEqual([{ type: 'tick', secondsLeft: 3 }])
+
+    const off = completeRepStep(lower('slow-squats'), { now: T0, getReadyCountdown: false })
+    expect(off.session.runtime?.warmup).toMatchObject({ index: indexOf(off.session, 'ankle-rocks'), getReady: null })
+  })
+
+  it('records a per-side rep step at its whole-step estimate, not twice it', () => {
+    const s = completeRepStep(lower('bw-split-squats'), ctx(T0)).session
+    expect(s.warmup[indexOf(s, 'bw-split-squats')].elapsedMs).toBe(60_000)
+  })
+
+  it('finishes the warm-up when Done is tapped on the last step', () => {
+    expect(completeRepStep(lower('glute-bridges'), ctx(T0)).session.runtime?.phase).toBe('warmup-complete')
+  })
+
+  it('ignores START on a rep step and Done on a timed step', () => {
+    const rep = lower('hip-hinges')
+    expect(startWarmupStep(rep, ctx(T0)).session).toBe(rep)
+    const timed = lower('ankle-rocks')
+    expect(completeRepStep(timed, ctx(T0)).session).toBe(timed)
+  })
+
+  it('runs both sides of a per-side step on one timer and keeps the side through pause and resume', () => {
+    let s = lower('worlds-greatest-stretch')
+    const step = s.warmup[indexOf(s, 'worlds-greatest-stretch')]
+    expect(stepWorkMs(step)).toBe(60_000)
+    s = startWarmupStep(s, { now: T0, getReadyCountdown: false }).session
+    expect(s.runtime?.warmup.timer).toMatchObject({ durationMs: 60_000, endsAt: T0 + 60_000 })
+    expect(sideAt(step, 50_000)).toBe('L')
+    expect(sideAt(step, 20_000)).toBe('R')
+
+    s = pauseWarmup(s, ctx(T0 + 40_000)).session
+    expect(s.warmup[indexOf(s, 'worlds-greatest-stretch')].elapsedMs).toBe(40_000)
+    s = resumeWarmup(s, ctx(T0 + 90_000)).session
+    const timer = s.runtime!.warmup.timer!
+    expect(remainingMs(timer, T0 + 90_000)).toBe(20_000)
+    expect(sideAt(step, remainingMs(timer, T0 + 90_000))).toBe('R')
   })
 })

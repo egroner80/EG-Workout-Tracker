@@ -4,9 +4,11 @@ import { ScreenHeader } from '../../components/ScreenHeader'
 import { IconPlus } from '../../components/icons'
 import { formatDuration, formatLoad } from '../../domain/format'
 import type { ExerciseDef } from '../../domain/types'
+import { templateLabel } from '../../domain/workouts'
 import styles from './Settings.module.css'
 import { ReorderButtons } from './SettingsControls'
 import { moveById, updateTemplate } from './settingsActions'
+import { useTemplateParam } from './useTemplateParam'
 
 /** "3 × 5–6 · 1:30 rest" or "2 × 40–60 s per side · 1:00 rest". */
 function schemeSummary(exercise: ExerciseDef): string {
@@ -20,13 +22,14 @@ function schemeSummary(exercise: ExerciseDef): string {
 }
 
 export function ExerciseListEditor() {
-  const data = useTargets()
+  const templateId = useTemplateParam()
+  const data = useTargets(templateId)
   if (!data) return <div className={styles.loading} aria-busy="true" />
   const { exercises } = data.template
 
   return (
     <div className={styles.screen}>
-      <ScreenHeader title="Exercises" backTo="/settings" backLabel="Settings" />
+      <ScreenHeader title={`${templateLabel(templateId)} exercises`} backTo="/settings" backLabel="Settings" />
       <p className={styles.note}>Changes apply from your next workout. Removed exercises stay in History.</p>
       <ol className={styles.list}>
         {exercises.map((exercise, index) => {
@@ -34,7 +37,7 @@ export function ExerciseListEditor() {
           const load = target && target.kind !== 'warmup' ? formatLoad(exercise.loadType, target.loadKg) : undefined
           return (
             <li key={exercise.id} className={styles.listRow}>
-              <Link to={`/settings/exercises/${exercise.id}`} className={styles.listLink}>
+              <Link to={`/settings/${templateId}/exercises/${exercise.id}`} className={styles.listLink}>
                 <span className={styles.listName}>{exercise.name}</span>
                 <span className={styles.rowHint}>
                   {load ? `${load} · ` : ''}
@@ -47,7 +50,7 @@ export function ExerciseListEditor() {
                   first={index === 0}
                   last={index === exercises.length - 1}
                   onMove={(direction) =>
-                    void updateTemplate((t) => ({ ...t, exercises: moveById(t.exercises, exercise.id, direction) }))
+                    void updateTemplate(templateId, (t) => ({ ...t, exercises: moveById(t.exercises, exercise.id, direction) }))
                   }
                 />
               </div>
@@ -55,7 +58,7 @@ export function ExerciseListEditor() {
           )
         })}
       </ol>
-      <Link to="/settings/exercises/new" className={styles.addLink}>
+      <Link to={`/settings/${templateId}/exercises/new`} className={styles.addLink}>
         <IconPlus size={20} />
         Add exercise
       </Link>

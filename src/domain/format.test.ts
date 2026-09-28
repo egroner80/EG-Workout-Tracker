@@ -8,6 +8,7 @@ import {
   formatNext,
   formatPrescription,
   formatReps,
+  formatWarmupTarget,
 } from './format'
 import type { Recommendation } from './types'
 
@@ -142,5 +143,16 @@ describe('formatNext', () => {
     expect(formatNext(rec({ outcome: 'activate', prescription: { kind: 'warmup', durationSec: 30, active: true } }))).toBe(
       'Starts at 0:30',
     )
+  })
+})
+
+describe('formatWarmupTarget', () => {
+  it('shows reps, sides, or time for each warm-up step shape', () => {
+    expect(formatWarmupTarget({ reps: 10, durationSec: 30 })).toBe('10 reps')
+    expect(formatWarmupTarget({ reps: 1, durationSec: 5 })).toBe('1 rep')
+    expect(formatWarmupTarget({ reps: 6, perSide: true, durationSec: 60 })).toBe('6 each side')
+    expect(formatWarmupTarget({ perSide: true, durationSec: 30 })).toBe('30 s each side')
+    expect(formatWarmupTarget({ plannedSec: 45 })).toBe('0:45')
+    expect(formatWarmupTarget({ durationSec: 120 }, 130)).toBe('2:10')
   })
 })

@@ -1,10 +1,13 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useParams } from 'react-router'
 import { formatShortDate } from '../../app/format'
-import { useHistory, useTargets } from '../../app/liveData'
+import { useHistory } from '../../app/liveData'
 import { ScreenHeader } from '../../components/ScreenHeader'
-import { formatDuration, formatKg } from '../../domain/format'
+import { getTemplates } from '../../data/repositories/templateRepo'
+import { formatDuration, formatKg, formatWarmupTarget } from '../../domain/format'
 import {
   exerciseRows,
+  findProgressTarget,
   increaseDates,
   ladderGroups,
   loadSeries,
@@ -12,6 +15,7 @@ import {
   warmupSeries,
 } from '../../domain/history'
 import type { LoadType } from '../../domain/types'
+import { templateLabel } from '../../domain/workouts'
 import { LadderView } from './LadderView'
 import { LineChart } from './LineChart'
 import styles from './Progress.module.css'
@@ -20,16 +24,17 @@ function loadAxis(loadType: LoadType) {
   return (kg: number) => (loadType === 'bodyweight' ? (kg === 0 ? 'BW' : `${kg > 0 ? '+' : '−'}${formatKg(Math.abs(kg))}`) : `${formatKg(kg)} kg`)
 }
 
+/** One exercise of either workout, or a warm-up step such as the shared jump rope. */
 export function ExerciseProgressScreen() {
   const { targetId = '' } = useParams()
   const history = useHistory()
-  const data = useTargets()
-  if (!history || !data) return <div className={styles.loading} aria-busy="true" />
+  const templates = useLiveQuery(() => getTemplates(), [])
+  if (!history || !templates) return <div className={styles.loading} aria-busy="true" />
 
-  const exercise = data.template.exercises.find((e) => e.id === targetId)
-  const step = data.template.warmup.find((s) => s.id === targetId)
+  const target = findProgressTarget(templates, targetId)
 
-  if (step && !exercise) {
+  if (target?.kind === 'warmup') {
+    const { step } = target
     const points = warmupSeries(step.id, history)
     return (
       <div className={styles.screen}>
@@ -45,7 +50,7 @@ export function ExerciseProgressScreen() {
           {[...points].reverse().map((p) => (
             <li key={p.sessionId} className={styles.logRow}>
               <span className={styles.logDate}>{formatShortDate(p.date)}</span>
-              <span>{formatDuration(p.value)}</span>
+              <span>{formatWarmupTarget(step, p.value)}</span>
             </li>
           ))}
         </ul>
@@ -53,7 +58,7 @@ export function ExerciseProgressScreen() {
     )
   }
 
-  if (!exercise) {
+  if (!target) {
     return (
       <div className={styles.screen}>
         <ScreenHeader title="Not found" backTo="/progress" backLabel="Progress" />
@@ -61,14 +66,21 @@ export function ExerciseProgressScreen() {
     )
   }
 
+  const { exercise } = target
   const loads = loadSeries(exercise.id, history)
   const volume = volumeSeries(exercise.id, history)
   const rows = exerciseRows(exercise.id, history)
   const isCarry = exercise.kind === 'carry'
+  const isHold = exercise.kind === 'carry' && exercise.style === 'hold'
 
   return (
     <div className={styles.screen}>
-      <ScreenHeader title={exercise.name} backTo="/progress" backLabel="Progress" />
+      <ScreenHeader
+        title={exercise.name}
+        eyebrow={templateLabel(target.templateId)}
+        backTo="/progress"
+        backLabel="Progress"
+      />
 
       <section className={styles.section} aria-labelledby="ladder-heading">
         <h2 id="ladder-heading" className={styles.sectionTitle}>
@@ -86,7 +98,7 @@ export function ExerciseProgressScreen() {
         markerLabel="Heavier"
       />
       <LineChart
-        title={isCarry ? 'Seconds carried per workout' : 'Total reps per workout'}
+        title={isCarry ? `Seconds ${isHold ? 'held' : 'carried'} per workout` : 'Total reps per workout'}
         points={volume}
         formatValue={(v) => (isCarry ? `${v} s` : String(v))}
       />

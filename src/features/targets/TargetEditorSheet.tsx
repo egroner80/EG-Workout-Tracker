@@ -9,7 +9,7 @@ import { stepLoad } from '../../domain/load'
 import { clamp } from '../../domain/math'
 import type { ResolvedPrescription } from '../../domain/prescription'
 import { bottomRung, buildLadder, rungIndex } from '../../domain/progression/staircase'
-import type { ExerciseDef, Prescription, WarmupStepDef } from '../../domain/types'
+import type { ExerciseDef, Prescription, TemplateId, WarmupStepDef } from '../../domain/types'
 import { createOverride } from '../../services/dataCommands'
 import { useWorkoutStore } from '../../state/workoutStore'
 import styles from './TargetEditorSheet.module.css'
@@ -33,6 +33,7 @@ export function TargetEditorSheet({ data, targetId, onClose }: TargetEditorSheet
   return (
     <EditorBody
       key={targetId}
+      templateId={data.template.id}
       exercise={exercise}
       step={step}
       resolved={resolved}
@@ -42,13 +43,14 @@ export function TargetEditorSheet({ data, targetId, onClose }: TargetEditorSheet
 }
 
 interface EditorBodyProps {
+  templateId: TemplateId
   exercise?: ExerciseDef
   step?: WarmupStepDef
   resolved: ResolvedPrescription
   onClose: () => void
 }
 
-function EditorBody({ exercise, step, resolved, onClose }: EditorBodyProps) {
+function EditorBody({ templateId, exercise, step, resolved, onClose }: EditorBodyProps) {
   const workoutActive = useWorkoutStore((state) => state.session !== null)
   const [draft, setDraft] = useState<Prescription>(() => structuredClone(resolved.prescription))
   const [error, setError] = useState<string | null>(null)
@@ -63,6 +65,7 @@ function EditorBody({ exercise, step, resolved, onClose }: EditorBodyProps) {
         // The number of sets belongs to the exercise, so it changes there too.
         const sets = draft.reps.length
         await modifyTemplate(
+          templateId,
           (t) => ({
             ...t,
             exercises: t.exercises.map((e) =>

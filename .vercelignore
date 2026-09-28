@@ -1,0 +1,14 @@
+# Publishing uploads prebuilt output only (see README). If the repo root is
+# ever deployed directly, keep local tool state and secrets off Vercel.
+.gstack/
+.claude/
+.context/
+.env
+.env.*
+*.pem
+*.key
+node_modules/
+coverage/
+test-results/
+playwright-report/
+blob-report/

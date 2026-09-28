@@ -3,10 +3,11 @@ import { db } from '../data/db'
 import { newId } from '../data/ids'
 import { deleteDemoSessions, getActiveSession, transitionSession } from '../data/repositories/sessions'
 import { getSettings, updateMeta } from '../data/repositories/settingsRepo'
-import { getTemplate } from '../data/repositories/templateRepo'
+import { getTemplates, saveTemplate, syncOtherTemplate } from '../data/repositories/templateRepo'
 import { deriveCurrentPrescriptions } from '../domain/prescription'
 import { softDeleteSession } from '../domain/session'
 import type { Prescription, PrescriptionOverride } from '../domain/types'
+import { TEMPLATE_IDS, templateHasTarget } from '../domain/workouts'
 import { loadPrescriptionContext } from './queries'
 
 export class WorkoutActiveError extends Error {
@@ -27,7 +28,9 @@ export async function createOverride(
   now: number,
 ): Promise<PrescriptionOverride> {
   if (await getActiveSession()) throw new WorkoutActiveError()
-  const context = await loadPrescriptionContext()
+  const templates = await getTemplates()
+  const owner = TEMPLATE_IDS.find((id) => templateHasTarget(templates[id], targetId)) ?? 'upper'
+  const context = await loadPrescriptionContext(owner)
   const resolved = deriveCurrentPrescriptions(context).get(targetId)
   const override: PrescriptionOverride = {
     id: newId(),
@@ -57,13 +60,13 @@ export async function clearDemoData(): Promise<number> {
 
 export async function createBackup(now: number): Promise<BackupFile> {
   return db.transaction('r', db.sessions, db.overrides, db.kv, async () => {
-    const [sessions, overrides, template, settings] = await Promise.all([
+    const [sessions, overrides, templates, settings] = await Promise.all([
       db.sessions.toArray(),
       db.overrides.toArray(),
-      getTemplate(),
+      getTemplates(),
       getSettings(),
     ])
-    return buildBackup({ sessions, overrides, template, settings }, now, __APP_VERSION__)
+    return buildBackup({ sessions, overrides, templates, settings }, now, __APP_VERSION__)
   })
 }
 
@@ -73,25 +76,30 @@ export async function recordBackup(now: number): Promise<void> {
 }
 
 /** Parses a backup and plans the merge without writing anything. */
-export async function previewImport(text: string): Promise<ImportPlan> {
-  const backup = parseBackup(text)
-  const [sessions, overrides, template, settings] = await Promise.all([
+export async function previewImport(text: string, now: number): Promise<ImportPlan> {
+  const backup = parseBackup(text, now)
+  const [sessions, overrides, templates, settings] = await Promise.all([
     db.sessions.toArray(),
     db.overrides.toArray(),
-    getTemplate(),
+    getTemplates(),
     getSettings(),
   ])
-  return planImport(backup, { sessions, overrides, template, settings })
+  return planImport(backup, { sessions, overrides, templates, settings })
 }
 
-/** Writes a previewed import in one transaction. */
-export async function applyImport(plan: ImportPlan): Promise<void> {
+/**
+ * Writes a previewed import in one transaction. Warm-up steps both workouts
+ * share then follow the newest template the backup brought in.
+ */
+export async function applyImport(plan: ImportPlan, now: number): Promise<void> {
   await db.transaction('rw', db.sessions, db.overrides, db.kv, async () => {
     const activeIds = new Set((await db.sessions.where('activeSlot').equals('active').primaryKeys()).map(String))
     const sessions = plan.sessionsToPut.filter((s) => !activeIds.has(s.id) && s.status !== 'active')
     if (sessions.length) await db.sessions.bulkPut(sessions)
     if (plan.overridesToPut.length) await db.overrides.bulkPut(plan.overridesToPut)
-    if (plan.template) await db.kv.put({ key: 'template', value: plan.template })
+    for (const template of plan.templates) await saveTemplate(template)
+    const newest = [...plan.templates].sort((a, b) => b.updatedAt - a.updatedAt)[0]
+    if (newest) await syncOtherTemplate(newest, now)
     if (plan.settings) await db.kv.put({ key: 'settings', value: plan.settings })
   })
 }

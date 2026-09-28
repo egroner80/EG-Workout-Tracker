@@ -21,9 +21,10 @@ export default defineConfig({
       pwaAssets: { config: true, overrideManifestIcons: true },
       manifest: {
         id: './',
-        name: 'Overload — Upper Body Tracker',
-        short_name: 'Overload',
-        description: 'Guided upper-body workouts with transparent progressive overload.',
+        name: 'EG Workout Tracker',
+        // iOS cuts longer home-screen labels short.
+        short_name: 'EG Workout',
+        description: 'Guided upper- and lower-body workouts with transparent progressive overload.',
         display: 'standalone',
         orientation: 'portrait',
         theme_color: theme,

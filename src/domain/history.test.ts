@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { createDefaultTemplate } from '../data/seed/defaultTemplate'
-import { exerciseRows, increaseDates, ladderGroups, loadSeries, volumeSeries, warmupSeries } from './history'
+import { createDefaultTemplates, createTemplate } from '../data/seed/defaultTemplate'
+import {
+  exerciseRows,
+  findProgressTarget,
+  increaseDates,
+  ladderGroups,
+  loadSeries,
+  volumeSeries,
+  warmupSeries,
+} from './history'
 import { buildSession, finishSession, resolvePending } from './session'
 import type { Prescription, RepsExerciseLog, WorkoutSession } from './types'
 
@@ -9,7 +17,7 @@ const T0 = Date.UTC(2026, 6, 1, 17, 0)
 
 /** A finished workout with a planned DB row target; `short` makes the last set one rep short. */
 function rowWorkout(day: number, loadKg: number, reps: number[], opts: { short?: boolean; skipSet?: number } = {}) {
-  const template = createDefaultTemplate()
+  const template = createTemplate('upper')
   const prescriptions = new Map<string, Prescription>([['db-row', { kind: 'reps', loadKg, reps }]])
   let session = buildSession({ id: `w${day}`, now: T0 + day * DAY, template, prescriptions })
   session = resolvePending(session, { 'db-row': 'done' })
@@ -85,5 +93,32 @@ describe('series', () => {
   it('tracks jump rope duration and is empty without history', () => {
     expect(warmupSeries('jump-rope', [rowWorkout(0, 18, [5, 5, 5])])[0].value).toBe(120)
     expect(loadSeries('db-row', [])).toEqual([])
+  })
+})
+
+describe('findProgressTarget', () => {
+  it('finds an exercise in whichever workout has it', () => {
+    const templates = createDefaultTemplates()
+    expect(findProgressTarget(templates, 'copenhagen-plank')).toMatchObject({
+      kind: 'exercise',
+      templateId: 'lower',
+      exercise: { name: 'Copenhagen plank', style: 'hold' },
+    })
+    expect(findProgressTarget(templates, 'db-row')).toMatchObject({ kind: 'exercise', templateId: 'upper' })
+  })
+
+  it('resolves the shared jump rope once, from the lower warm-up when upper has dropped it', () => {
+    const templates = createDefaultTemplates()
+    expect(findProgressTarget(templates, 'jump-rope')).toMatchObject({ kind: 'warmup', templateId: 'upper' })
+    const upper = { ...templates.upper, warmup: templates.upper.warmup.filter((s) => s.id !== 'jump-rope') }
+    expect(findProgressTarget({ ...templates, upper }, 'jump-rope')).toMatchObject({
+      kind: 'warmup',
+      templateId: 'lower',
+      step: { name: 'Jump rope' },
+    })
+  })
+
+  it('finds nothing for an id neither workout has', () => {
+    expect(findProgressTarget(createDefaultTemplates(), 'leg-press')).toBeUndefined()
   })
 })

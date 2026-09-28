@@ -2,14 +2,18 @@ import {
   MigrationError,
   SCHEMA_VERSION,
   isValidSettings,
-  isValidTemplate,
   migrateOverride,
   migrateSession,
+  migrateTemplate,
 } from '../domain/migrate'
 import { plannedFingerprint } from '../domain/session'
-import type { AppSettings, PrescriptionOverride, WorkoutSession, WorkoutTemplate } from '../domain/types'
+import type { AppSettings, PrescriptionOverride, TemplateId, WorkoutSession, WorkoutTemplate } from '../domain/types'
+import { TEMPLATE_IDS } from '../domain/workouts'
 
 export const BACKUP_FORMAT = 'overload-backup'
+
+/** Clock difference allowed between the device that made a backup and this one. */
+const FUTURE_TOLERANCE_MS = 24 * 60 * 60 * 1000
 
 export interface BackupFile {
   format: typeof BACKUP_FORMAT
@@ -19,7 +23,8 @@ export interface BackupFile {
   counts: { sessions: number; overrides: number }
   sessions: WorkoutSession[]
   overrides: PrescriptionOverride[]
-  template: WorkoutTemplate
+  /** Both workouts; schema-1 files carried a single `template` instead. */
+  templates: WorkoutTemplate[]
   settings: AppSettings
 }
 
@@ -33,15 +38,15 @@ export class BackupError extends Error {
 interface BackupSource {
   sessions: readonly WorkoutSession[]
   overrides: readonly PrescriptionOverride[]
-  template: WorkoutTemplate
+  templates: Record<TemplateId, WorkoutTemplate>
   settings: AppSettings
 }
 
 /**
  * Everything worth keeping: all real workouts (including discarded and
- * deleted ones), manual targets, the template, and settings. Demo data and a
- * workout in progress are left out; a finished workout reopened for edits is
- * saved as it was when it was finished.
+ * deleted ones), manual targets, both workout templates, and settings. Demo
+ * data and a workout in progress are left out; a finished workout reopened
+ * for edits is saved as it was when it was finished.
  */
 export function buildBackup(source: BackupSource, now: number, appVersion: string): BackupFile {
   const sessions = source.sessions.flatMap((s): WorkoutSession[] => {
@@ -57,13 +62,17 @@ export function buildBackup(source: BackupSource, now: number, appVersion: strin
     counts: { sessions: sessions.length, overrides: source.overrides.length },
     sessions: structuredClone(sessions),
     overrides: structuredClone([...source.overrides]),
-    template: structuredClone(source.template),
+    templates: structuredClone(TEMPLATE_IDS.map((id) => source.templates[id])),
     settings: structuredClone(source.settings),
   }
 }
 
-/** Parses, validates, and migrates a backup file. Throws a readable BackupError. */
-export function parseBackup(text: string): BackupFile {
+/**
+ * Parses, validates, and migrates a backup file. Throws a readable
+ * BackupError. Dates far in the future are refused: they would outrank every
+ * later workout and manual target for good.
+ */
+export function parseBackup(text: string, now: number): BackupFile {
   let raw: unknown
   try {
     raw = JSON.parse(text)
@@ -71,9 +80,9 @@ export function parseBackup(text: string): BackupFile {
     throw new BackupError('This file is not a valid backup (it is not JSON).')
   }
   if (typeof raw !== 'object' || raw === null || (raw as { format?: unknown }).format !== BACKUP_FORMAT) {
-    throw new BackupError('This file is not an Overload backup.')
+    throw new BackupError('This file is not an EG Workout Tracker backup.')
   }
-  const file = raw as Partial<BackupFile>
+  const file = raw as Partial<BackupFile> & { template?: unknown }
   const version = typeof file.schemaVersion === 'number' ? file.schemaVersion : NaN
   if (!Number.isFinite(version)) throw new BackupError('The backup has no schema version.')
   if (version > SCHEMA_VERSION) {
@@ -85,11 +94,10 @@ export function parseBackup(text: string): BackupFile {
   if (file.counts.sessions !== file.sessions.length || file.counts.overrides !== file.overrides.length) {
     throw new BackupError('The backup looks truncated: its record counts do not match.')
   }
-  if (!isValidTemplate(file.template) || !isValidSettings(file.settings)) {
-    throw new BackupError('The backup has a malformed template or settings.')
-  }
+  if (!isValidSettings(file.settings)) throw new BackupError('The backup has malformed settings.')
+  let backup: BackupFile
   try {
-    return {
+    backup = {
       format: BACKUP_FORMAT,
       appVersion: String(file.appVersion ?? 'unknown'),
       schemaVersion: SCHEMA_VERSION,
@@ -97,26 +105,51 @@ export function parseBackup(text: string): BackupFile {
       counts: file.counts,
       sessions: file.sessions.map((s) => migrateSession(s, version)),
       overrides: file.overrides.map((o) => migrateOverride(o, version)),
-      template: file.template,
+      templates: parseTemplates(version < 2 ? [file.template] : file.templates, version),
       settings: file.settings,
     }
   } catch (error) {
     if (error instanceof MigrationError) throw new BackupError(error.message)
     throw error
   }
+  checkDates(backup, now)
+  return backup
+}
+
+function parseTemplates(raw: unknown, version: number): WorkoutTemplate[] {
+  if (!Array.isArray(raw) || raw.length === 0) throw new BackupError('The backup has no workout template.')
+  const templates = raw.map((template) => migrateTemplate(template, version))
+  if (new Set(templates.map((t) => t.id)).size !== templates.length) {
+    throw new BackupError('The backup lists the same workout twice.')
+  }
+  return templates
+}
+
+function checkDates(backup: BackupFile, now: number): void {
+  const stamps = [
+    ...backup.sessions.flatMap((s) => [s.startedAt, s.finishedAt, s.updatedAt, s.createdAt, s.lastInteractionAt, s.deletedAt]),
+    ...backup.overrides.flatMap((o) => [o.createdAt, o.updatedAt]),
+    ...backup.templates.map((t) => t.updatedAt),
+    backup.settings.updatedAt,
+  ].filter((stamp): stamp is number => typeof stamp === 'number')
+  if (stamps.some((stamp) => stamp < 0)) throw new BackupError('The backup has dates before 1970.')
+  if (stamps.some((stamp) => stamp > now + FUTURE_TOLERANCE_MS)) {
+    throw new BackupError('This backup has dates in the future.')
+  }
 }
 
 interface LocalState {
   sessions: readonly WorkoutSession[]
   overrides: readonly PrescriptionOverride[]
-  template: WorkoutTemplate
+  templates: Record<TemplateId, WorkoutTemplate>
   settings: AppSettings
 }
 
 export interface ImportPlan {
   sessionsToPut: WorkoutSession[]
   overridesToPut: PrescriptionOverride[]
-  template?: WorkoutTemplate
+  /** Workouts whose template in the backup is newer than this device's. */
+  templates: WorkoutTemplate[]
   settings?: AppSettings
   /** Same workout id with different planned values; the local copy was kept. */
   conflicts: string[]
@@ -185,7 +218,7 @@ export function planImport(backup: BackupFile, local: LocalState): ImportPlan {
   return {
     sessionsToPut,
     overridesToPut,
-    ...(backup.template.updatedAt > local.template.updatedAt ? { template: backup.template } : {}),
+    templates: backup.templates.filter((template) => template.updatedAt > local.templates[template.id].updatedAt),
     ...(backup.settings.updatedAt > local.settings.updatedAt ? { settings: backup.settings } : {}),
     conflicts,
     preview: {

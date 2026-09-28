@@ -12,14 +12,16 @@ import { stepLoad } from '../../domain/load'
 import { clamp } from '../../domain/math'
 import type { ResolvedPrescription } from '../../domain/prescription'
 import { bottomRung } from '../../domain/progression/staircase'
-import type { CarryExerciseDef, ExerciseDef, LoadType, RepsExerciseDef } from '../../domain/types'
+import type { CarryExerciseDef, ExerciseDef, LoadType, RepsExerciseDef, TemplateId } from '../../domain/types'
 import { MAX_REST_SEC, MIN_REST_SEC } from '../../domain/workout/actions'
+import { templateLabel } from '../../domain/workouts'
 import { useWorkoutStore } from '../../state/workoutStore'
 import { TargetEditorSheet } from '../targets/TargetEditorSheet'
 import { NameField } from './NameField'
 import styles from './Settings.module.css'
 import { Field, SegmentedControl } from './SettingsControls'
 import { updateExercise, updateTemplate } from './settingsActions'
+import { useTemplateParam } from './useTemplateParam'
 
 const LOAD_TYPES: { value: LoadType; label: string }[] = [
   { value: 'dumbbell', label: 'Dumbbell' },
@@ -34,16 +36,23 @@ const SOURCE_TEXT: Record<ResolvedPrescription['source'], string> = {
   baseline: 'Starting point.',
 }
 
+/** Where an exercise screen goes back to: its workout's exercise list. */
+function exerciseList(templateId: TemplateId) {
+  return { path: `/settings/${templateId}/exercises`, label: `${templateLabel(templateId)} exercises` }
+}
+
 export function ExerciseEditor() {
+  const templateId = useTemplateParam()
   const { exerciseId } = useParams()
-  const data = useTargets()
+  const data = useTargets(templateId)
   if (exerciseId === 'new') return <NewExerciseForm />
   if (!data) return <div className={styles.loading} aria-busy="true" />
   const exercise = data.template.exercises.find((e) => e.id === exerciseId)
   if (!exercise) {
+    const list = exerciseList(templateId)
     return (
       <div className={styles.screen}>
-        <ScreenHeader title="Exercise" backTo="/settings/exercises" backLabel="Exercises" />
+        <ScreenHeader title="Exercise" backTo={list.path} backLabel={list.label} />
         <p className={styles.note}>This exercise is no longer in your workout. Its past workouts are still in History.</p>
       </div>
     )
@@ -52,17 +61,19 @@ export function ExerciseEditor() {
 }
 
 function EditExercise({ exercise, data }: { exercise: ExerciseDef; data: TargetsData }) {
+  const templateId = useTemplateParam()
+  const list = exerciseList(templateId)
   const resolved = data.targets.get(exercise.id)
   const isOnlyExercise = data.template.exercises.length === 1
   const navigate = useNavigate()
   const workoutActive = useWorkoutStore((state) => state.session !== null)
   const [editingTarget, setEditingTarget] = useState(false)
   const [removing, setRemoving] = useState(false)
-  const update = (recipe: (e: ExerciseDef) => ExerciseDef) => void updateExercise(exercise.id, recipe)
+  const update = (recipe: (e: ExerciseDef) => ExerciseDef) => void updateExercise(templateId, exercise.id, recipe)
 
   return (
     <div className={styles.screen}>
-      <ScreenHeader title={exercise.name} backTo="/settings/exercises" backLabel="Exercises" />
+      <ScreenHeader title={exercise.name} backTo={list.path} backLabel={list.label} />
 
       <section className={styles.section} aria-labelledby="exercise-next">
         <h2 id="exercise-next" className={styles.sectionTitle}>
@@ -175,8 +186,8 @@ function EditExercise({ exercise, data }: { exercise: ExerciseDef; data: Targets
         confirmLabel="Remove"
         onConfirm={() => {
           setRemoving(false)
-          void updateTemplate((t) => ({ ...t, exercises: t.exercises.filter((e) => e.id !== exercise.id) })).then(() =>
-            navigate('/settings/exercises', { replace: true }),
+          void updateTemplate(templateId, (t) => ({ ...t, exercises: t.exercises.filter((e) => e.id !== exercise.id) })).then(() =>
+            navigate(list.path, { replace: true }),
           )
         }}
         onClose={() => setRemoving(false)}
@@ -347,6 +358,8 @@ function CarrySchemeFields({ exercise, update }: { exercise: CarryExerciseDef; u
 
 /** New exercises use the rep ladder; they join the end of the workout. */
 function NewExerciseForm() {
+  const templateId = useTemplateParam()
+  const list = exerciseList(templateId)
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [loadType, setLoadType] = useState<LoadType>('dumbbell')
@@ -372,13 +385,13 @@ function NewExerciseForm() {
       scheme: { type: 'staircase', sets, minReps, maxReps },
       baseline: { kind: 'reps', loadKg, reps: bottomRung(sets, minReps) },
     }
-    await updateTemplate((t) => ({ ...t, exercises: [...t.exercises, exercise] }))
-    navigate('/settings/exercises', { replace: true })
+    await updateTemplate(templateId, (t) => ({ ...t, exercises: [...t.exercises, exercise] }))
+    navigate(list.path, { replace: true })
   }
 
   return (
     <div className={styles.screen}>
-      <ScreenHeader title="New exercise" backTo="/settings/exercises" backLabel="Exercises" />
+      <ScreenHeader title="New exercise" backTo={list.path} backLabel={list.label} />
       <form
         className={styles.form}
         onSubmit={(event) => {

@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { AppSettings, PrescriptionOverride, WorkoutSession, WorkoutTemplate } from '../domain/types'
+import type { AppSettings, PrescriptionOverride, TemplateId, WorkoutSession, WorkoutTemplate } from '../domain/types'
 
 export type PersistResult = 'granted' | 'denied' | 'unsupported'
 
@@ -16,10 +16,19 @@ export interface AppMeta {
   workoutsSinceBackup?: number
 }
 
+/** Each workout's template lives under its own key. */
+export type TemplateKey = `template:${TemplateId}`
+
+export function templateKey(id: TemplateId): TemplateKey {
+  return `template:${id}`
+}
+
 export type KvRecord =
-  | { key: 'template'; value: WorkoutTemplate }
+  | { key: TemplateKey; value: WorkoutTemplate }
   | { key: 'settings'; value: AppSettings }
   | { key: 'meta'; value: AppMeta }
+  /** The single template of schema 1; startup moves it to `template:upper`. */
+  | { key: 'template'; value: unknown }
 
 export class OverloadDatabase extends Dexie {
   sessions!: EntityTable<WorkoutSession, 'id'>

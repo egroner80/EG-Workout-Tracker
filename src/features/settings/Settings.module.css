@@ -133,6 +133,14 @@
   color: var(--danger);
 }
 
+/* A consequence to read before confirming, e.g. steps that unlock from one being removed. */
+.warning {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  color: var(--warn);
+}
+
 .preview {
   display: flex;
   flex-direction: column;
@@ -196,6 +204,16 @@
   background: var(--surface);
   border: 1px solid var(--border);
   overflow: hidden;
+}
+
+/* What a step is but can't be set here: shared with the other workout, flowing on from the step before. */
+.cardNotes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 var(--space-4) var(--space-2);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
 }
 
 .cardActions {

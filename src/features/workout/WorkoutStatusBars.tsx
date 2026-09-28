@@ -15,7 +15,7 @@ export function WorkoutStatusBars({ kind }: { kind: StatusBarKind }) {
           <button
             type="button"
             className={styles.action}
-            onClick={() => downloadJson(`overload-workout-${session.id}.json`, session)}
+            onClick={() => downloadJson(`eg-workout-tracker-workout-${session.id}.json`, session)}
           >
             Export
           </button>

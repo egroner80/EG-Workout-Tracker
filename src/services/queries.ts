@@ -8,7 +8,8 @@ import {
   type ResolvedPrescription,
 } from '../domain/prescription'
 import { isProgressiveStep } from '../domain/progression/warmup'
-import type { PrescriptionOverride, WorkoutSession, WorkoutTemplate } from '../domain/types'
+import type { PrescriptionOverride, TemplateId, WorkoutSession, WorkoutTemplate } from '../domain/types'
+import { workoutTypeOf } from '../domain/workouts'
 
 export interface PrescriptionContext {
   template: WorkoutTemplate
@@ -18,12 +19,14 @@ export interface PrescriptionContext {
 }
 
 /**
- * Reads everything derivation needs in one read transaction, scanning finished
- * sessions newest-first and stopping once every target has a recommendation.
+ * Reads everything derivation needs for one workout in one read transaction,
+ * scanning finished sessions newest-first (of either workout: shared warm-up
+ * steps progress across both) and stopping once every target has a
+ * recommendation.
  */
-export async function loadPrescriptionContext(): Promise<PrescriptionContext> {
+export async function loadPrescriptionContext(templateId: TemplateId): Promise<PrescriptionContext> {
   return db.transaction('r', db.kv, db.sessions, db.overrides, async () => {
-    const template = await getTemplate()
+    const template = await getTemplate(templateId)
     const missing = new Set([
       ...template.exercises.map((e) => e.id),
       ...template.warmup.filter(isProgressiveStep).map((s) => s.id),
@@ -56,8 +59,34 @@ export async function getLatestRealSession(): Promise<WorkoutSession | undefined
   return latest
 }
 
-export async function getCurrentPrescriptions(): Promise<Map<string, ResolvedPrescription>> {
-  return deriveCurrentPrescriptions(await loadPrescriptionContext())
+export async function getCurrentPrescriptions(templateId: TemplateId): Promise<Map<string, ResolvedPrescription>> {
+  return deriveCurrentPrescriptions(await loadPrescriptionContext(templateId))
+}
+
+export interface RecentWorkout {
+  id: string
+  templateId: TemplateId
+  startedAt: number
+  finishedAt: number
+}
+
+/** The newest finished real workouts, newest first: what was done lately and in which order. */
+export async function loadRecentWorkouts(limit: number): Promise<RecentWorkout[]> {
+  const recent: RecentWorkout[] = []
+  await db.sessions
+    .orderBy('finishedAt')
+    .reverse()
+    .until(() => recent.length >= limit)
+    .each((session) => {
+      if (!isRealSession(session)) return
+      recent.push({
+        id: session.id,
+        templateId: workoutTypeOf(session),
+        startedAt: session.startedAt,
+        finishedAt: session.finishedAt ?? session.startedAt,
+      })
+    })
+  return recent
 }
 
 /** LAST TIME for each exercise: the newest earlier real workout where it had a done set. */

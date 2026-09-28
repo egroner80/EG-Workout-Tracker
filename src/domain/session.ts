@@ -67,7 +67,9 @@ function buildExerciseLog(exercise: ExerciseDef, prescription: Prescription | un
     ...base,
     kind: 'carry',
     scheme: structuredClone(exercise.scheme),
-    mode: 'carry',
+    // A hold has no variations to pick from; a carry starts walking.
+    mode: exercise.style === 'hold' ? 'hold' : 'carry',
+    ...(exercise.style ? { style: exercise.style } : {}),
     planned: { loadKg: target.loadKg, seconds: target.seconds, efforts },
     actual: efforts.map(
       (e): ActualEffort => ({ side: e.side, setIndex: e.setIndex, seconds: e.seconds, loadKg: target.loadKg, status: 'pending' }),
@@ -103,6 +105,9 @@ export function buildSession({ id, now, template, prescriptions, source = 'real'
       skipped: false,
       ...(step.progression ? { progression: { ...step.progression } } : {}),
       ...(step.activation ? { activation: { ...step.activation } } : {}),
+      ...(step.reps !== undefined ? { reps: step.reps } : {}),
+      ...(step.perSide ? { perSide: true } : {}),
+      ...(step.flowGroup ? { flowGroup: step.flowGroup } : {}),
     }
   })
   const exercises = template.exercises.map((exercise) => buildExerciseLog(exercise, lookup(prescriptions, exercise.id)))
@@ -110,6 +115,7 @@ export function buildSession({ id, now, template, prescriptions, source = 'real'
 
   return {
     id,
+    templateId: template.id,
     status: 'active',
     source,
     ...(source === 'real' ? { activeSlot: 'active' as const } : {}),

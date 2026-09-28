@@ -1,20 +1,34 @@
-# Overload — Upper Body Tracker
+# EG Workout Tracker
 
-A mobile-first, offline-first PWA for running and tracking an upper-body strength workout:
-guided warm-up timers, every set target visible at a glance, stepper-only logging, and
-transparent progressive overload computed from what you actually did.
+A mobile-first, offline-first PWA for running and tracking two alternating strength workouts,
+upper body and lower body: guided warm-up timers, every set target visible at a glance,
+stepper-only logging, and transparent progressive overload computed from what you actually did.
 
-Open the app, tap **Start workout**, follow the warm-up, and each exercise card shows the weight
-and every set's target together (`18 kg · 5 — 5 — 6`). Tap a set to log it as prescribed, or
-use − / + to record what really happened. At the end, the app tells you what to attempt next time.
+Open the app and Home suggests today's workout, the opposite of the last one you finished. Tap
+**Start upper body** or **Start lower body** (either one, whatever the suggestion) and follow the
+warm-up. Each exercise card shows the weight and every set's target together (`18 kg · 5 — 5 — 6`).
+Tap a set to log it as prescribed, or use − / + to record what really happened. At the end, the app
+tells you what to attempt next time.
 
 ## What it does
 
+- **Two workouts, alternating.** Upper body (pull-ups, dips, one-arm DB row, DB bench press,
+  standing DB press, hammer curls, weighted reverse crunch, suitcase carry) and lower body
+  (Bulgarian split squat, single-leg RDL, hip thrust, sliding hamstring curl, Copenhagen plank).
+  Every workout records which one it was. Home suggests the next one and lists your recent
+  workouts with their type and date, so three a week stays upper, lower, upper, lower.
 - **Guided warm-up.** Big name, big countdown, a chime, a screen flash, and vibration where the
   device supports it at zero, then a 3-second get-ready and the next step starts by itself. Jump
   rope starts at 2:00 and adds 10 s after every workout where it ran the full time, up to 5:00.
-  Double unders then join at 0:30 and add 5 s per workout up to 1:00. Durations, increments,
+  Double unders then join at 0:30 and add 5 s per workout up to 1:00. The rope progression is
+  shared: it picks up from the last workout that had it, upper or lower. Durations, increments,
   and caps are all editable.
+- **Three kinds of warm-up step.** Timed steps count down. Rep steps (hip hinges ×10, glute
+  bridges ×10) show the count and a **Done** button. Each-side steps (world's greatest stretch,
+  30 s each side) run one timer and cue the switch at the midpoint.
+- **Squat routine in both warm-ups.** Four 30 s holds in one deep squat (settle, knee push-outs,
+  side to side, breathe) run back to back with no get-ready between them, then five slow
+  bodyweight squats. Edits to a step both warm-ups share apply to both.
 - **The whole prescription on one card.** Weight, today's set targets, what you've logged, and last
   time. Dumbbell weights are per dumbbell. Pull-ups and dips support bodyweight, added weight
   (`BW + 5 kg`), and assistance (`Assisted −10 kg`).
@@ -22,11 +36,13 @@ use − / + to record what really happened. At the end, the app tells you what t
   heavier weight, skipped sets, and extra sets are all recorded as they happened.
 - **Transparent progression from actual performance.**
   - 5–6 rep exercises climb `5/5/5 → 5/5/6 → 5/6/6 → 6/6/6`, then the weight goes up and the
-    ladder restarts. Hammer curls go `8/8 → … → 10/10`.
+    ladder restarts. Hammer curls and the sliding hamstring curl go `8/8 → … → 10/10`.
   - The reverse crunch climbs a 10–15 rep ladder.
-  - The suitcase carry is timed per side, 40 s up to 60 s in 5 s steps.
+  - The suitcase carry is timed per side, 40 s up to 60 s in 5 s steps. The Copenhagen plank is a
+    timed hold per side, 20 s up to 40 s in 5 s steps.
   - Any set below target, or done at a lighter weight, repeats the same target next time.
-  - At the top of the ladder at bodyweight, you choose the added weight.
+  - At the top of the ladder at bodyweight (or the top of a bodyweight hold), you choose the added
+    weight, or stay at bodyweight with a harder variation.
   - You can override any next target by hand.
 - **Rest timer.** One tap (logging a set starts it too); +15 s, +30 s, pause, skip. It collapses
   to a bar so you can keep logging.
@@ -43,7 +59,7 @@ use − / + to record what really happened. At the end, the app tells you what t
   without a network connection.
 
 Demo history is loaded on first launch so History and Progress have something to show; it never
-affects your targets. The first **Start workout** offers to clear it, or use
+affects your targets. The first start of a real workout offers to clear it, or use
 **Settings → Clear demo data**.
 
 ## Development
@@ -72,6 +88,8 @@ The e2e suite runs the real workout with a fake clock:
 
 - **Acceptance:** start, guided warm-up, a failed set, a lighter weight, finish, check next
   targets, then close and reopen and check History.
+- **Lower body:** the squat routine flowing hold to hold, rep and each-side steps, the Copenhagen
+  plank timer, the next-workout suggestion, and the jump rope carrying over between workouts.
 - **Restore:** reload mid-timer and mid-exercise.
 - **Offline:** the service worker and the manifest.
 
@@ -102,6 +120,16 @@ Progression logic lives in `src/domain/progression` and never touches the UI.
 The build is a static site with hash routing and a relative base, so `dist/` works from any static
 HTTPS host (Netlify, Vercel, Cloudflare Pages, GitHub Pages, or your own server).
 
+On Vercel, publish the prebuilt output so nothing but the built files leaves your machine:
+
+```bash
+vercel link
+vercel build --prod
+vercel deploy --prebuilt --prod
+```
+
+`vercel.json` pins the Vite build and the no-cache headers below; `.vercel/` is gitignored.
+
 - **HTTPS is required.** Service workers, installation, the screen wake lock, and the share sheet
   only work in a secure context. `localhost` counts as secure for development.
 - **Cache headers.** Serve `sw.js` and `index.html` with `Cache-Control: no-cache` so updates are
@@ -130,6 +158,11 @@ losing the phone.
   screen reminds you after five workouts without a backup.
 - **Settings → Restore from a backup** first shows what the file contains. Restoring only adds or
   updates workouts: nothing on the phone is deleted, and newer local changes win.
+- Backups hold both workouts. A backup from before the lower-body workout existed still restores:
+  its workouts come back as upper body and its workout template as the upper-body workout, with the
+  squat routine added.
+- Each web address keeps its own data. Moving from a local or test address to the published one
+  means backing up there and restoring on the new address.
 - A workout still in progress isn't included in a backup. Finish it first.
 - Settings also shows whether the browser granted persistent storage, which protects your data from
   automatic clearing when space runs low.
