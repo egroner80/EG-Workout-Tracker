@@ -62,6 +62,26 @@ describe('targets across workouts', () => {
   })
 })
 
+describe('double unders across workouts', () => {
+  it('unlocks double unders for the next workout of either type once a lower workout reaches 5:00 of rope', async () => {
+    const lower = buildSession({
+      id: 'l-rope',
+      now: T0,
+      template: createTemplate('lower'),
+      prescriptions: new Map([['jump-rope', { kind: 'warmup' as const, durationSec: 300, active: true }]]),
+      source: 'real',
+    })
+    const warmup = lower.warmup.map((step) =>
+      step.stepId === 'jump-rope' ? { ...step, completed: true, elapsedMs: 300_000 } : step,
+    )
+    await db.sessions.add(finishSession({ ...lower, warmup }, { now: T0 + HOUR }))
+
+    const upper = await startWorkout('upper', T0 + 48 * HOUR)
+    expect(upper.warmup.find((s) => s.stepId === 'double-unders')).toMatchObject({ active: true, plannedSec: 30 })
+    expect(upper.warmup.find((s) => s.stepId === 'jump-rope')?.plannedSec).toBe(300)
+  })
+})
+
 describe('recent workouts', () => {
   function finished(id: string, templateId: TemplateId, at: number, source: 'real' | 'demo' = 'real'): WorkoutSession {
     const session = buildSession({ id, now: at - HOUR, template: createTemplate(templateId), prescriptions: new Map(), source })

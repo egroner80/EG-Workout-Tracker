@@ -181,3 +181,32 @@ describe('evaluateExercise — timed carry', () => {
     expect(rec.outcome).toBe('not-performed')
   })
 })
+
+describe('evaluateExercise — bodyweight hold', () => {
+  const plank = (seconds: number, actual?: (number | null)[]) => ({
+    ...carryLog({ plannedLoad: 0, plannedSeconds: seconds, actualSeconds: actual }),
+    exerciseId: 'copenhagen-plank',
+    loadType: 'bodyweight' as const,
+    loadStepKg: 2.5,
+    style: 'hold' as const,
+    mode: 'hold' as const,
+    scheme: { type: 'timed' as const, setsPerSide: 2, minSec: 20, maxSec: 40, stepSec: 5 },
+  })
+
+  it('asks for more resistance at the top of the range and restarts at the bottom', () => {
+    const rec = evaluateExercise(plank(40))
+    expect(rec.outcome).toBe('increase-load')
+    expect(rec.chooseResistance).toBe(true)
+    expect(rec.prescription).toEqual({ kind: 'timed', loadKg: 2.5, seconds: 20, setsPerSide: 2 })
+  })
+
+  it('adds 5 s below the top and repeats a short hold', () => {
+    expect(evaluateExercise(plank(35)).prescription).toMatchObject({ seconds: 40 })
+    expect(evaluateExercise(plank(35)).chooseResistance).toBeUndefined()
+    expect(evaluateExercise(plank(30, [30, 30, 30, 25])).outcome).toBe('repeat')
+  })
+
+  it('never asks a dumbbell carry to choose', () => {
+    expect(evaluateExercise(carryLog({ plannedSeconds: 60 })).chooseResistance).toBeUndefined()
+  })
+})

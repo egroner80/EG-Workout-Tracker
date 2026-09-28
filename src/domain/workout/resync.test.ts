@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createTemplate } from '../../data/seed/defaultTemplate'
 import { buildSession } from '../session'
-import type { CarryExerciseLog, WorkoutSession } from '../types'
+import type { CarryExerciseLog, WorkoutSession, WorkoutTemplate } from '../types'
 import { startEffort, startRest, startWarmupStep } from './actions'
 import { countdownTicks } from './cues'
 import { resync, type ResyncContext } from './resync'
@@ -128,5 +128,109 @@ describe('countdownTicks', () => {
   it('emits nothing after a long gap', () => {
     const s = startRest(session(), 'db-row', { now: T0, getReadyCountdown: true }).session
     expect(countdownTicks(s, T0, T0 + 89_500)).toEqual([])
+  })
+})
+
+describe('resync — squat routine and step shapes', () => {
+  function lower(stepId: string, template: WorkoutTemplate = createTemplate('lower')): WorkoutSession {
+    const s = buildSession({ id: 'l1', now: T0, template, prescriptions: new Map() })
+    const index = s.warmup.findIndex((step) => step.stepId === stepId)
+    const at = { ...s, runtime: { ...s.runtime!, warmup: { index, timer: null, getReady: null } } }
+    return startWarmupStep(at, { now: T0, getReadyCountdown: false }).session
+  }
+  const indexOf = (s: WorkoutSession, stepId: string) => s.warmup.findIndex((step) => step.stepId === stepId)
+
+  it('flows from one squat-routine hold straight into the next, with a single go cue', () => {
+    const { session: next, events } = resync(lower('deep-squat-hold'), live(T0 + 30_100))
+    expect(next.warmup[indexOf(next, 'deep-squat-hold')].completed).toBe(true)
+    expect(next.runtime?.warmup).toMatchObject({
+      index: indexOf(next, 'deep-squat-knee-push-outs'),
+      getReady: null,
+      timer: { running: true, endsAt: T0 + 60_000 },
+    })
+    expect(events).toEqual([{ type: 'go' }])
+  })
+
+  it('flows even with the get-ready setting off', () => {
+    const { session: next } = resync(lower('deep-squat-hold'), { ...live(T0 + 30_100), getReadyCountdown: false })
+    expect(next.runtime?.warmup.timer).toMatchObject({ running: true, endsAt: T0 + 60_000 })
+  })
+
+  it('waits for START when the hold ended while the app was hidden', () => {
+    const { session: next, events } = resync(lower('deep-squat-hold'), { now: T0 + 30_100, visible: false, getReadyCountdown: true })
+    expect(next.runtime?.warmup).toMatchObject({ index: indexOf(next, 'deep-squat-knee-push-outs'), timer: null, getReady: null })
+    expect(events).toEqual([{ type: 'complete' }])
+  })
+
+  it('hands the last hold over to the slow squats without starting a timer', () => {
+    const { session: next, events } = resync(lower('deep-squat-breathing'), live(T0 + 30_100))
+    expect(next.runtime?.warmup).toEqual({ index: indexOf(next, 'slow-squats'), timer: null, getReady: null })
+    expect(events).toEqual([{ type: 'complete' }])
+  })
+
+  it('uses the normal get-ready when a routine step follows a step outside the routine', () => {
+    const template = createTemplate('lower')
+    const withoutFirstHold = { ...template, warmup: template.warmup.filter((step) => step.id !== 'deep-squat-hold') }
+    const { session: next } = resync(lower('jump-rope', withoutFirstHold), live(T0 + 120_100))
+    expect(next.runtime?.warmup).toMatchObject({
+      index: indexOf(next, 'deep-squat-knee-push-outs'),
+      timer: null,
+      getReady: { running: true, endsAt: T0 + 123_000 },
+    })
+
+    const split = {
+      ...template,
+      warmup: template.warmup.flatMap((step) => {
+        if (step.id === 'ankle-rocks') return []
+        if (step.id === 'deep-squat-hold') return [step, template.warmup.find((s) => s.id === 'ankle-rocks')!]
+        return [step]
+      }),
+    }
+    const { session: afterHold } = resync(lower('deep-squat-hold', split), live(T0 + 30_100))
+    expect(afterHold.runtime?.warmup).toMatchObject({ index: indexOf(afterHold, 'ankle-rocks'), timer: null })
+  })
+
+  it('completes a per-side step only after both sides', () => {
+    const started = lower('worlds-greatest-stretch')
+    expect(resync(started, live(T0 + 30_100)).session.runtime?.warmup.index).toBe(indexOf(started, 'worlds-greatest-stretch'))
+    const { session: next } = resync(started, live(T0 + 60_100))
+    expect(next.warmup[indexOf(next, 'worlds-greatest-stretch')]).toMatchObject({ completed: true, elapsedMs: 60_000 })
+  })
+
+  it('resolves get-ready, work, and completion in one pass after a long absence, and changes nothing the second time', () => {
+    const started = startWarmupStep(session(), { now: T0, getReadyCountdown: true }).session
+    const back = live(T0 + 125_000)
+    const first = resync(started, back)
+    expect(first.session.warmup[0]).toMatchObject({ completed: true, elapsedMs: 120_000 })
+    expect(first.session.runtime?.warmup).toEqual({ index: 2, timer: null, getReady: null })
+    expect(first.events).toEqual([])
+    const second = resync(first.session, back)
+    expect(second.session).toEqual(first.session)
+    expect(second.events).toEqual([])
+  })
+})
+
+describe('countdownTicks — per-side steps', () => {
+  function stretch(): WorkoutSession {
+    const s = buildSession({ id: 'l1', now: T0, template: createTemplate('lower'), prescriptions: new Map() })
+    const index = s.warmup.findIndex((step) => step.stepId === 'worlds-greatest-stretch')
+    const at = { ...s, runtime: { ...s.runtime!, warmup: { index, timer: null, getReady: null } } }
+    return startWarmupStep(at, { now: T0, getReadyCountdown: false }).session
+  }
+
+  it('counts 3-2-1 to the side switch and cues it once', () => {
+    const s = stretch()
+    const events = []
+    for (let now = T0 + 26_000; now <= T0 + 31_000; now += 100) events.push(...countdownTicks(s, now - 100, now))
+    expect(events).toEqual([
+      { type: 'tick', secondsLeft: 3 },
+      { type: 'tick', secondsLeft: 2 },
+      { type: 'tick', secondsLeft: 1 },
+      { type: 'switch-sides' },
+    ])
+  })
+
+  it('plays nothing when the midpoint passed while the app was hidden', () => {
+    expect(countdownTicks(stretch(), T0 + 26_000, T0 + 32_000)).toEqual([])
   })
 })

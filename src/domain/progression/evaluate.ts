@@ -89,6 +89,7 @@ function evaluateCarry(log: CarryExerciseLog): Recommendation {
         seconds: scheme.minSec,
         setsPerSide,
       },
+      ...(log.loadType === 'bodyweight' ? { chooseResistance: true } : {}),
     }
   }
   return {

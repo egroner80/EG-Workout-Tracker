@@ -1,5 +1,5 @@
-import type { CarryExerciseLog, SessionRuntime, WorkoutSession } from '../types'
-import { activeStepIndexes, GET_READY_MS, SIDE_SWITCH_MS, type ActionResult } from './actions'
+import type { CarryExerciseLog, SessionRuntime, WarmupStepLog, WorkoutSession } from '../types'
+import { activeStepIndexes, GET_READY_MS, isRepStep, SIDE_SWITCH_MS, stepWorkMs, type ActionResult } from './actions'
 import { isFresh, type CueEvent } from './cues'
 import { isExpired, startTimer } from './timer'
 
@@ -35,6 +35,11 @@ function withRuntime(session: WorkoutSession, patch: Partial<SessionRuntime>): W
   return { ...session, runtime: { ...session.runtime, ...patch } }
 }
 
+/** The squat routine's holds run back to back: timed steps of one flow group, one right after another. */
+function flowsInto(ended: WarmupStepLog, upcoming: WarmupStepLog): boolean {
+  return ended.flowGroup !== undefined && ended.flowGroup === upcoming.flowGroup && !isRepStep(upcoming)
+}
+
 function resolveOne(session: WorkoutSession, ctx: ResyncContext): ActionResult | null {
   const runtime = session.runtime
   if (!runtime || session.status !== 'active') return null
@@ -45,9 +50,9 @@ function resolveOne(session: WorkoutSession, ctx: ResyncContext): ActionResult |
   if (warmup.getReady && isExpired(warmup.getReady, now)) {
     const at = warmup.getReady.endsAt
     const step = session.warmup[warmup.index]
-    if (!step) return { session: withRuntime(session, { warmup: { ...warmup, getReady: null } }), events: [] }
+    if (!step || isRepStep(step)) return { session: withRuntime(session, { warmup: { ...warmup, getReady: null } }), events: [] }
     const next = withRuntime(session, {
-      warmup: { ...warmup, getReady: null, timer: startTimer(step.plannedSec * 1000, at) },
+      warmup: { ...warmup, getReady: null, timer: startTimer(stepWorkMs(step), at) },
     })
     return { session: next, events: isFresh(at, now) ? [{ type: 'go' }] : [] }
   }
@@ -60,18 +65,26 @@ function resolveOne(session: WorkoutSession, ctx: ResyncContext): ActionResult |
     let next: WorkoutSession = {
       ...session,
       warmup: session.warmup.map((s, i) =>
-        i === index ? { ...s, completed: true, skipped: false, elapsedMs: s.plannedSec * 1000 } : s,
+        i === index ? { ...s, completed: true, skipped: false, elapsedMs: stepWorkMs(s) } : s,
       ),
     }
     const nextIndex = activeStepIndexes(next).find((i) => i > index)
     if (nextIndex === undefined) {
       next = withRuntime(next, { phase: 'warmup-complete', warmup: { ...warmup, timer: null, getReady: null } })
-    } else {
-      const chain = ctx.visible && fresh && ctx.getReadyCountdown
-      next = withRuntime(next, {
-        warmup: { index: nextIndex, timer: null, getReady: chain ? startTimer(GET_READY_MS, at) : null },
-      })
+      return { session: next, events: fresh ? [{ type: 'complete' }] : [] }
     }
+    const ended = session.warmup[index]
+    const upcoming = next.warmup[nextIndex]
+    if (ended && flowsInto(ended, upcoming) && ctx.visible && fresh) {
+      next = withRuntime(next, {
+        warmup: { index: nextIndex, timer: startTimer(stepWorkMs(upcoming), at), getReady: null },
+      })
+      return { session: next, events: [{ type: 'go' }] }
+    }
+    const chain = ctx.visible && fresh && ctx.getReadyCountdown && !isRepStep(upcoming)
+    next = withRuntime(next, {
+      warmup: { index: nextIndex, timer: null, getReady: chain ? startTimer(GET_READY_MS, at) : null },
+    })
     return { session: next, events: fresh ? [{ type: 'complete' }] : [] }
   }
 

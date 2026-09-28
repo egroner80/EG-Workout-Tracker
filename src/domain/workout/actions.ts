@@ -8,6 +8,7 @@ import type {
   ExerciseLog,
   RepsExerciseLog,
   SessionRuntime,
+  Side,
   WarmupRuntime,
   WarmupStepLog,
   WorkoutSession,
@@ -80,7 +81,21 @@ export function activeStepIndexes(session: WorkoutSession): number[] {
   return session.warmup.flatMap((step, i) => (step.active ? [i] : []))
 }
 
-const plannedMs = (step: WarmupStepLog) => step.plannedSec * 1000
+/** A rep-counted step has no timer: the user taps Done. */
+export function isRepStep(step: Pick<WarmupStepLog, 'reps'>): boolean {
+  return step.reps !== undefined
+}
+
+/** Work time of a timed step: its duration, once per side for a per-side step. */
+export function stepWorkMs(step: Pick<WarmupStepLog, 'plannedSec' | 'perSide'>): number {
+  return step.plannedSec * 1000 * (step.perSide ? 2 : 1)
+}
+
+/** The side a per-side step is on, from the time left: left first, then right. */
+export function sideAt(step: Pick<WarmupStepLog, 'plannedSec' | 'perSide'>, remaining: number): Side | undefined {
+  if (!step.perSide) return undefined
+  return remaining > step.plannedSec * 1000 ? 'L' : 'R'
+}
 
 /** Pauses the current step's timers and records its elapsed time before navigating away. */
 function leaveCurrentStep(session: WorkoutSession, now: number): WorkoutSession {
@@ -88,7 +103,7 @@ function leaveCurrentStep(session: WorkoutSession, now: number): WorkoutSession 
   const step = session.warmup[warmup.index]
   let next = session
   if (step && warmup.timer) {
-    next = updateStep(next, warmup.index, { elapsedMs: plannedMs(step) - remainingMs(warmup.timer, now) })
+    next = updateStep(next, warmup.index, { elapsedMs: stepWorkMs(step) - remainingMs(warmup.timer, now) })
   }
   return withWarmupRuntime(next, { timer: null, getReady: null })
 }
@@ -108,23 +123,48 @@ function previousActiveIndex(session: WorkoutSession, from: number): number | un
     .at(-1)
 }
 
-/** START: a fresh or redone step gets the get-ready countdown; a partial step resumes. */
+/** START: a fresh or redone step gets the get-ready countdown; a partial step resumes. Rep steps have no timer. */
 export function startWarmupStep(session: WorkoutSession, ctx: ActionContext): ActionResult {
   const { warmup } = runtimeOf(session)
   const step = session.warmup[warmup.index]
-  if (!step || warmup.timer?.running || warmup.getReady?.running) return result(session)
+  if (!step || isRepStep(step) || warmup.timer?.running || warmup.getReady?.running) return result(session)
   const resuming = !step.completed && step.elapsedMs > 0
   let next = updateStep(touch(session, ctx.now), warmup.index, { skipped: false })
   if (ctx.getReadyCountdown && !resuming) {
     next = withWarmupRuntime(next, { timer: null, getReady: startTimer(GET_READY_MS, ctx.now) })
     return result(next, [{ type: 'tick', secondsLeft: 3 }])
   }
-  const remaining = resuming ? plannedMs(step) - step.elapsedMs : plannedMs(step)
+  const workMs = stepWorkMs(step)
+  const remaining = resuming ? workMs - step.elapsedMs : workMs
   next = withWarmupRuntime(next, {
     getReady: null,
-    timer: { durationMs: plannedMs(step), running: true, endsAt: ctx.now + remaining, remainingMs: remaining },
+    timer: { durationMs: workMs, running: true, endsAt: ctx.now + remaining, remainingMs: remaining },
   })
   return result(next, [{ type: 'go' }])
+}
+
+/**
+ * DONE on a rep-counted step: records it and moves on in the same tap. A
+ * timed step that follows counts in when the get-ready setting is on.
+ */
+export function completeRepStep(session: WorkoutSession, ctx: ActionContext): ActionResult {
+  const { warmup } = runtimeOf(session)
+  const step = session.warmup[warmup.index]
+  if (!step || !isRepStep(step)) return result(session)
+  const done = updateStep(touch(session, ctx.now), warmup.index, {
+    completed: true,
+    skipped: false,
+    elapsedMs: stepWorkMs(step),
+  })
+  const nextIndex = nextActiveIndex(done, warmup.index)
+  const moved = moveToStep(done, nextIndex)
+  const upcoming = nextIndex === undefined ? undefined : moved.warmup[nextIndex]
+  if (upcoming && !isRepStep(upcoming) && ctx.getReadyCountdown) {
+    return result(withWarmupRuntime(moved, { getReady: startTimer(GET_READY_MS, ctx.now) }), [
+      { type: 'tick', secondsLeft: 3 },
+    ])
+  }
+  return result(moved)
 }
 
 export function pauseWarmup(session: WorkoutSession, ctx: ActionContext): ActionResult {
@@ -134,7 +174,7 @@ export function pauseWarmup(session: WorkoutSession, ctx: ActionContext): Action
   if (!step || !warmup.timer?.running) return result(session)
   const timer = pauseTimer(warmup.timer, ctx.now)
   const next = updateStep(touch(session, ctx.now), warmup.index, {
-    elapsedMs: plannedMs(step) - timer.remainingMs,
+    elapsedMs: stepWorkMs(step) - timer.remainingMs,
   })
   return result(withWarmupRuntime(next, { timer }))
 }

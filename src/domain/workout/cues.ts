@@ -44,5 +44,21 @@ export function countdownTicks(session: WorkoutSession, previousNow: number, now
     const after = Math.ceil(remainingMs(timer, now) / 1000)
     if (after < before && after >= 1 && after <= 3) events.push({ type: 'tick', secondsLeft: after })
   }
+  events.push(...sideSwitchCues(session, previousNow, now))
   return events
+}
+
+/** A per-side warm-up step: 3-2-1 before its midpoint, then "switch sides" at it. */
+function sideSwitchCues(session: WorkoutSession, previousNow: number, now: number): CueEvent[] {
+  const runtime = session.runtime
+  const timer = runtime?.warmup.timer
+  const step = runtime ? session.warmup[runtime.warmup.index] : undefined
+  if (!timer?.running || !step?.perSide) return []
+  const secondSideMs = step.plannedSec * 1000
+  // Whole seconds left on the first side.
+  const before = Math.ceil((remainingMs(timer, previousNow) - secondSideMs) / 1000)
+  const after = Math.ceil((remainingMs(timer, now) - secondSideMs) / 1000)
+  if (after >= before) return []
+  if (after >= 1 && after <= 3) return [{ type: 'tick', secondsLeft: after }]
+  return after <= 0 && before > 0 ? [{ type: 'switch-sides' }] : []
 }
