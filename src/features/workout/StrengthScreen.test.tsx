@@ -1,8 +1,10 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { insertActiveSession } from '../../data/repositories/sessions'
 import { updateMeta } from '../../data/repositories/settingsRepo'
-import { getTemplate, saveTemplate } from '../../data/repositories/templateRepo'
+import { createTemplate } from '../../data/seed/defaultTemplate'
+import { buildSession } from '../../domain/session'
 import { goToExercise, startStrength } from '../../domain/workout/actions'
 import { useWorkoutStore } from '../../state/workoutStore'
 import { act, advance, advanceFrames, renderAt, resetApp, startWorkout } from '../../test/workoutHarness'
@@ -193,8 +195,10 @@ describe('navigation and finish', () => {
 
   it('shows an empty state instead of crashing when the workout has no exercises', async () => {
     const user = userEvent.setup()
-    await saveTemplate({ ...(await getTemplate('upper')), exercises: [] })
-    await startWorkout()
+    // A stored workout always has an exercise; a saved session can still come back without one.
+    const template = { ...createTemplate('upper'), exercises: [] }
+    await insertActiveSession(buildSession({ id: 'empty', now: Date.now(), template, prescriptions: new Map() }))
+    await useWorkoutStore.getState().hydrate()
     act(startStrength)
     renderAt(<WorkoutRoute />)
     expect(await screen.findByRole('heading', { name: 'No exercises in this workout' })).toBeInTheDocument()

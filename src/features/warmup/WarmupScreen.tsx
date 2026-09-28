@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useNavigate } from 'react-router'
 import { Button } from '../../components/Button'
 import { IconChevronLeft, IconChevronRight, IconClose, IconSkip } from '../../components/icons'
@@ -20,8 +21,11 @@ import {
 } from '../../domain/workout/actions'
 import { remainingMs, secondsLeft } from '../../domain/workout/timer'
 import { useClock } from '../../state/useTicker'
-import { useWorkoutStore } from '../../state/workoutStore'
+import { useWorkoutStore, type WorkoutAction } from '../../state/workoutStore'
 import styles from './WarmupScreen.module.css'
+
+/** A second Done this soon after the first is a double tap, not the next drill. */
+const DONE_REPEAT_MS = 700
 
 type StepMode = 'get-ready' | 'running' | 'paused' | 'complete' | 'skipped' | 'ready'
 
@@ -80,16 +84,29 @@ function stepView(session: WorkoutSession, now: number) {
 export function WarmupScreen() {
   const navigate = useNavigate()
   const session = useWorkoutStore((state) => state.session)
-  const apply = useWorkoutStore((state) => state.apply)
+  const applyAction = useWorkoutStore((state) => state.apply)
   const now = useClock((state) => state.now)
+  // Consecutive rep steps keep Done in the same place: a second Done right
+  // after the first, with no other tap between, is a double tap, not the next drill.
+  const lastDoneAt = useRef<number | null>(null)
   if (!session?.runtime) return null
+
+  const apply = (action: WorkoutAction) => {
+    lastDoneAt.current = null
+    applyAction(action)
+  }
+  const done = ({ timeStamp }: { timeStamp: number }) => {
+    if (lastDoneAt.current !== null && timeStamp - lastDoneAt.current < DONE_REPEAT_MS) return
+    lastDoneAt.current = timeStamp
+    applyAction(completeRepStep)
+  }
 
   const view = stepView(session, now)
   // A rep step has no timer: Done records it and moves on; once it is done, the button only moves on.
   const primary = view.repStep
     ? view.mode === 'complete'
       ? { label: 'Next', action: () => apply(nextWarmupStep) }
-      : { label: 'Done', action: () => apply(completeRepStep) }
+      : { label: 'Done', action: done }
     : {
         'get-ready': { label: 'Cancel', action: () => apply(pauseWarmup) },
         running: { label: 'Pause', action: () => apply(pauseWarmup) },

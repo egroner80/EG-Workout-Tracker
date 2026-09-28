@@ -16,6 +16,7 @@ import type { ResolvedPrescription } from '../../domain/prescription'
 import { isProgressiveStep } from '../../domain/progression/warmup'
 import { SQUAT_ROUTINE_GROUP } from '../../domain/sharedWarmup'
 import type { TemplateId, WarmupStepDef, WorkoutTemplate } from '../../domain/types'
+import { flowsInto, isRepStep } from '../../domain/workout/actions'
 import { otherTemplate, templateLabel } from '../../domain/workouts'
 import { createOverride } from '../../services/dataCommands'
 import { useWorkoutStore } from '../../state/workoutStore'
@@ -130,8 +131,10 @@ export function WarmupEditor() {
       >
         {unlocking.length > 0 && (
           <p className={styles.warning}>
-            {NAME_LIST.format(unlocking.map((s) => s.name))} unlock from this step. Without it they won't unlock in this
-            workout.
+            {NAME_LIST.format(unlocking.map((s) => s.name))} unlock from this step.{' '}
+            {removing && isShared(removing)
+              ? `Without it here, they unlock only from the ${removing.name.toLowerCase()} in the ${WARMUP_NAME[other]}.`
+              : "Without it they won't unlock in this workout."}
           </p>
         )}
       </ConfirmSheet>
@@ -141,13 +144,9 @@ export function WarmupEditor() {
   )
 }
 
-/**
- * Whether a step starts the moment the one before it ends, with no get-ready:
- * it follows a timed step of its own flow group (the squat routine's holds).
- * A group step after any other step starts as usual.
- */
+/** Whether the workout runs this step straight on from the one before, as it does the squat routine's holds. */
 function flowsStraightOn(previous: WarmupStepDef | undefined, step: WarmupStepDef): boolean {
-  return step.flowGroup !== undefined && previous?.flowGroup === step.flowGroup && previous.reps === undefined
+  return previous !== undefined && flowsInto(previous, step)
 }
 
 interface StepCardProps {
@@ -208,7 +207,7 @@ function StepCard({
             Change
           </Button>
         </div>
-      ) : step.reps !== undefined ? (
+      ) : isRepStep(step) ? (
         <Field label={step.perSide ? 'Reps per side' : 'Reps'}>
           <Stepper
             size="md"
@@ -287,7 +286,7 @@ const estimateSec = (seconds: number) => Math.max(1, Math.round(seconds))
 
 /** Changes a rep step's count; its time estimate keeps the step's pace. */
 function withReps(step: WarmupStepDef, change: number): WarmupStepDef {
-  if (step.reps === undefined) return step
+  if (!isRepStep(step)) return step
   const reps = clamp(step.reps + change, MIN_REPS, MAX_REPS)
   return { ...step, reps, durationSec: estimateSec((step.durationSec * reps) / step.reps) }
 }
@@ -297,7 +296,7 @@ function withReps(step: WarmupStepDef, change: number): WarmupStepDef {
  * a rep step's estimate covers the whole step, so it doubles or halves.
  */
 function withPerSide(step: WarmupStepDef, perSide: boolean): WarmupStepDef {
-  if (step.reps === undefined || Boolean(step.perSide) === perSide) return { ...step, perSide }
+  if (!isRepStep(step) || Boolean(step.perSide) === perSide) return { ...step, perSide }
   return { ...step, perSide, durationSec: estimateSec(perSide ? step.durationSec * 2 : step.durationSec / 2) }
 }
 
@@ -337,12 +336,12 @@ async function updateProgression(
 
 /** Steps that unlocked when step `id` reached its old top duration unlock at the new one. */
 function followCap(template: WorkoutTemplate, id: string, { from, to }: CapChange): WorkoutTemplate {
+  const follows = (s: WarmupStepDef) => s.activation?.afterStepId === id && s.activation.whenDurationReachesSec === from
+  if (!template.warmup.some(follows)) return template
   return {
     ...template,
     warmup: template.warmup.map((s) =>
-      s.activation?.afterStepId === id && s.activation.whenDurationReachesSec === from
-        ? { ...s, activation: { ...s.activation, whenDurationReachesSec: to } }
-        : s,
+      follows(s) && s.activation ? { ...s, activation: { ...s.activation, whenDurationReachesSec: to } } : s,
     ),
   }
 }

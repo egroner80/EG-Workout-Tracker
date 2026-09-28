@@ -94,24 +94,44 @@ describe('bootstrap', () => {
     const lower = await getTemplate('lower')
     expect(ropeCap(lower)).toBe(360)
     expect(lower.warmup.find((s) => s.id === 'double-unders')?.activation?.whenDurationReachesSec).toBe(360)
-    expect(await db.kv.get('template')).toBeUndefined()
+    // Kept for a build from before the lower-body workout that may still be open.
+    expect(await db.kv.get('template')).toBeDefined()
 
     await bootstrap(NOW + 1000, { demo: false })
     expect(await getTemplate('upper')).toEqual(upper)
     expect(await getTemplate('lower')).toEqual(lower)
   })
 
-  it('lets a newer legacy template replace upper, and drops an older one', async () => {
-    await saveTemplate({ ...createTemplate('upper'), updatedAt: 5 })
+  it('lets a newer legacy template replace upper and carries its shared steps into lower; an older one changes nothing', async () => {
+    await bootstrap(NOW, { demo: false })
+    await saveTemplate({ ...(await getTemplate('upper')), updatedAt: 5 })
+    // An older build, still open, saved an edit to the template it knows.
     await db.kv.put({ key: 'template', value: legacyTemplate(9) })
-    await bootstrap(NOW, { demo: false })
+    await bootstrap(NOW + 1, { demo: false })
     expect(ropeCap(await getTemplate('upper'))).toBe(360)
+    const lower = await getTemplate('lower')
+    expect(ropeCap(lower)).toBe(360)
+    expect(lower.updatedAt).toBe(NOW + 1)
 
-    await db.kv.put({ key: 'template', value: legacyTemplate(3) })
-    await saveTemplate({ ...(await getTemplate('upper')), warmup: createTemplate('upper').warmup, updatedAt: 10 })
-    await bootstrap(NOW, { demo: false })
+    // Edited here since, upper is newer than anything that build wrote.
+    await saveTemplate({ ...(await getTemplate('upper')), warmup: createTemplate('upper').warmup, updatedAt: 20 })
+    await bootstrap(NOW + 2, { demo: false })
     expect(ropeCap(await getTemplate('upper'))).toBe(300)
-    expect(await db.kv.get('template')).toBeUndefined()
+    expect(await db.kv.get('template')).toBeDefined()
+  })
+
+  it('replaces a stored workout that cannot be read, and never loses a legacy template to it', async () => {
+    await db.kv.put({ key: templateKey('upper'), value: { id: 'upper', warmup: 'broken' } as unknown as WorkoutTemplate })
+    await db.kv.put({ key: 'template', value: legacyTemplate(7) })
+    await expect(bootstrap(NOW, { demo: false })).resolves.toBeUndefined()
+    const upper = await getTemplate('upper')
+    expect([upper.updatedAt, ropeCap(upper)]).toEqual([7, 360])
+
+    await db.kv.put({ key: templateKey('lower'), value: { id: 'lower', exercises: 7 } as unknown as WorkoutTemplate })
+    await expect(bootstrap(NOW + 1, { demo: false })).resolves.toBeUndefined()
+    const lower = await getTemplate('lower')
+    expect(lower.exercises).toHaveLength(5)
+    expect(ropeCap(lower)).toBe(360)
   })
 
   it('leaves an unreadable legacy template in place and still starts with both workouts', async () => {

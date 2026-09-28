@@ -3,6 +3,7 @@ import { syncSharedSteps } from '../../domain/sharedWarmup'
 import { DEFAULT_SETTINGS, type TemplateId, type WorkoutTemplate } from '../../domain/types'
 import { TEMPLATE_IDS, otherTemplate } from '../../domain/workouts'
 import { db, templateKey, type AppMeta } from '../db'
+import { readStoredTemplate } from '../repositories/templateRepo'
 import { createTemplate } from './defaultTemplate'
 import { generateDemoHistory } from './demoHistory'
 
@@ -18,7 +19,7 @@ export async function bootstrap(now: number, { demo = true }: { demo?: boolean }
     const metaRecord = await db.kv.get('meta')
     const meta: AppMeta = metaRecord?.key === 'meta' ? { ...metaRecord.value } : { seeded: false, demoSeeded: false }
 
-    await moveLegacyTemplate()
+    await moveLegacyTemplate(now)
     const templates = await seedMissingTemplates()
 
     if (!meta.seeded) {
@@ -33,18 +34,15 @@ export async function bootstrap(now: number, { demo = true }: { demo?: boolean }
   })
 }
 
-async function storedTemplate(id: TemplateId): Promise<WorkoutTemplate | undefined> {
-  const record = await db.kv.get(templateKey(id))
-  return record?.key === templateKey(id) ? (record.value as WorkoutTemplate) : undefined
-}
-
 /**
  * Schema 1 kept one template under `template`. It becomes the upper-body
- * workout (with the squat routine) unless a newer upper template exists, for
- * example one saved while an old tab still wrote the legacy key. A record
- * that cannot be read stays where it is and upper falls back to the seed.
+ * workout (with the squat routine) whenever it is newer than the stored upper,
+ * and lower takes its shared warm-up steps. The record itself stays: a build
+ * from before the lower-body workout, still open in another tab, keeps editing
+ * the user's real template instead of its seed, and those edits come through
+ * here on the next start. A record that cannot be read is left alone.
  */
-async function moveLegacyTemplate(): Promise<void> {
+async function moveLegacyTemplate(now: number): Promise<void> {
   const legacy = await db.kv.get('template')
   if (legacy?.key !== 'template') return
   let migrated: WorkoutTemplate
@@ -53,21 +51,28 @@ async function moveLegacyTemplate(): Promise<void> {
   } catch {
     return
   }
-  const upper = await storedTemplate('upper')
-  if (!upper || upper.updatedAt < migrated.updatedAt) await db.kv.put({ key: templateKey('upper'), value: migrated })
-  await db.kv.delete('template')
+  const upper = await readStoredTemplate('upper')
+  if (upper && upper.updatedAt >= migrated.updatedAt) return
+  await db.kv.put({ key: templateKey('upper'), value: migrated })
+  const lower = await readStoredTemplate('lower')
+  const synced = lower && syncSharedSteps(migrated, lower)
+  if (synced && synced !== lower) await db.kv.put({ key: templateKey('lower'), value: { ...synced, updatedAt: now } })
 }
 
-/** A newly seeded workout takes its shared warm-up steps from the one the user already has. */
+/**
+ * Seeds each workout that is missing or unreadable. A newly seeded workout
+ * takes its shared warm-up steps from the one the user already has.
+ */
 async function seedMissingTemplates(): Promise<Record<TemplateId, WorkoutTemplate>> {
-  const stored: Partial<Record<TemplateId, WorkoutTemplate>> = {}
-  for (const id of TEMPLATE_IDS) stored[id] = await storedTemplate(id)
+  const [upper, lower] = await Promise.all([readStoredTemplate('upper'), readStoredTemplate('lower')])
+  const stored: Partial<Record<TemplateId, WorkoutTemplate>> = { upper, lower }
   const templates = { ...stored }
   for (const id of TEMPLATE_IDS) {
     if (templates[id]) continue
     const existing = stored[otherTemplate(id)]
     const seeded = existing ? syncSharedSteps(existing, createTemplate(id)) : createTemplate(id)
-    await db.kv.add({ key: templateKey(id), value: seeded })
+    // put, not add: this also replaces a stored template that could not be read.
+    await db.kv.put({ key: templateKey(id), value: seeded })
     templates[id] = seeded
   }
   return templates as Record<TemplateId, WorkoutTemplate>

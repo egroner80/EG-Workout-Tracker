@@ -82,13 +82,27 @@ export function activeStepIndexes(session: WorkoutSession): number[] {
 }
 
 /** A rep-counted step has no timer: the user taps Done. */
-export function isRepStep(step: Pick<WarmupStepLog, 'reps'>): boolean {
+export function isRepStep<T extends Pick<WarmupStepLog, 'reps'>>(step: T): step is T & { reps: number } {
   return step.reps !== undefined
 }
 
-/** Work time of a timed step: its duration, once per side for a per-side step. */
-export function stepWorkMs(step: Pick<WarmupStepLog, 'plannedSec' | 'perSide'>): number {
-  return step.plannedSec * 1000 * (step.perSide ? 2 : 1)
+/**
+ * Work time of a step: its duration, once per side for a timed per-side step.
+ * A rep step's duration already estimates the whole step, both sides included.
+ */
+export function stepWorkMs(step: Pick<WarmupStepLog, 'plannedSec' | 'perSide' | 'reps'>): number {
+  return step.plannedSec * 1000 * (step.perSide && !isRepStep(step) ? 2 : 1)
+}
+
+/**
+ * Whether `next` starts the moment `ended` ends, with no get-ready: timed steps
+ * of one flow group, one right after the other (the squat routine's holds).
+ */
+export function flowsInto(
+  ended: Pick<WarmupStepLog, 'flowGroup' | 'reps'>,
+  next: Pick<WarmupStepLog, 'flowGroup' | 'reps'>,
+): boolean {
+  return ended.flowGroup !== undefined && ended.flowGroup === next.flowGroup && !isRepStep(ended) && !isRepStep(next)
 }
 
 /** The side a per-side step is on, from the time left: left first, then right. */

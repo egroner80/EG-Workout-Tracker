@@ -271,4 +271,13 @@ describe('Home', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/workout')
     useWorkoutStore.setState({ recovery: null })
   })
+
+  it('locks the workout switch while a start is in progress', async () => {
+    renderAt(<HomeScreen />, '/')
+    const lower = await screen.findByRole('radio', { name: 'Lower body' })
+    expect(lower).toBeEnabled()
+    useWorkoutStore.setState({ busy: true })
+    await vi.waitFor(() => expect(lower).toBeDisabled())
+    expect(screen.getByRole('radio', { name: 'Upper body' })).toBeDisabled()
+  })
 })

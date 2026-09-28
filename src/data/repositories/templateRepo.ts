@@ -1,12 +1,25 @@
+import { isValidTemplate } from '../../domain/migrate'
 import { syncSharedSteps } from '../../domain/sharedWarmup'
 import type { TemplateId, WorkoutTemplate } from '../../domain/types'
 import { otherTemplate } from '../../domain/workouts'
 import { createTemplate } from '../seed/defaultTemplate'
 import { db, templateKey } from '../db'
 
-export async function getTemplate(id: TemplateId): Promise<WorkoutTemplate> {
-  const record = await db.kv.get(templateKey(id))
-  return record?.key === templateKey(id) ? (record.value as WorkoutTemplate) : createTemplate(id)
+/**
+ * The stored template for a workout, or undefined when there is none or it
+ * cannot be read. Chained on Dexie's promise rather than awaited in another
+ * async layer, so callers inside a transaction keep it open.
+ */
+export function readStoredTemplate(id: TemplateId): Promise<WorkoutTemplate | undefined> {
+  return db.kv.get(templateKey(id)).then((record) => {
+    const value: unknown = record?.key === templateKey(id) ? record.value : undefined
+    return isValidTemplate(value) && value.id === id ? value : undefined
+  })
+}
+
+/** A workout's template; the seed stands in for one that is missing or unreadable (startup rewrites it). */
+export function getTemplate(id: TemplateId): Promise<WorkoutTemplate> {
+  return readStoredTemplate(id).then((template) => template ?? createTemplate(id))
 }
 
 export async function getTemplates(): Promise<Record<TemplateId, WorkoutTemplate>> {
@@ -31,7 +44,8 @@ export async function syncOtherTemplate(source: WorkoutTemplate, now: number): P
 /**
  * Read-modify-write in one transaction. Edits queue behind each other, so a
  * press-and-hold stepper never overwrites its own earlier steps. Shared
- * warm-up steps change in the other workout too.
+ * warm-up steps change in the other workout too. A recipe that changes
+ * nothing returns the template it was given: nothing is written.
  */
 export async function modifyTemplate(
   id: TemplateId,
@@ -39,7 +53,10 @@ export async function modifyTemplate(
   now: number,
 ): Promise<WorkoutTemplate> {
   return db.transaction('rw', db.kv, async () => {
-    const next: WorkoutTemplate = { ...recipe(await getTemplate(id)), id, updatedAt: now }
+    const current = await getTemplate(id)
+    const edited = recipe(current)
+    if (edited === current) return current
+    const next: WorkoutTemplate = { ...edited, id, updatedAt: now }
     await saveTemplate(next)
     await syncOtherTemplate(next, now)
     return next

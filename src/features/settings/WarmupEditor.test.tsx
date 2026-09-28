@@ -262,7 +262,8 @@ describe('warm-up editor for each workout', () => {
     const pushOuts = await screen.findByRole('article', { name: 'Deep squat · knee push-outs' })
     const flows = 'Flows straight on from the previous squat-routine step'
     expect(within(pushOuts).getByText(flows)).toBeInTheDocument()
-    expect(within(card('Slow bodyweight squats')).getByText(flows)).toBeInTheDocument()
+    // The slow squats are counted, not timed: they wait for Done like any rep step.
+    expect(within(card('Slow bodyweight squats')).queryByText(flows)).not.toBeInTheDocument()
     // The routine's first hold follows the rope, so it starts as usual.
     expect(within(card('Deep squat')).queryByText(flows)).not.toBeInTheDocument()
     expect(within(card('Ankle rocks')).queryByText(flows)).not.toBeInTheDocument()
@@ -279,7 +280,9 @@ describe('warm-up editor for each workout', () => {
     await user.click(await screen.findByRole('button', { name: 'Remove Jump rope' }))
     const dialog = screen.getByRole('dialog', { name: 'Remove Jump rope?' })
     expect(
-      within(dialog).getByText("Double unders unlock from this step. Without it they won't unlock in this workout."),
+      within(dialog).getByText(
+        'Double unders unlock from this step. Without it here, they unlock only from the jump rope in the upper-body warm-up.',
+      ),
     ).toBeInTheDocument()
     expect(
       await within(dialog).findByText("It won't appear in future lower-body warm-ups. The upper-body warm-up and past workouts keep it."),

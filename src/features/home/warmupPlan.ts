@@ -1,6 +1,7 @@
 import type { ResolvedPrescription } from '../../domain/prescription'
 import { isProgressiveStep } from '../../domain/progression/warmup'
 import type { WarmupStepDef, WorkoutTemplate } from '../../domain/types'
+import { isRepStep } from '../../domain/workout/actions'
 
 /** Warm-up steps active next time, with their durations and the time each takes. */
 export function warmupPlan(template: WorkoutTemplate, targets: Map<string, ResolvedPrescription>) {
@@ -18,6 +19,6 @@ export function warmupPlan(template: WorkoutTemplate, targets: Map<string, Resol
  * estimates the whole step, both sides included.
  */
 function planned(step: WarmupStepDef, durationSec: number, active: boolean) {
-  const totalSec = step.perSide && step.reps === undefined ? durationSec * 2 : durationSec
+  const totalSec = step.perSide && !isRepStep(step) ? durationSec * 2 : durationSec
   return { step, durationSec, totalSec, active }
 }

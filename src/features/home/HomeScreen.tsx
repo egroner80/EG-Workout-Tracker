@@ -127,7 +127,14 @@ export function HomeScreen() {
               </p>
             ) : (
               <>
-                <SegmentedControl label="Workout type" value={shown} options={TYPE_OPTIONS} onChange={setPicked} />
+                {/* Locked while a start is in progress, so the workout that opens is the one shown. */}
+                <SegmentedControl
+                  label="Workout type"
+                  value={shown}
+                  options={TYPE_OPTIONS}
+                  onChange={setPicked}
+                  disabled={busy}
+                />
                 {suggested && <Suggestion suggested={suggested} newest={recent?.[0]} />}
               </>
             )}

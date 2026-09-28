@@ -140,7 +140,7 @@ describe('resync — squat routine and step shapes', () => {
   }
   const indexOf = (s: WorkoutSession, stepId: string) => s.warmup.findIndex((step) => step.stepId === stepId)
 
-  it('flows from one squat-routine hold straight into the next, with a single go cue', () => {
+  it('flows from one squat-routine hold straight into the next, with a single cue that also flashes', () => {
     const { session: next, events } = resync(lower('deep-squat-hold'), live(T0 + 30_100))
     expect(next.warmup[indexOf(next, 'deep-squat-hold')].completed).toBe(true)
     expect(next.runtime?.warmup).toMatchObject({
@@ -148,7 +148,7 @@ describe('resync — squat routine and step shapes', () => {
       getReady: null,
       timer: { running: true, endsAt: T0 + 60_000 },
     })
-    expect(events).toEqual([{ type: 'go' }])
+    expect(events).toEqual([{ type: 'complete' }])
   })
 
   it('flows even with the get-ready setting off', () => {

@@ -177,6 +177,22 @@ describe('rep-counted and per-side warm-up steps', () => {
     expect(screen.getByRole('heading', { name: 'Glute bridges' })).toBeInTheDocument()
   })
 
+  it('treats a second Done straight after the first as a double tap, not the next drill', async () => {
+    const user = userEvent.setup()
+    await startWorkout('lower')
+    goToStep('hip-hinges')
+    renderAt(<WorkoutRoute />)
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+    expect(screen.getByRole('heading', { name: 'Bodyweight Bulgarian split squat' })).toBeInTheDocument()
+    expect(stepLog('bw-split-squats')).toMatchObject({ completed: false })
+
+    advance(1_000)
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+    expect(stepLog('bw-split-squats')).toMatchObject({ completed: true })
+    expect(screen.getByRole('heading', { name: 'Glute bridges' })).toBeInTheDocument()
+  })
+
   it('counts in the timed step that follows a rep step', async () => {
     const user = userEvent.setup()
     await startWorkout('lower')

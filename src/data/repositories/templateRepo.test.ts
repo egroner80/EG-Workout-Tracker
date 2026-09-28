@@ -52,6 +52,13 @@ describe('modifyTemplate', () => {
     expect(step(upper, 'double-unders')?.activation?.whenDurationReachesSec).toBe(360)
   })
 
+  it('writes nothing when the edit changes nothing', async () => {
+    const before = await getTemplate('upper')
+    expect(await modifyTemplate('upper', (t) => t, NOW + 5)).toEqual(before)
+    expect((await getTemplate('upper')).updatedAt).toBe(before.updatedAt)
+    expect((await getTemplate('lower')).updatedAt).toBe(0)
+  })
+
   it('removes a shared step from one workout only', async () => {
     await modifyTemplate('upper', (t) => ({ ...t, warmup: t.warmup.filter((s) => s.id !== 'deep-squat-hold') }), NOW + 1)
     expect(step(await getTemplate('upper'), 'deep-squat-hold')).toBeUndefined()

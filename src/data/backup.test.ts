@@ -272,5 +272,9 @@ describe('planImport', () => {
 
     const newerLocal = { ...local(), templates: { ...createDefaultTemplates(), lower: { ...editedLower, updatedAt: T0 + 1 } } }
     expect(planImport(buildBackup(source, T0, '0.1.0'), newerLocal).templates).toEqual([])
+
+    // A tie keeps the local copy.
+    const sameAge = { ...local(), templates: { ...createDefaultTemplates(), lower: { ...editedLower } } }
+    expect(planImport(buildBackup(source, T0, '0.1.0'), sameAge).templates).toEqual([])
   })
 })

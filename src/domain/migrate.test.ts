@@ -156,6 +156,9 @@ describe('isValidTemplate', () => {
     expect(isValidTemplate(withStep({ reps: 1.5 }))).toBe(false)
     expect(isValidTemplate(withStep({ perSide: 'yes' }))).toBe(false)
     expect(isValidTemplate(withStep({ flowGroup: 3 }))).toBe(false)
+    // A cue is shown on screen, so it must be text.
+    expect(isValidTemplate(withStep({ cue: 'Breathe' }))).toBe(true)
+    expect(isValidTemplate(withStep({ cue: { text: 'Breathe' } }))).toBe(false)
   })
 
   it('accepts the hold style on a timed exercise and rejects unknown styles', () => {

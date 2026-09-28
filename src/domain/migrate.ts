@@ -37,6 +37,7 @@ function isRecord(value: unknown): value is UnknownRecord {
 }
 
 const isString = (v: unknown): v is string => typeof v === 'string' && v.length > 0
+const isText = (v: unknown): v is string => typeof v === 'string'
 const isNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
 const isBoolean = (v: unknown): v is boolean => typeof v === 'boolean'
 const isCount = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0
@@ -137,6 +138,7 @@ function isValidWarmupStepDef(value: unknown): boolean {
     isRecord(value) &&
     isString(value.id) &&
     isString(value.name) &&
+    isOptional(value.cue, isText) &&
     isNumber(value.durationSec) &&
     value.durationSec > 0 &&
     isOptional(value.progression, isValidProgression) &&
@@ -183,6 +185,7 @@ function isValidWarmupLog(value: unknown): boolean {
     isRecord(value) &&
     isString(value.stepId) &&
     isString(value.name) &&
+    isOptional(value.cue, isText) &&
     isNumber(value.plannedSec) &&
     isBoolean(value.active) &&
     isNumber(value.elapsedMs) &&

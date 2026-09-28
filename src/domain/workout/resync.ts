@@ -1,5 +1,5 @@
-import type { CarryExerciseLog, SessionRuntime, WarmupStepLog, WorkoutSession } from '../types'
-import { activeStepIndexes, GET_READY_MS, isRepStep, SIDE_SWITCH_MS, stepWorkMs, type ActionResult } from './actions'
+import type { CarryExerciseLog, SessionRuntime, WorkoutSession } from '../types'
+import { activeStepIndexes, flowsInto, GET_READY_MS, isRepStep, SIDE_SWITCH_MS, stepWorkMs, type ActionResult } from './actions'
 import { isFresh, type CueEvent } from './cues'
 import { isExpired, startTimer } from './timer'
 
@@ -33,11 +33,6 @@ export function resync(session: WorkoutSession, ctx: ResyncContext): ActionResul
 function withRuntime(session: WorkoutSession, patch: Partial<SessionRuntime>): WorkoutSession {
   if (!session.runtime) return session
   return { ...session, runtime: { ...session.runtime, ...patch } }
-}
-
-/** The squat routine's holds run back to back: timed steps of one flow group, one right after another. */
-function flowsInto(ended: WarmupStepLog, upcoming: WarmupStepLog): boolean {
-  return ended.flowGroup !== undefined && ended.flowGroup === upcoming.flowGroup && !isRepStep(upcoming)
 }
 
 function resolveOne(session: WorkoutSession, ctx: ResyncContext): ActionResult | null {
@@ -79,7 +74,8 @@ function resolveOne(session: WorkoutSession, ctx: ResyncContext): ActionResult |
       next = withRuntime(next, {
         warmup: { index: nextIndex, timer: startTimer(stepWorkMs(upcoming), at), getReady: null },
       })
-      return { session: next, events: [{ type: 'go' }] }
+      // "complete" also flashes the screen: on a muted phone that is the only sign the hold changed.
+      return { session: next, events: [{ type: 'complete' }] }
     }
     const chain = ctx.visible && fresh && ctx.getReadyCountdown && !isRepStep(upcoming)
     next = withRuntime(next, {

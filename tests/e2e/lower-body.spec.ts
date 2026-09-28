@@ -55,6 +55,9 @@ test('a lower-body workout: the squat routine flows, rep and each-side steps, th
   for (const step of ['Bodyweight hip hinges', 'Bodyweight Bulgarian split squat', 'Glute bridges']) {
     await expect(exerciseHeading(page, step)).toBeVisible()
     await expect(page.getByRole('main').getByRole('timer')).toHaveCount(0)
+    // Doing the reps takes a moment; a second Done within 0.7 s counts as a double tap. Tap
+    // timestamps come from the real clock, not the page's fake one.
+    await page.waitForTimeout(800)
     await page.getByRole('button', { name: 'Done', exact: true }).click()
   }
   await expect(page.getByRole('heading', { level: 1, name: 'Warm-up complete' })).toBeVisible()

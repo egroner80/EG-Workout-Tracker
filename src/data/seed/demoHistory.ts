@@ -1,4 +1,5 @@
 import { buildSession, finishSession } from '../../domain/session'
+import { stepWorkMs } from '../../domain/workout/actions'
 import type { ExercisePrescription, Prescription, TemplateId, WorkoutSession, WorkoutTemplate } from '../../domain/types'
 
 /**
@@ -82,7 +83,7 @@ export function generateDemoHistory({ now, templates, count = 24, successRate = 
       warmup: session.warmup.map((step) => {
         if (!step.active) return step
         const completed = step.stepId !== 'jump-rope' || random() < 0.9
-        const fullMs = step.plannedSec * 1000 * (step.perSide ? 2 : 1)
+        const fullMs = stepWorkMs(step)
         return { ...step, completed, elapsedMs: completed ? fullMs : fullMs * 0.7 }
       }),
       exercises: session.exercises.map((exercise) => {

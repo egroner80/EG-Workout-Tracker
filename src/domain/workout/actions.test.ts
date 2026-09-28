@@ -207,6 +207,11 @@ describe('rep-counted and per-side warm-up steps', () => {
     expect(off.session.runtime?.warmup).toMatchObject({ index: indexOf(off.session, 'ankle-rocks'), getReady: null })
   })
 
+  it('records a per-side rep step at its whole-step estimate, not twice it', () => {
+    const s = completeRepStep(lower('bw-split-squats'), ctx(T0)).session
+    expect(s.warmup[indexOf(s, 'bw-split-squats')].elapsedMs).toBe(60_000)
+  })
+
   it('finishes the warm-up when Done is tapped on the last step', () => {
     expect(completeRepStep(lower('glute-bridges'), ctx(T0)).session.runtime?.phase).toBe('warmup-complete')
   })
