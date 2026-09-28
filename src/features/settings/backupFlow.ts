@@ -8,7 +8,7 @@ import { shareOrDownloadJson, type DeliveryResult } from './exportFile'
  */
 export async function backUpNow(now = Date.now()): Promise<{ result: DeliveryResult; backup: BackupFile }> {
   const backup = await createBackup(now)
-  const result = await shareOrDownloadJson(`overload-backup-${new Date(now).toISOString().slice(0, 10)}.json`, backup)
+  const result = await shareOrDownloadJson(`eg-workout-tracker-backup-${new Date(now).toISOString().slice(0, 10)}.json`, backup)
   if (result !== 'cancelled') await recordBackup(Date.now())
   return { result, backup }
 }

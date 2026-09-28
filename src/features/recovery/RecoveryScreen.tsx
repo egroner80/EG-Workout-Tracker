@@ -29,7 +29,7 @@ export function RecoveryScreen() {
         {recovery.message} Export it first to keep a copy, then discard it to start fresh. Your history is not affected.
       </p>
       <div className={styles.actions}>
-        <Button variant="primary" block onClick={() => downloadJson('overload-unreadable-workout.json', recovery.raw)}>
+        <Button variant="primary" block onClick={() => downloadJson('eg-workout-tracker-unreadable-workout.json', recovery.raw)}>
           Export the workout data
         </Button>
         <Button variant="danger" block onClick={() => void discard()}>

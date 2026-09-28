@@ -11,11 +11,13 @@ test('the manifest is installable: standalone, with 192, 512, and maskable icons
 
   const manifest = (await response.json()) as {
     display: string
+    name: string
     short_name: string
     icons: { src: string; sizes: string; purpose?: string }[]
   }
   expect(manifest.display).toBe('standalone')
-  expect(manifest.short_name).toBe('Overload')
+  expect(manifest.name).toBe('EG Workout Tracker')
+  expect(manifest.short_name).toBe('EG Workout')
   expect(manifest.icons.map((icon) => icon.sizes)).toEqual(expect.arrayContaining(['192x192', '512x512']))
   expect(manifest.icons.some((icon) => icon.purpose?.includes('maskable'))).toBe(true)
   for (const icon of manifest.icons) {

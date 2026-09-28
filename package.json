@@ -1,8 +1,8 @@
 {
-  "name": "overload-workout-tracker",
+  "name": "eg-workout-tracker",
   "private": true,
-  "version": "0.1.0",
-  "description": "Mobile-first PWA for guided upper-body workouts with transparent progressive overload.",
+  "version": "0.2.0",
+  "description": "Mobile-first PWA for guided upper- and lower-body workouts with transparent progressive overload.",
   "type": "module",
   "engines": {
     "node": ">=22.22"

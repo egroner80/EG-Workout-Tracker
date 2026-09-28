@@ -36,7 +36,7 @@ describe('data settings', () => {
     expect(await screen.findByText("Backed up 1 workout. A workout in progress isn't included.")).toBeInTheDocument()
     expect(await screen.findByText(new RegExp(`Last backup: ${formatDay(Date.now())}`))).toBeInTheDocument()
     expect(shareOrDownloadJson).toHaveBeenCalledWith(
-      expect.stringMatching(/^overload-backup-\d{4}-\d{2}-\d{2}\.json$/),
+      expect.stringMatching(/^eg-workout-tracker-backup-\d{4}-\d{2}-\d{2}\.json$/),
       expect.objectContaining({ format: 'overload-backup', counts: { sessions: 1, overrides: 0 } }),
     )
     expect((await getMeta()).workoutsSinceBackup).toBe(0)

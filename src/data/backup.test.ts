@@ -50,7 +50,7 @@ describe('buildBackup and parseBackup', () => {
   it('rejects malformed JSON, foreign files, truncated files, and newer schema versions', () => {
     const backup = buildBackup(local([workout('a', T0)]), T0, '0.1.0')
     expect(() => parseBackup('{not json', OPENED)).toThrow(BackupError)
-    expect(() => parse({ hello: 'world' })).toThrow(/not an Overload backup/)
+    expect(() => parse({ hello: 'world' })).toThrow(/not an EG Workout Tracker backup/)
     expect(() => parse({ ...backup, counts: { sessions: 5, overrides: 0 } })).toThrow(/truncated/)
     expect(() => parse({ ...backup, schemaVersion: 99 })).toThrow(/newer version/)
   })

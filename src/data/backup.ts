@@ -80,7 +80,7 @@ export function parseBackup(text: string, now: number): BackupFile {
     throw new BackupError('This file is not a valid backup (it is not JSON).')
   }
   if (typeof raw !== 'object' || raw === null || (raw as { format?: unknown }).format !== BACKUP_FORMAT) {
-    throw new BackupError('This file is not an Overload backup.')
+    throw new BackupError('This file is not an EG Workout Tracker backup.')
   }
   const file = raw as Partial<BackupFile> & { template?: unknown }
   const version = typeof file.schemaVersion === 'number' ? file.schemaVersion : NaN
