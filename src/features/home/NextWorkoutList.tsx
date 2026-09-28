@@ -61,6 +61,18 @@ export function NextWorkoutList({ template, targets, onEdit }: NextWorkoutListPr
   )
 }
 
+/** "BW · 20 s per side × 2" wraps after the load, never mid-phrase. */
+function valueParts(value: string) {
+  const at = value.indexOf(' · ')
+  if (at < 0) return value
+  return (
+    <>
+      <span>{value.slice(0, at + 3)}</span>
+      <span>{value.slice(at + 3)}</span>
+    </>
+  )
+}
+
 function Row({
   name,
   value,
@@ -81,7 +93,7 @@ function Row({
         {detail && <span className={styles.detail}>{detail}</span>}
         {badge && <span className={styles.badge}>{badge}</span>}
       </span>
-      <span className={styles.value}>{value}</span>
+      <span className={styles.value}>{valueParts(value)}</span>
       {onEdit && <IconChevronRight size={18} className={styles.chevron} />}
     </>
   )
