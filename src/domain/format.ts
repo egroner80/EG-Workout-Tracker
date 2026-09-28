@@ -125,6 +125,6 @@ export function formatWarmupTarget(
   step: { reps?: number; perSide?: boolean; durationSec?: number; plannedSec?: number },
   seconds = step.plannedSec ?? step.durationSec ?? 0,
 ): string {
-  if (step.reps !== undefined) return step.perSide ? `${step.reps} each side` : `${step.reps} reps`
+  if (step.reps !== undefined) return step.perSide ? `${step.reps} each side` : `${step.reps} ${step.reps === 1 ? 'rep' : 'reps'}`
   return step.perSide ? `${seconds} s each side` : formatDuration(seconds)
 }

@@ -57,7 +57,7 @@ function stepView(session: WorkoutSession, now: number) {
   // A per-side step runs one timer across both sides, left first.
   const side = repStep ? undefined : sideAt(step, remaining)
   let caption: string | undefined
-  if (repStep) caption = step.perSide ? 'each side' : 'reps'
+  if (repStep) caption = step.perSide ? 'each side' : step.reps === 1 ? 'rep' : 'reps'
   else if (side) caption = mode === 'complete' ? 'each side' : SIDE_LABEL[side]
   const active = activeStepIndexes(session)
   return {
