@@ -48,7 +48,7 @@ function SettingsHome() {
       ))}
       <FeedbackSettings />
       <DataSettings />
-      <p className={styles.version}>Overload {__APP_VERSION__} · all data stays on this device</p>
+      <p className={styles.version}>EG Workout Tracker {__APP_VERSION__} · all data stays on this device</p>
     </div>
   )
 }
