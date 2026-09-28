@@ -30,7 +30,7 @@ test('the manifest is installable: standalone, with 192, 512, and maskable icons
 
 test('after the service worker activates, the app opens offline', async ({ page, context }) => {
   await page.goto('./')
-  await expect(page.getByRole('button', { name: 'Start workout' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: /^Start (upper|lower) body$/ })).toBeEnabled()
   // `ready` resolves once the worker is active, i.e. after the precache finished installing.
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready
@@ -41,7 +41,7 @@ test('after the service worker activates, the app opens offline', async ({ page,
   await context.setOffline(true)
   try {
     await page.reload()
-    await expect(page.getByRole('button', { name: 'Start workout' })).toBeEnabled()
+    await expect(page.getByRole('button', { name: /^Start (upper|lower) body$/ })).toBeEnabled()
     await expect(page.getByRole('button', { name: /^Pull-ups: BW · 5 \/ 5 \/ 5/ })).toBeVisible()
   } finally {
     await context.setOffline(false)
