@@ -4,6 +4,7 @@ import { ScreenHeader } from '../../components/ScreenHeader'
 import { IconPlus } from '../../components/icons'
 import { formatDuration, formatLoad } from '../../domain/format'
 import type { ExerciseDef } from '../../domain/types'
+import { templateLabel } from '../../domain/workouts'
 import styles from './Settings.module.css'
 import { ReorderButtons } from './SettingsControls'
 import { moveById, updateTemplate } from './settingsActions'
@@ -28,7 +29,7 @@ export function ExerciseListEditor() {
 
   return (
     <div className={styles.screen}>
-      <ScreenHeader title="Exercises" backTo="/settings" backLabel="Settings" />
+      <ScreenHeader title={`${templateLabel(templateId)} exercises`} backTo="/settings" backLabel="Settings" />
       <p className={styles.note}>Changes apply from your next workout. Removed exercises stay in History.</p>
       <ol className={styles.list}>
         {exercises.map((exercise, index) => {
@@ -36,7 +37,7 @@ export function ExerciseListEditor() {
           const load = target && target.kind !== 'warmup' ? formatLoad(exercise.loadType, target.loadKg) : undefined
           return (
             <li key={exercise.id} className={styles.listRow}>
-              <Link to={`/settings/exercises/${exercise.id}`} className={styles.listLink}>
+              <Link to={`/settings/${templateId}/exercises/${exercise.id}`} className={styles.listLink}>
                 <span className={styles.listName}>{exercise.name}</span>
                 <span className={styles.rowHint}>
                   {load ? `${load} · ` : ''}
@@ -57,7 +58,7 @@ export function ExerciseListEditor() {
           )
         })}
       </ol>
-      <Link to="/settings/exercises/new" className={styles.addLink}>
+      <Link to={`/settings/${templateId}/exercises/new`} className={styles.addLink}>
         <IconPlus size={20} />
         Add exercise
       </Link>
