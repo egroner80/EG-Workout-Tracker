@@ -1,0 +1,67 @@
+.stepper {
+  display: flex;
+  align-items: stretch;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.horizontal {
+  flex-direction: row;
+}
+
+.vertical {
+  flex-direction: column;
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  min-width: var(--tap);
+  min-height: var(--tap);
+  -webkit-touch-callout: none;
+}
+
+.button:active:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.button:disabled {
+  opacity: 0.3;
+}
+
+.horizontal.lg .button {
+  min-width: var(--tap-lg);
+  min-height: var(--tap-lg);
+}
+
+.value {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-xl);
+  padding: 0 var(--space-2);
+  min-width: 0;
+  text-align: center;
+}
+
+.lg .value {
+  font-size: var(--fs-2xl);
+}
+
+.changed .value {
+  color: var(--warn);
+}
+
+/* Compact steppers sit beside a label; keep values like "10 kg" on one line. */
+.md .value {
+  white-space: nowrap;
+}

@@ -1,0 +1,77 @@
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.list li + li {
+  border-top: 1px solid var(--border);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 60px;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+}
+
+.interactive:active {
+  background: var(--surface-2);
+}
+
+/* Never narrower than its longest word ("Copenhagen"); a long target wraps instead. */
+.name {
+  flex: 1;
+  min-width: min-content;
+  display: flex;
+  flex-direction: column;
+  font-weight: 700;
+  font-size: var(--fs-md);
+}
+
+.detail {
+  font-weight: 500;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.value {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0 var(--space-2);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-md);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Under the name, so a long target keeps its line on a narrow phone. */
+.badge {
+  align-self: flex-start;
+  margin-top: 4px;
+  font-family: var(--font-ui);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  color: var(--text-muted);
+}
+
+.chevron {
+  color: var(--text-faint);
+  flex-shrink: 0;
+}

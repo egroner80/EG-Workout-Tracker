@@ -1,0 +1,87 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-md);
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  transition:
+    transform 120ms var(--ease-out),
+    background-color 120ms var(--ease-out),
+    opacity 120ms;
+  white-space: nowrap;
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.button:disabled {
+  opacity: 0.4;
+}
+
+.md {
+  min-height: var(--tap);
+  padding: 0 var(--space-4);
+  font-size: var(--fs-sm);
+}
+
+.lg {
+  min-height: var(--tap-lg);
+  padding: 0 var(--space-5);
+  font-size: var(--fs-md);
+}
+
+.xl {
+  min-height: var(--tap-xl);
+  padding: var(--space-2) var(--space-6);
+  font-size: var(--fs-lg);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-radius: var(--radius-lg);
+  /* A long label ("Start strength workout") takes two lines rather than an ellipsis. */
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.block {
+  display: flex;
+  width: 100%;
+}
+
+.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.primary:active:not(:disabled) {
+  background: var(--accent-pressed);
+}
+
+.secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.rest {
+  background: var(--rest-soft);
+  color: var(--rest);
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

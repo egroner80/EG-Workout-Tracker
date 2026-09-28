@@ -1,0 +1,78 @@
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--safe-top) + var(--space-6)) calc(var(--gutter) + var(--safe-right))
+    calc(var(--safe-bottom) + var(--space-4)) calc(var(--gutter) + var(--safe-left));
+  background: var(--bg);
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.badge {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--fs-step-name);
+  font-weight: 850;
+  text-align: center;
+  line-height: 1.05;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 420px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
+  font-weight: 650;
+}
+
+/* The status keeps to one line; a long step name wraps instead. */
+.meta {
+  flex-shrink: 0;
+  text-align: right;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.partial .meta,
+.untouched .meta {
+  color: var(--warn);
+}
+
+.skipped .meta {
+  color: var(--skipped);
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}

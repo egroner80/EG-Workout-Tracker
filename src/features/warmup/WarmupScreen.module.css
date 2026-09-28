@@ -1,0 +1,166 @@
+/* Full-screen and fixed: 100dvh comes up short in iOS 26 Home Screen apps. */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--safe-top) + var(--space-2)) calc(var(--gutter) + var(--safe-right))
+    calc(var(--safe-bottom) + var(--space-4)) calc(var(--gutter) + var(--safe-left));
+  background: var(--bg);
+}
+
+.topBar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  min-height: var(--tap-lg);
+  margin-top: var(--status-bar-offset, 0px);
+}
+
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+}
+
+.textButton {
+  min-height: var(--tap);
+  padding: 0 var(--space-3);
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+
+.progress {
+  text-align: center;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  text-align: center;
+  min-height: 0;
+}
+
+/* Keeps each word whole; a line breaks only at a space. */
+.word {
+  white-space: nowrap;
+}
+
+.stepName {
+  font-family: var(--font-display);
+  font-size: var(--fs-step-name);
+  font-weight: 850;
+  line-height: 1.02;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* The big number (countdown or rep count) with its caption tucked underneath. */
+.readout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.timer,
+.getReady,
+.count {
+  font-family: var(--font-display);
+  font-size: var(--fs-timer);
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.getReady {
+  color: var(--text);
+  animation: pop 1s ease-out infinite;
+}
+
+.running .timer {
+  color: var(--accent);
+}
+
+.paused .timer {
+  color: var(--text-muted);
+}
+
+.complete .timer,
+.complete .count {
+  color: var(--text-faint);
+}
+
+/* "Reps", "each side", or the side a per-side step is on. */
+.caption {
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.running .caption {
+  color: var(--text);
+}
+
+.progressTrack {
+  width: min(100%, 420px);
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  width: 100%;
+  background: var(--accent);
+  transform-origin: left center;
+  transition: transform 250ms linear;
+}
+
+.status {
+  min-height: 1.5em;
+  color: var(--text-muted);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.secondaryRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1.08);
+  }
+  30% {
+    transform: scale(1);
+  }
+}
