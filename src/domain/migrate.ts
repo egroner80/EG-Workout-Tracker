@@ -1,14 +1,27 @@
-import type { AppSettings, Prescription, PrescriptionOverride, WorkoutSession, WorkoutTemplate } from './types'
+import { insertSquatRoutine } from './sharedWarmup'
+import type {
+  AppSettings,
+  Prescription,
+  PrescriptionOverride,
+  WarmupStepDef,
+  WorkoutSession,
+  WorkoutTemplate,
+} from './types'
+import { isTemplateId } from './workouts'
 
 /**
- * Record-level schema versioning shared by database upgrades, startup
- * validation, and backup import. Transforms are pure and keep unknown fields.
+ * Record-level schema versioning shared by startup, the active-workout
+ * mirror, and backup import. Transforms are pure and keep unknown fields.
  *
  * Policy for later versions: changes are additive, primary keys never change,
  * and every version adds a transform here plus fixture tests upgrading from
  * each earlier version.
+ *
+ * Version 2 adds the lower-body workout: templates are keyed 'upper' | 'lower'
+ * (the single v1 template becomes upper and gains the squat routine) and
+ * workouts record their type (v1 workouts were upper body).
  */
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 
 export class MigrationError extends Error {
   constructor(message: string) {
@@ -32,6 +45,7 @@ const isOptional = (v: unknown, check: (x: unknown) => boolean) => v === undefin
 const isLoadType = (v: unknown) => v === 'dumbbell' || v === 'weight' || v === 'bodyweight'
 const isSetStatus = (v: unknown) => v === 'pending' || v === 'done' || v === 'skipped'
 const isSide = (v: unknown) => v === 'L' || v === 'R'
+const isCarryStyle = (v: unknown) => v === 'hold'
 const allOf = (v: unknown, check: (x: unknown) => boolean) => Array.isArray(v) && v.every(check)
 
 /*
@@ -103,8 +117,19 @@ function isValidExerciseDef(value: unknown): boolean {
   const baseline = value.baseline
   if (!isValidPrescription(baseline)) return false
   if (value.kind === 'reps') return isValidStaircase(value.scheme) && baseline.kind === 'reps'
-  if (value.kind === 'carry') return isValidTimedScheme(value.scheme) && baseline.kind === 'timed'
+  if (value.kind === 'carry') {
+    return isValidTimedScheme(value.scheme) && baseline.kind === 'timed' && isOptional(value.style, isCarryStyle)
+  }
   return false
+}
+
+/** Optional rep count, sides, and flow group, shared by warm-up definitions and logs. */
+function hasValidStepShape(value: UnknownRecord): boolean {
+  return (
+    isOptional(value.reps, isPositiveCount) &&
+    isOptional(value.perSide, isBoolean) &&
+    isOptional(value.flowGroup, isString)
+  )
 }
 
 function isValidWarmupStepDef(value: unknown): boolean {
@@ -115,7 +140,8 @@ function isValidWarmupStepDef(value: unknown): boolean {
     isNumber(value.durationSec) &&
     value.durationSec > 0 &&
     isOptional(value.progression, isValidProgression) &&
-    isOptional(value.activation, isValidActivation)
+    isOptional(value.activation, isValidActivation) &&
+    hasValidStepShape(value)
   )
 }
 
@@ -143,6 +169,7 @@ function isValidExerciseLog(value: unknown): boolean {
     return (
       isValidTimedScheme(value.scheme) &&
       (value.mode === 'carry' || value.mode === 'march' || value.mode === 'hold') &&
+      isOptional(value.style, isCarryStyle) &&
       isNumber(planned.seconds) &&
       allOf(planned.efforts, (effort) => isValidEffort(effort, false)) &&
       allOf(value.actual, (effort) => isValidEffort(effort, true))
@@ -162,7 +189,8 @@ function isValidWarmupLog(value: unknown): boolean {
     isBoolean(value.completed) &&
     isBoolean(value.skipped) &&
     isOptional(value.progression, isValidProgression) &&
-    isOptional(value.activation, isValidActivation)
+    isOptional(value.activation, isValidActivation) &&
+    hasValidStepShape(value)
   )
 }
 
@@ -204,6 +232,7 @@ export function isValidSession(value: unknown): value is WorkoutSession {
   const statusOk = value.status === 'active' || value.status === 'completed' || value.status === 'discarded'
   const sourceOk = value.source === 'real' || value.source === 'demo'
   if (!isString(value.id) || !statusOk || !sourceOk) return false
+  if (!isOptional(value.templateId, isTemplateId)) return false
   if (!isNumber(value.rev) || !isNumber(value.startedAt) || !isNumber(value.updatedAt)) return false
   if (!isOptional(value.finishedAt, isNumber) || !isOptional(value.deletedAt, isNumber)) return false
   // Only an active workout may hold the unique active slot; anything else would lock out Start.
@@ -235,7 +264,7 @@ const uniqueIds = (items: readonly unknown[]) => new Set(items.map((item) => (it
 export function isValidTemplate(value: unknown): value is WorkoutTemplate {
   return (
     isRecord(value) &&
-    value.id === 'default' &&
+    isTemplateId(value.id) &&
     allOf(value.warmup, isValidWarmupStepDef) &&
     allOf(value.exercises, isValidExerciseDef) &&
     (value.exercises as unknown[]).length > 0 &&
@@ -258,20 +287,46 @@ export function isValidSettings(value: unknown): value is AppSettings {
   )
 }
 
-/** Upgrades a session record written by `fromVersion` to the current schema. */
-export function migrateSession(record: unknown, fromVersion: number): WorkoutSession {
+function refuseNewer(fromVersion: number): void {
   if (fromVersion > SCHEMA_VERSION) {
     throw new MigrationError('This data was written by a newer version of the app. Update the app first.')
   }
-  // Version 1 is the first schema; later versions add transforms here, in order.
-  if (!isValidSession(record)) throw new MigrationError('A workout record is malformed.')
-  return record
+}
+
+/** v1 → v2: every workout before the lower-body workout existed was upper body. */
+function typeAsUpper(record: UnknownRecord): UnknownRecord {
+  const typed = record.templateId === undefined ? { ...record, templateId: 'upper' } : record
+  const snapshot = typed.reopenSnapshot
+  return isRecord(snapshot) && snapshot.templateId === undefined
+    ? { ...typed, reopenSnapshot: { ...snapshot, templateId: 'upper' } }
+    : typed
+}
+
+/** Upgrades a session record written by `fromVersion` to the current schema. */
+export function migrateSession(record: unknown, fromVersion: number): WorkoutSession {
+  refuseNewer(fromVersion)
+  const current = fromVersion < 2 && isRecord(record) ? typeAsUpper(record) : record
+  if (!isValidSession(current)) throw new MigrationError('A workout record is malformed.')
+  return current
 }
 
 export function migrateOverride(record: unknown, fromVersion: number): PrescriptionOverride {
-  if (fromVersion > SCHEMA_VERSION) {
-    throw new MigrationError('This data was written by a newer version of the app. Update the app first.')
-  }
+  refuseNewer(fromVersion)
   if (!isValidOverride(record)) throw new MigrationError('A manual target record is malformed.')
   return record
+}
+
+/**
+ * Upgrades a template written by `fromVersion`. The single v1 template becomes
+ * the upper-body workout with the squat routine; `updatedAt` is kept because
+ * this is a schema change, not an edit.
+ */
+export function migrateTemplate(record: unknown, fromVersion: number): WorkoutTemplate {
+  refuseNewer(fromVersion)
+  const legacy = fromVersion < 2 && isRecord(record) && record.id === 'default' && allOf(record.warmup, isValidWarmupStepDef)
+  const current = legacy
+    ? { ...record, id: 'upper', warmup: insertSquatRoutine(record.warmup as WarmupStepDef[]) }
+    : record
+  if (!isValidTemplate(current)) throw new MigrationError('The workout template is malformed.')
+  return current
 }

@@ -8,6 +8,9 @@
 
 export type LoadType = 'dumbbell' | 'weight' | 'bodyweight'
 
+/** The two workouts the user alternates between. */
+export type TemplateId = 'upper' | 'lower'
+
 export interface StaircaseScheme {
   type: 'staircase'
   sets: number
@@ -67,10 +70,14 @@ export interface RepsExerciseDef extends ExerciseDefBase {
   baseline: RepsPrescription
 }
 
+/** A static hold done per side (Copenhagen plank): no carry variations, sides instead of hands. */
+export type CarryStyle = 'hold'
+
 export interface CarryExerciseDef extends ExerciseDefBase {
   kind: 'carry'
   scheme: TimedScheme
   baseline: TimedPrescription
+  style?: CarryStyle
 }
 
 export type ExerciseDef = RepsExerciseDef | CarryExerciseDef
@@ -87,10 +94,23 @@ export interface WarmupActivation {
   whenDurationReachesSec: number
 }
 
-export interface WarmupStepDef {
+/** Optional step shapes shared by the definition and the logged step. */
+interface WarmupStepShape {
+  /** Counted in reps: no timer, the user taps Done. */
+  reps?: number
+  /** Done on each side: a timed step runs its duration once per side, with a switch at the midpoint. */
+  perSide?: boolean
+  /** Consecutive timed steps in the same group run back to back, without a get-ready countdown. */
+  flowGroup?: string
+}
+
+export interface WarmupStepDef extends WarmupStepShape {
   id: string
   name: string
-  /** Seeded duration; progressive steps derive later durations from history. */
+  /**
+   * Seeded duration; progressive steps derive later durations from history.
+   * A per-side step's duration is per side; a rep step's is an estimate of the whole step.
+   */
   durationSec: number
   cue?: string
   progression?: WarmupProgression
@@ -98,7 +118,7 @@ export interface WarmupStepDef {
 }
 
 export interface WorkoutTemplate {
-  id: 'default'
+  id: TemplateId
   warmup: WarmupStepDef[]
   exercises: ExerciseDef[]
   updatedAt: number
@@ -158,13 +178,14 @@ export interface CarryExerciseLog extends ExerciseLogBase {
   kind: 'carry'
   scheme: TimedScheme
   mode: CarryMode
+  style?: CarryStyle
   planned: { loadKg: number; seconds: number; efforts: PlannedEffort[] }
   actual: ActualEffort[]
 }
 
 export type ExerciseLog = RepsExerciseLog | CarryExerciseLog
 
-export interface WarmupStepLog {
+export interface WarmupStepLog extends WarmupStepShape {
   stepId: string
   name: string
   cue?: string
@@ -247,6 +268,11 @@ export type SessionSource = 'real' | 'demo'
 
 export interface WorkoutSession {
   id: string
+  /**
+   * Which workout this was. Absent on workouts saved before the lower-body
+   * workout existed; read it with `workoutTypeOf`.
+   */
+  templateId?: TemplateId
   status: SessionStatus
   source: SessionSource
   /** Present only while active; a unique index makes two active sessions impossible. */

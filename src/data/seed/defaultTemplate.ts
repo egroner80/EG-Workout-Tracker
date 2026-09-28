@@ -131,7 +131,7 @@ export const DEFAULT_EXERCISES: ExerciseDef[] = [
 
 export function createDefaultTemplate(): WorkoutTemplate {
   return {
-    id: 'default',
+    id: 'upper',
     warmup: structuredClone(DEFAULT_WARMUP),
     exercises: structuredClone(DEFAULT_EXERCISES),
     updatedAt: 0,
