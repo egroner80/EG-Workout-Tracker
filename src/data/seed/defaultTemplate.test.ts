@@ -54,10 +54,19 @@ describe('workout seeds', () => {
     expect(lower.exercises.map((e) => [e.id, e.kind === 'reps' ? e.scheme.sets : e.scheme.setsPerSide])).toEqual([
       ['bulgarian-split-squat', 3],
       ['single-leg-rdl', 3],
-      ['hip-thrust', 3],
+      ['single-leg-hip-thrust', 3],
       ['sliding-hamstring-curl', 2],
       ['copenhagen-plank', 2],
     ])
+    expect(lower.exercises.find((e) => e.id === 'single-leg-hip-thrust')).toMatchObject({
+      name: 'Single-leg hip thrust',
+      shortName: 'SL hip thrust',
+      loadType: 'dumbbell',
+      loadStepKg: 2,
+      perSide: true,
+      scheme: { minReps: 5, maxReps: 6 },
+      baseline: { loadKg: 12, reps: [5, 5, 5] },
+    })
     expect(lower.exercises.at(-1)).toMatchObject({
       kind: 'carry',
       style: 'hold',

@@ -39,8 +39,8 @@ describe('updateWarmupStep', () => {
 describe('updateExercise', () => {
   it('changes an exercise in its own workout only', async () => {
     const upperBefore = await getTemplate('upper')
-    await updateExercise('lower', 'hip-thrust', (e) => ({ ...e, restSec: 120 }))
-    expect(exercise(await getTemplate('lower'), 'hip-thrust')?.restSec).toBe(120)
+    await updateExercise('lower', 'single-leg-hip-thrust', (e) => ({ ...e, restSec: 120 }))
+    expect(exercise(await getTemplate('lower'), 'single-leg-hip-thrust')?.restSec).toBe(120)
     expect(await getTemplate('upper')).toEqual(upperBefore)
   })
 

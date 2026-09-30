@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { SINGLE_LEG_HIP_THRUST } from '../../domain/retiredExercises'
+import { buildSession, finishSession, resolvePending } from '../../domain/session'
 import { SQUAT_ROUTINE } from '../../domain/sharedWarmup'
 import type { WarmupStepDef, WorkoutTemplate } from '../../domain/types'
 import { db, resetDatabase, templateKey } from '../db'
@@ -8,6 +10,8 @@ import { bootstrap } from './bootstrap'
 import { createTemplate } from './defaultTemplate'
 
 const NOW = Date.UTC(2026, 8, 27, 17, 0)
+const HOUR = 60 * 60 * 1000
+const DAY = 24 * HOUR
 const squatIds = SQUAT_ROUTINE.map((step) => step.id)
 
 beforeEach(async () => {
@@ -56,7 +60,7 @@ describe('bootstrap', () => {
     expect(lower.exercises.map((e) => e.id)).toEqual([
       'bulgarian-split-squat',
       'single-leg-rdl',
-      'hip-thrust',
+      'single-leg-hip-thrust',
       'sliding-hamstring-curl',
       'copenhagen-plank',
     ])
@@ -79,6 +83,34 @@ describe('bootstrap', () => {
   it('can seed without demo data', async () => {
     await bootstrap(NOW, { demo: false })
     expect(await db.sessions.count()).toBe(0)
+  })
+
+  it('swaps the two-leg hip thrust in a saved lower-body workout for the single-leg one, keeping edits and past workouts', async () => {
+    const seed = createTemplate('lower')
+    const twoLeg = { ...SINGLE_LEG_HIP_THRUST, id: 'hip-thrust', name: 'Hip thrust', shortName: 'Hip thrust', perSide: false }
+    const saved: WorkoutTemplate = {
+      ...seed,
+      exercises: seed.exercises.map((e) => {
+        if (e.id === SINGLE_LEG_HIP_THRUST.id) return twoLeg
+        return e.id === 'bulgarian-split-squat' ? { ...e, restSec: 120 } : e
+      }),
+      updatedAt: 5,
+    }
+    await saveTemplate(saved)
+    const session = buildSession({ id: 'past', now: NOW - DAY, template: saved, prescriptions: new Map() })
+    await db.sessions.add(finishSession(resolvePending(session, { 'hip-thrust': 'done' }), { now: NOW - DAY + HOUR }))
+
+    await bootstrap(NOW, { demo: false })
+    const lower = await getTemplate('lower')
+    expect(lower.exercises.map((e) => e.id)).toEqual(seed.exercises.map((e) => e.id))
+    expect(lower.exercises[2]).toEqual(SINGLE_LEG_HIP_THRUST)
+    expect(lower.exercises[0].restSec).toBe(120)
+    expect(lower.updatedAt).toBe(5)
+    expect((await db.sessions.get('past'))?.exercises.map((e) => e.name)).toContain('Hip thrust')
+
+    // Nothing is left to swap on the next start.
+    await bootstrap(NOW + 1000, { demo: false })
+    expect(await getTemplate('lower')).toEqual(lower)
   })
 
   it('moves the single template of earlier versions to upper and seeds lower with the same shared steps', async () => {

@@ -138,29 +138,29 @@ describe('exercise editor for each workout', () => {
     await user.click(await screen.findByRole('link', { name: 'Lower body exercises, order, sets, and rest' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Lower body exercises' })).toBeInTheDocument()
 
-    await user.click(await screen.findByRole('link', { name: /^Hip thrust/ }))
-    expect(await screen.findByRole('heading', { level: 1, name: 'Hip thrust' })).toBeInTheDocument()
-    expect(screen.getByTestId('location')).toHaveTextContent(/^\/settings\/lower\/exercises\/hip-thrust$/)
+    await user.click(await screen.findByRole('link', { name: /^Single-leg hip thrust/ }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Single-leg hip thrust' })).toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent(/^\/settings\/lower\/exercises\/single-leg-hip-thrust$/)
     expect(screen.getByRole('link', { name: 'Lower body exercises' })).toHaveAttribute('href', '/settings/lower/exercises')
 
     await user.click(screen.getByRole('button', { name: 'Increase rest time' }))
     await vi.waitFor(() => expect(screen.getByRole('group', { name: 'rest time' })).toHaveTextContent('1:45'))
-    expect((await getTemplate('lower')).exercises.find((e) => e.id === 'hip-thrust')?.restSec).toBe(105)
+    expect((await getTemplate('lower')).exercises.find((e) => e.id === 'single-leg-hip-thrust')?.restSec).toBe(105)
     expect(await getTemplate('upper')).toEqual(upperBefore)
 
     const next = await startWorkout('lower')
-    expect(next.exercises.find((e) => e.exerciseId === 'hip-thrust')?.restSec).toBe(105)
+    expect(next.exercises.find((e) => e.exerciseId === 'single-leg-hip-thrust')?.restSec).toBe(105)
   })
 
   it('reorders the lower-body exercises without touching upper', async () => {
     const user = userEvent.setup({ delay: null })
     const upperBefore = await getTemplate('upper')
     renderSettings('/settings/lower/exercises')
-    await user.click(await screen.findByRole('button', { name: 'Move Hip thrust up' }))
+    await user.click(await screen.findByRole('button', { name: 'Move Single-leg hip thrust up' }))
     await vi.waitFor(async () =>
       expect((await getTemplate('lower')).exercises.map((e) => e.id).slice(0, 3)).toEqual([
         'bulgarian-split-squat',
-        'hip-thrust',
+        'single-leg-hip-thrust',
         'single-leg-rdl',
       ]),
     )
@@ -190,7 +190,7 @@ describe('exercise editor for each workout', () => {
     expect(screen.getByTestId('location')).toHaveTextContent(/^\/settings$/)
     workout.unmount()
 
-    renderSettings('/settings/lower/exercises/hip-thrust/history')
+    renderSettings('/settings/lower/exercises/single-leg-hip-thrust/history')
     expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
     expect(screen.getByTestId('location')).toHaveTextContent(/^\/settings$/)
   })
@@ -236,8 +236,8 @@ describe('exercise editor for each workout', () => {
 
   it('keeps at least one exercise in each workout', async () => {
     const lower = await getTemplate('lower')
-    await saveTemplate({ ...lower, exercises: lower.exercises.filter((e) => e.id === 'hip-thrust') })
-    const view = renderSettings('/settings/lower/exercises/hip-thrust')
+    await saveTemplate({ ...lower, exercises: lower.exercises.filter((e) => e.id === 'single-leg-hip-thrust') })
+    const view = renderSettings('/settings/lower/exercises/single-leg-hip-thrust')
     expect(await screen.findByRole('button', { name: 'Remove from workout' })).toBeDisabled()
     expect(screen.getByText('A workout needs at least one exercise.')).toBeInTheDocument()
     view.unmount()

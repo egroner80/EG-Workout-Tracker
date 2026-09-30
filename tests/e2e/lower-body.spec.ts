@@ -68,7 +68,7 @@ test('a lower-body workout: the squat routine flows, rep and each-side steps, th
   await logSetsAsPrescribed(page, [1, 2, 3])
   await goNext(page, 'SL RDL', 'Single-leg RDL')
   await logSetsAsPrescribed(page, [1, 2, 3])
-  await goNext(page, 'Hip thrust', 'Hip thrust')
+  await goNext(page, 'SL hip thrust', 'Single-leg hip thrust')
   await logSetsAsPrescribed(page, [1, 2, 3])
   await goNext(page, 'Ham curl', 'Sliding hamstring curl')
   await logSetsAsPrescribed(page, [1, 2])

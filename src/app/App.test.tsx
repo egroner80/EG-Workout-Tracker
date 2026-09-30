@@ -45,7 +45,8 @@ describe('App shell', () => {
     await db.kv.put({ key: templateKey('upper'), value: broken as unknown as WorkoutTemplate })
     render(<App />)
     expect(await screen.findByRole('button', { name: 'Start upper body' })).toBeInTheDocument()
-    expect(screen.getByText('Pull-ups')).toBeInTheDocument()
+    // The next-workout list loads on its own and can land just after Start.
+    expect(await screen.findByText('Pull-ups')).toBeInTheDocument()
   })
 
   it('keeps the tab bar and a way to Settings when a screen fails to render', async () => {

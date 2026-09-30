@@ -14,7 +14,7 @@ tells you what to attempt next time.
 
 - **Two workouts, alternating.** Upper body (pull-ups, dips, one-arm DB row, DB bench press,
   standing DB press, hammer curls, weighted reverse crunch, suitcase carry) and lower body
-  (Bulgarian split squat, single-leg RDL, hip thrust, sliding hamstring curl, Copenhagen plank).
+  (Bulgarian split squat, single-leg RDL, single-leg hip thrust, sliding hamstring curl, Copenhagen plank).
   Every workout records which one it was. Home suggests the next one and lists your recent
   workouts with their type and date, so three a week stays upper, lower, upper, lower.
 - **Guided warm-up.** Big name, big countdown, a chime, a screen flash, and vibration where the

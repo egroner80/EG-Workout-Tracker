@@ -201,11 +201,11 @@ describe('completion screen', () => {
     const next = await nextSection('Lower body')
 
     vi.setSystemTime(Date.now() + MINUTE)
-    await user.click(within(next).getByText('Hip thrust'))
+    await user.click(within(next).getByText('SL hip thrust'))
     await user.click(screen.getByRole('radio', { name: '5 / 6 / 6' }))
     await user.click(screen.getByRole('button', { name: 'Save target' }))
-    await vi.waitFor(() => expect(next).toHaveTextContent('Hip thrust40 kg · 5 / 6 / 6'))
-    expect(await nextTarget('lower', 'hip-thrust')).toEqual({ kind: 'reps', loadKg: 40, reps: [5, 6, 6] })
+    await vi.waitFor(() => expect(next).toHaveTextContent('SL hip thrust12 kg · 5 / 6 / 6'))
+    expect(await nextTarget('lower', 'single-leg-hip-thrust')).toEqual({ kind: 'reps', loadKg: 12, reps: [5, 6, 6] })
 
     // The jump rope is shared: the next workout gets the edit, today's recommendation stays.
     vi.setSystemTime(Date.now() + MINUTE)
