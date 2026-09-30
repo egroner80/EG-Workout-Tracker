@@ -1,3 +1,4 @@
+import { SINGLE_LEG_HIP_THRUST } from '../../domain/retiredExercises'
 import { ROPE_BLOCK, SQUAT_ROUTINE } from '../../domain/sharedWarmup'
 import type { ExerciseDef, TemplateId, WarmupStepDef, WorkoutTemplate } from '../../domain/types'
 
@@ -168,18 +169,7 @@ const LOWER_EXERCISES: ExerciseDef[] = [
     scheme: fiveToSix,
     baseline: { kind: 'reps', loadKg: 16, reps: [5, 5, 5] },
   },
-  {
-    id: 'hip-thrust',
-    kind: 'reps',
-    name: 'Hip thrust',
-    shortName: 'Hip thrust',
-    loadType: 'weight',
-    loadStepKg: 2.5,
-    perSide: false,
-    restSec: 90,
-    scheme: fiveToSix,
-    baseline: { kind: 'reps', loadKg: 40, reps: [5, 5, 5] },
-  },
+  SINGLE_LEG_HIP_THRUST,
   {
     id: 'sliding-hamstring-curl',
     kind: 'reps',

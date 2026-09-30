@@ -23,7 +23,7 @@ const DEMO_START: Record<string, ExercisePrescription> = {
   'suitcase-carry': { kind: 'timed', loadKg: 14, seconds: 40, setsPerSide: 2 },
   'bulgarian-split-squat': { kind: 'reps', loadKg: 8, reps: [5, 5, 5] },
   'single-leg-rdl': { kind: 'reps', loadKg: 12, reps: [5, 5, 5] },
-  'hip-thrust': { kind: 'reps', loadKg: 30, reps: [5, 5, 5] },
+  'single-leg-hip-thrust': { kind: 'reps', loadKg: 8, reps: [5, 5, 5] },
   'sliding-hamstring-curl': { kind: 'reps', loadKg: 0, reps: [8, 8] },
   'copenhagen-plank': { kind: 'timed', loadKg: 0, seconds: 20, setsPerSide: 2 },
 }

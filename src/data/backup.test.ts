@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isValidSession, isValidSettings, isValidTemplate } from '../domain/migrate'
+import { SINGLE_LEG_HIP_THRUST } from '../domain/retiredExercises'
 import { buildSession, finishSession, reopenSession, resolvePending, softDeleteSession } from '../domain/session'
 import { SQUAT_ROUTINE } from '../domain/sharedWarmup'
 import { DEFAULT_SETTINGS, type WorkoutSession, type WorkoutTemplate } from '../domain/types'
@@ -263,6 +264,21 @@ describe('planImport', () => {
     const plan = planImport(backup, local([activeLocal]))
     expect(plan.sessionsToPut).toEqual([])
     expect(plan.preview.skippedWorkouts).toBe(2)
+  })
+
+  it('restores a lower-body workout backed up with the two-leg hip thrust with the single-leg one in its place', () => {
+    const seed = createTemplate('lower')
+    const twoLeg = { ...SINGLE_LEG_HIP_THRUST, id: 'hip-thrust', name: 'Hip thrust', shortName: 'Hip thrust', perSide: false }
+    const lower: WorkoutTemplate = {
+      ...seed,
+      exercises: seed.exercises.map((e) => (e.id === SINGLE_LEG_HIP_THRUST.id ? twoLeg : e)),
+      updatedAt: T0,
+    }
+    const source = { ...local(), templates: { ...createDefaultTemplates(), lower } }
+    const restored = planImport(parse(buildBackup(source, T0, '0.2.0')), local()).templates
+    expect(restored.map((t) => t.id)).toEqual(['lower'])
+    expect(restored[0].exercises.map((e) => e.id)).toEqual(seed.exercises.map((e) => e.id))
+    expect(restored[0].updatedAt).toBe(T0)
   })
 
   it('restores each workout edited after the seed but keeps a newer local copy of it', () => {

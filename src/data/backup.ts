@@ -6,6 +6,7 @@ import {
   migrateSession,
   migrateTemplate,
 } from '../domain/migrate'
+import { replaceRetiredExercises } from '../domain/retiredExercises'
 import { plannedFingerprint } from '../domain/session'
 import type { AppSettings, PrescriptionOverride, TemplateId, WorkoutSession, WorkoutTemplate } from '../domain/types'
 import { TEMPLATE_IDS } from '../domain/workouts'
@@ -118,7 +119,8 @@ export function parseBackup(text: string, now: number): BackupFile {
 
 function parseTemplates(raw: unknown, version: number): WorkoutTemplate[] {
   if (!Array.isArray(raw) || raw.length === 0) throw new BackupError('The backup has no workout template.')
-  const templates = raw.map((template) => migrateTemplate(template, version))
+  // A backup made before an exercise was retired restores with its successor.
+  const templates = raw.map((template) => replaceRetiredExercises(migrateTemplate(template, version)))
   if (new Set(templates.map((t) => t.id)).size !== templates.length) {
     throw new BackupError('The backup lists the same workout twice.')
   }

@@ -5,7 +5,7 @@ import { generateDemoHistory } from './demoHistory'
 
 const NOW = Date.UTC(2026, 8, 27, 17, 0)
 const DAY = 24 * 60 * 60 * 1000
-const MAIN_LIFTS = ['pull-ups', 'dips', 'db-row', 'db-bench', 'db-press', 'bulgarian-split-squat', 'single-leg-rdl', 'hip-thrust']
+const MAIN_LIFTS = ['pull-ups', 'dips', 'db-row', 'db-bench', 'db-press', 'bulgarian-split-squat', 'single-leg-rdl', 'single-leg-hip-thrust']
 
 describe('generateDemoHistory', () => {
   const sessions = generateDemoHistory({ now: NOW, templates: createDefaultTemplates() })
@@ -42,7 +42,7 @@ describe('generateDemoHistory', () => {
   })
 
   it('plans each workout from the previous recommendation for that exercise', () => {
-    for (const id of ['db-row', 'hip-thrust']) {
+    for (const id of ['db-row', 'single-leg-hip-thrust']) {
       const withLift = sessions.filter((s) => s.exercises.some((e) => e.exerciseId === id))
       for (let i = 1; i < withLift.length; i++) {
         const previous = withLift[i - 1].recommendations?.[id]?.prescription

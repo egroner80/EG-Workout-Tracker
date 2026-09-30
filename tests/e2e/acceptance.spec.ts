@@ -30,7 +30,7 @@ const NEXT_LOWER: [string, string][] = [
   ['Jump rope', '2:10'],
   ['Split squat', '12 kg · 5 / 5 / 5'],
   ['SL RDL', '16 kg · 5 / 5 / 5'],
-  ['Hip thrust', '40 kg · 5 / 5 / 5'],
+  ['SL hip thrust', '12 kg · 5 / 5 / 5'],
   ['Ham curl', 'BW · 8 / 8'],
   ['Copenhagen', 'BW · 20 s per side × 2'],
 ]

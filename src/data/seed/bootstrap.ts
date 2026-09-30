@@ -1,4 +1,5 @@
 import { migrateTemplate } from '../../domain/migrate'
+import { replaceRetiredExercises } from '../../domain/retiredExercises'
 import { syncSharedSteps } from '../../domain/sharedWarmup'
 import { DEFAULT_SETTINGS, type TemplateId, type WorkoutTemplate } from '../../domain/types'
 import { TEMPLATE_IDS, otherTemplate } from '../../domain/workouts'
@@ -10,9 +11,10 @@ import { generateDemoHistory } from './demoHistory'
 /**
  * Runs on every start, in one transaction with the flags that guard it:
  * moves the single template of earlier versions to the upper-body workout,
- * seeds any missing workout and the settings, and seeds demo history once.
- * It only inserts and moves: it never overwrites a template or settings the
- * user already has.
+ * swaps retired built-in exercises for their successors, seeds any missing
+ * workout and the settings, and seeds demo history once. Beyond those swaps
+ * it only inserts and moves: it never overwrites the user's edits to a
+ * template or their settings.
  */
 export async function bootstrap(now: number, { demo = true }: { demo?: boolean } = {}): Promise<void> {
   await db.transaction('rw', db.kv, db.sessions, async () => {
@@ -20,6 +22,7 @@ export async function bootstrap(now: number, { demo = true }: { demo?: boolean }
     const meta: AppMeta = metaRecord?.key === 'meta' ? { ...metaRecord.value } : { seeded: false, demoSeeded: false }
 
     await moveLegacyTemplate(now)
+    await replaceRetiredStoredExercises()
     const templates = await seedMissingTemplates()
 
     if (!meta.seeded) {
@@ -57,6 +60,19 @@ async function moveLegacyTemplate(now: number): Promise<void> {
   const lower = await readStoredTemplate('lower')
   const synced = lower && syncSharedSteps(migrated, lower)
   if (synced && synced !== lower) await db.kv.put({ key: templateKey('lower'), value: { ...synced, updatedAt: now } })
+}
+
+/**
+ * A stored workout that still lists a retired exercise gets its successor in
+ * the same slot. `updatedAt` stays: the app changed its exercise list, the user
+ * edited nothing. The workouts' past sessions keep what was done.
+ */
+async function replaceRetiredStoredExercises(): Promise<void> {
+  for (const id of TEMPLATE_IDS) {
+    const stored = await readStoredTemplate(id)
+    const current = stored && replaceRetiredExercises(stored)
+    if (current && current !== stored) await db.kv.put({ key: templateKey(id), value: current })
+  }
 }
 
 /**
