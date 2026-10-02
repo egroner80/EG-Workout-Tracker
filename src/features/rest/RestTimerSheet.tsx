@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import { Button } from '../../components/Button'
 import { IconArrowUp, IconChevronDown, IconChevronRight } from '../../components/icons'
 import { formatDuration } from '../../domain/format'
@@ -76,7 +76,8 @@ export function RestTimerCompact() {
           <IconArrowUp size={16} className={styles.faceIcon} />
         </span>
         <span
-          className={`${styles.faceTime} ${display.length > 5 ? styles.faceTimeLong : ''}`}
+          className={styles.faceTime}
+          style={{ '--chars': display.length } as CSSProperties}
           role="timer"
           aria-live="off"
         >

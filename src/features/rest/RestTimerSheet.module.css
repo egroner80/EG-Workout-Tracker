@@ -100,6 +100,7 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -130,19 +131,19 @@
   opacity: 0.7;
 }
 
+/*
+ * The app uses the system font, whose digits run up to ~0.68em wide (Linux,
+ * large text). Sized by length against the face, "+12:30" fits on any of them;
+ * short countdowns stay at 2rem.
+ */
 .faceTime {
   font-family: var(--font-display);
-  font-size: var(--fs-2xl);
+  font-size: min(var(--fs-2xl), calc(145cqi / var(--chars, 4)));
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   white-space: nowrap;
-}
-
-/* Ten minutes or more of overtime ("+12:30") would not fit at 2rem on a 360 px phone. */
-.faceTimeLong {
-  font-size: var(--fs-xl);
 }
 
 /* Covers the whole face; the label and countdown stay outside it for screen readers. */
