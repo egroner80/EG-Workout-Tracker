@@ -113,10 +113,14 @@ test('the rest timer never covers the set row on a short phone', async ({ page }
   expect(await scrollArea(page)).toEqual(area)
   await expectSetRowUnobstructed(page, 1)
 
-  // Long overtime still fits the compact face without growing the row.
-  await advance(page, 840_000)
+  // Overtime lengthens the countdown; it still fits the compact face, whatever the system font.
   const timer = rest.getByRole('timer')
+  const fits = () => timer.evaluate((element) => element.scrollWidth <= element.clientWidth)
+  await advance(page, 95_000)
+  await expect(timer).toHaveText(/^\+0:\d\d$/)
+  expect(await fits()).toBe(true)
+  await advance(page, 745_000)
   await expect(timer).toHaveText(/^\+1[23]:\d\d$/)
-  expect(await timer.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+  expect(await fits()).toBe(true)
   expect(await scrollArea(page)).toEqual(area)
 })
