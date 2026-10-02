@@ -78,60 +78,81 @@
   padding: 0 var(--space-2);
 }
 
-.bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--safe-bottom) + var(--tap-xl) + var(--space-6));
-  z-index: 25;
-  max-width: 640px;
-  margin: 0 auto;
-  display: flex;
-  align-items: stretch;
-  gap: var(--space-1);
-  padding: 0 var(--gutter);
-}
-
-.barMain {
+/* Compact: shares the action bar's row with Next, so the card above never loses height. */
+.compact {
   flex: 1;
+  min-width: 0;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: var(--tap);
-  padding: 0 var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--rest-soft);
+  min-height: var(--tap-xl);
+  max-height: var(--tap-xl);
   border: 1px solid var(--rest);
+  border-radius: var(--radius-lg);
+  background: var(--rest-soft);
   color: var(--rest);
-  font-weight: 750;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  overflow: hidden;
 }
 
-.barLabel {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: var(--fs-xs);
-}
-
-.barTime,
-.barTimeDone {
-  font-family: var(--font-display);
-  font-size: var(--fs-xl);
-  font-variant-numeric: tabular-nums;
-}
-
-.barTimeDone {
+.compactDone {
+  border-color: var(--accent);
   color: var(--accent);
 }
 
-.barAction {
-  min-width: var(--tap);
-  min-height: var(--tap);
+.face {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
   padding: 0 var(--space-3);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+}
+
+/* Label and expand hint share a row, so the hint never sits on top of "Rest paused". */
+.faceTop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.faceLabel {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.faceIcon {
+  flex: none;
+  margin-left: auto;
+  opacity: 0.7;
+}
+
+.faceTime {
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+/* Covers the whole face; the label and countdown stay outside it for screen readers. */
+.expand {
+  position: absolute;
+  inset: 0;
+}
+
+.dismiss {
+  flex: 0 0 auto;
+  min-width: var(--tap);
+  padding: 0 var(--space-3);
+  border-left: 1px solid currentColor;
+  color: var(--text);
   font-weight: 750;
 }
 

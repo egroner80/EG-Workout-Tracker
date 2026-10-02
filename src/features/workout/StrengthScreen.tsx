@@ -7,7 +7,7 @@ import { IconChevronRight } from '../../components/icons'
 import { goToExercise, setRestExpanded } from '../../domain/workout/actions'
 import { loadLastTimes } from '../../services/queries'
 import { useWorkoutStore } from '../../state/workoutStore'
-import { RestTimerSheet } from '../rest/RestTimerSheet'
+import { RestTimerCompact, RestTimerSheet } from '../rest/RestTimerSheet'
 import { CarryExerciseCard } from './CarryExerciseCard'
 import { EffortTimerOverlay } from './EffortTimerOverlay'
 import { FinishSheet } from './FinishSheet'
@@ -55,6 +55,24 @@ export function StrengthScreen() {
   const lastTime = lastTimes?.get(log.exerciseId)
   const previousOutcome = lastTime?.session.recommendations?.[log.exerciseId]?.outcome
   const reopened = Boolean(session.reopenSnapshot)
+  // While resting, the compact timer shares the action bar with a narrowed Next / Finish.
+  const resting = session.runtime.rest?.expanded === false
+  const moveOnProps = {
+    variant: allLogged ? ('primary' as const) : ('secondary' as const),
+    size: 'xl' as const,
+    block: !resting,
+    className: resting ? styles.narrow : undefined,
+  }
+  const moveOn = isLast ? (
+    <Button {...moveOnProps} onClick={() => setFinishOpen(true)}>
+      Finish workout
+    </Button>
+  ) : (
+    <Button {...moveOnProps} onClick={() => apply((s, ctx) => goToExercise(s, next.exerciseId, ctx))}>
+      Next: {next.shortName}
+      <IconChevronRight size={24} />
+    </Button>
+  )
 
   const discard = async () => {
     setDiscardOpen(false)
@@ -106,20 +124,13 @@ export function StrengthScreen() {
       )}
 
       <div className={styles.actionBar}>
-        {isLast ? (
-          <Button variant={allLogged ? 'primary' : 'secondary'} size="xl" block onClick={() => setFinishOpen(true)}>
-            Finish workout
-          </Button>
+        {resting ? (
+          <div className={styles.restRow}>
+            <RestTimerCompact />
+            {moveOn}
+          </div>
         ) : (
-          <Button
-            variant={allLogged ? 'primary' : 'secondary'}
-            size="xl"
-            block
-            onClick={() => apply((s, ctx) => goToExercise(s, next.exerciseId, ctx))}
-          >
-            Next: {next.shortName}
-            <IconChevronRight size={24} />
-          </Button>
+          moveOn
         )}
       </div>
 

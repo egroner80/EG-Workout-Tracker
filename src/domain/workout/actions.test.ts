@@ -93,10 +93,10 @@ describe('warm-up actions', () => {
 })
 
 describe('set logging', () => {
-  it('tapping a pending set marks it done and starts rest; tapping again undoes both', () => {
+  it('tapping a pending set marks it done and starts a compact rest; tapping again undoes both', () => {
     let s = toggleSet(session(), 'db-row', 0, ctx(T0)).session
     expect(reps(s, 'db-row').actual[0].status).toBe('done')
-    expect(s.runtime?.rest).toMatchObject({ exerciseId: 'db-row', startedBySet: 0, expanded: true })
+    expect(s.runtime?.rest).toMatchObject({ exerciseId: 'db-row', startedBySet: 0, expanded: false })
     expect(s.runtime?.rest?.timer.durationMs).toBe(90_000)
 
     s = toggleSet(s, 'db-row', 0, ctx(T0 + 1000)).session
@@ -109,6 +109,7 @@ describe('set logging', () => {
     const row = reps(s, 'db-row')
     expect(row.actual[2]).toMatchObject({ reps: 4, status: 'done' })
     expect(row.planned.sets[2].reps).toBe(5)
+    expect(s.runtime?.rest).toMatchObject({ startedBySet: 2, expanded: false })
     const restEndsAt = s.runtime?.rest?.timer.endsAt
 
     s = stepReps(s, 'db-row', 2, -1, ctx(T0 + 5000)).session

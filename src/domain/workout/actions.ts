@@ -271,7 +271,7 @@ function startRestFor(session: WorkoutSession, exerciseId: string, now: number, 
       exerciseId,
       timer: startTimer(log.restSec * 1000, now),
       ...(startedBySet !== undefined ? { startedBySet } : {}),
-      expanded: true,
+      expanded: false,
     },
   })
 }

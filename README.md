@@ -44,8 +44,9 @@ tells you what to attempt next time.
   - At the top of the ladder at bodyweight (or the top of a bodyweight hold), you choose the added
     weight, or stay at bodyweight with a harder variation.
   - You can override any next target by hand.
-- **Rest timer.** One tap (logging a set starts it too); +15 s, +30 s, pause, skip. It collapses
-  to a bar so you can keep logging.
+- **Rest timer.** Logging a set (or one tap on Start rest) starts it as a compact countdown in the
+  bottom bar, beside Next, so the set you just logged stays in reach. Tap the countdown for the
+  large view with +15 s, +30 s, pause, and skip.
 - **Suitcase carry timer.** Tap a side. You get 5 s to pick up the weight, then the side counts
   down; the app switches hands and records both sides.
 - **Completion summary.** Duration, target vs actual with ✅ where met, what's next per exercise,

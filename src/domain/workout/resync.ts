@@ -140,7 +140,7 @@ function resolveOne(session: WorkoutSession, ctx: ResyncContext): ActionResult |
     next = withRuntime(next, {
       effort: null,
       ...(setComplete
-        ? { rest: { exerciseId: log.exerciseId, timer: startTimer(log.restSec * 1000, at), expanded: true } }
+        ? { rest: { exerciseId: log.exerciseId, timer: startTimer(log.restSec * 1000, at), expanded: false } }
         : {}),
     })
     return { session: next, events: fresh ? [{ type: 'complete' }] : [] }

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createTemplate } from '../../data/seed/defaultTemplate'
 import { buildSession } from '../session'
 import type { CarryExerciseLog, WorkoutSession, WorkoutTemplate } from '../types'
-import { startEffort, startRest, startWarmupStep } from './actions'
+import { setRestExpanded, startEffort, startRest, startWarmupStep } from './actions'
 import { countdownTicks } from './cues'
 import { resync, type ResyncContext } from './resync'
 
@@ -80,6 +80,14 @@ describe('resync — rest and carry', () => {
     expect(late.events).toEqual([])
   })
 
+  it('starts rest compact and keeps whichever size it has when it runs into overtime', () => {
+    const resting = startRest(session(), 'db-row', { now: T0, getReadyCountdown: true }).session
+    expect(resting.runtime?.rest?.expanded).toBe(false)
+    const opened = setRestExpanded(resting, true).session
+    expect(resync(opened, live(T0 + 90_300)).session.runtime?.rest).toMatchObject({ expanded: true, finishedAt: T0 + 90_000 })
+    expect(resync(resting, live(T0 + 90_300)).session.runtime?.rest).toMatchObject({ expanded: false, finishedAt: T0 + 90_000 })
+  })
+
   it('runs get-ready → left side → switch → right side, then rests', () => {
     let s = startEffort(session(), 'suitcase-carry', 0, { now: T0, getReadyCountdown: true }).session
     let step = resync(s, live(T0 + 5_100))
@@ -97,7 +105,7 @@ describe('resync — rest and carry', () => {
     step = resync(step.session, live(T0 + 90_100))
     expect(carry(step.session).actual[1]).toMatchObject({ status: 'done', seconds: 40 })
     expect(step.session.runtime?.effort).toBeNull()
-    expect(step.session.runtime?.rest).toMatchObject({ exerciseId: 'suitcase-carry' })
+    expect(step.session.runtime?.rest).toMatchObject({ exerciseId: 'suitcase-carry', expanded: false })
     expect(step.events).toEqual([{ type: 'complete' }])
     s = step.session
     expect(carry(s).actual[2].status).toBe('pending')
