@@ -84,14 +84,6 @@ export function IconChevronDown(props: IconProps) {
   )
 }
 
-export function IconChevronUp(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <path d="m6 15 6-6 6 6" />
-    </Svg>
-  )
-}
-
 export function IconClose(props: IconProps) {
   return (
     <Svg {...props}>

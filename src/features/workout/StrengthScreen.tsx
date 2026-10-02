@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { Button } from '../../components/Button'
+import { Button, type ButtonProps } from '../../components/Button'
 import { ConfirmSheet } from '../../components/ConfirmSheet'
 import { IconChevronRight } from '../../components/icons'
 import { goToExercise, setRestExpanded } from '../../domain/workout/actions'
@@ -55,13 +55,13 @@ export function StrengthScreen() {
   const lastTime = lastTimes?.get(log.exerciseId)
   const previousOutcome = lastTime?.session.recommendations?.[log.exerciseId]?.outcome
   const reopened = Boolean(session.reopenSnapshot)
-  // While resting, the compact timer shares the action bar with a narrowed Next / Finish.
-  const resting = session.runtime.rest?.expanded === false
-  const moveOnProps = {
-    variant: allLogged ? ('primary' as const) : ('secondary' as const),
-    size: 'xl' as const,
-    block: !resting,
-    className: resting ? styles.narrow : undefined,
+  // Exhaustive on purpose: a saved rest without a size still shows, compact.
+  const compactRest = Boolean(session.runtime.rest) && !session.runtime.rest?.expanded
+  const moveOnProps: ButtonProps = {
+    variant: allLogged ? 'primary' : 'secondary',
+    size: 'xl',
+    block: true,
+    className: compactRest ? styles.narrow : undefined,
   }
   const moveOn = isLast ? (
     <Button {...moveOnProps} onClick={() => setFinishOpen(true)}>
@@ -124,17 +124,16 @@ export function StrengthScreen() {
       )}
 
       <div className={styles.actionBar}>
-        {resting ? (
-          <div className={styles.restRow}>
-            <RestTimerCompact />
-            {moveOn}
-          </div>
-        ) : (
-          moveOn
-        )}
+        {/* One wrapper either way, so Next keeps its node (and focus) when rest starts or ends. */}
+        <div className={compactRest ? styles.restRow : undefined}>
+          {compactRest && <RestTimerCompact />}
+          {moveOn}
+        </div>
       </div>
 
-      <RestTimerSheet next={allLogged && next ? { exerciseId: next.exerciseId, name: next.shortName } : undefined} />
+      {session.runtime.rest?.expanded === true && (
+        <RestTimerSheet next={allLogged && next ? { exerciseId: next.exerciseId, name: next.shortName } : undefined} />
+      )}
       <EffortTimerOverlay />
       <FinishSheet open={finishOpen} onClose={() => setFinishOpen(false)} />
       <ConfirmSheet

@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { exerciseHeading, openApp, startWorkout } from './helpers'
+import { advance, exerciseHeading, openApp, setChip, startWorkout } from './helpers'
 
 // A Galaxy S23 home-screen app with on-screen navigation buttons.
 test.use({ viewport: { width: 360, height: 700 } })
@@ -39,7 +39,7 @@ async function expectUnobstructed(target: Locator) {
 
 const setControls = (page: Page, set: number) => ({
   plus: page.getByRole('button', { name: `Set ${set}: one more rep` }),
-  chip: page.getByRole('button', { name: new RegExp(`^Set ${set}: \\d+ reps?, `) }),
+  chip: setChip(page, set),
   minus: page.getByRole('button', { name: `Set ${set}: one rep fewer` }),
 })
 
@@ -90,6 +90,16 @@ test('the rest timer never covers the set row on a short phone', async ({ page }
   await expect(rest).toBeVisible()
   await expect(rest.getByRole('timer')).toHaveText(/^1:\d\d$/)
 
+  // Tapping the countdown opens the large view; Collapse hands focus back and the row is clear again.
+  const countdown = await center(rest.getByRole('timer'))
+  await page.mouse.click(countdown.x, countdown.y)
+  const collapse = rest.getByRole('button', { name: 'Collapse rest timer' })
+  await expect(collapse).toBeFocused()
+  await collapse.click()
+  await expect(rest.getByRole('button', { name: 'Expand rest timer' })).toBeFocused()
+  expect(await scrollArea(page)).toEqual(area)
+  await expectSetRowUnobstructed(page, 2)
+
   // Moving on mid-rest: the next exercise's row is clear straight away, and after a reload.
   await tapUnobstructed(page, page.getByRole('button', { name: 'Next: SL RDL' }))
   await expect(exerciseHeading(page, 'Single-leg RDL')).toBeVisible()
@@ -102,4 +112,11 @@ test('the rest timer never covers the set row on a short phone', async ({ page }
   await expect(rest).toBeVisible()
   expect(await scrollArea(page)).toEqual(area)
   await expectSetRowUnobstructed(page, 1)
+
+  // Long overtime still fits the compact face without growing the row.
+  await advance(page, 840_000)
+  const timer = rest.getByRole('timer')
+  await expect(timer).toHaveText(/^\+1[23]:\d\d$/)
+  expect(await timer.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+  expect(await scrollArea(page)).toEqual(area)
 })

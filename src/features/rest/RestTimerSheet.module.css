@@ -83,8 +83,6 @@
   flex: 1;
   min-width: 0;
   display: flex;
-  min-height: var(--tap-xl);
-  max-height: var(--tap-xl);
   border: 1px solid var(--rest);
   border-radius: var(--radius-lg);
   background: var(--rest-soft);
@@ -101,6 +99,7 @@
   position: relative;
   flex: 1;
   min-width: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -141,6 +140,11 @@
   white-space: nowrap;
 }
 
+/* Ten minutes or more of overtime ("+12:30") would not fit at 2rem on a 360 px phone. */
+.faceTimeLong {
+  font-size: var(--fs-xl);
+}
+
 /* Covers the whole face; the label and countdown stay outside it for screen readers. */
 .expand {
   position: absolute;
@@ -151,9 +155,16 @@
   flex: 0 0 auto;
   min-width: var(--tap);
   padding: 0 var(--space-3);
-  border-left: 1px solid currentColor;
+  border-left: 1px solid;
+  border-left-color: inherit;
   color: var(--text);
   font-weight: 750;
+}
+
+/* Inset, so the pill's clipped edge doesn't cut the focus ring down to a sliver. */
+.expand:focus-visible,
+.dismiss:focus-visible {
+  outline-offset: -3px;
 }
 
 @keyframes rise {

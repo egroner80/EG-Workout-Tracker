@@ -50,7 +50,7 @@
   letter-spacing: 0.02em;
 }
 
-/* Up to three lines fit the row; a longer custom name is clipped, never taller. */
+/* Button's label span: up to three lines fit the row; a longer custom name is clipped, never taller. */
 .restRow .narrow > span {
   display: -webkit-box;
   -webkit-box-orient: vertical;

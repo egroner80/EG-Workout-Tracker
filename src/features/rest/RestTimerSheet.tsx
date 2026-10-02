@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Button } from '../../components/Button'
-import { IconChevronDown, IconChevronRight, IconChevronUp } from '../../components/icons'
+import { IconArrowUp, IconChevronDown, IconChevronRight } from '../../components/icons'
 import { formatDuration } from '../../domain/format'
 import {
   addRestTime,
@@ -10,17 +10,20 @@ import {
   resumeRest,
   setRestExpanded,
 } from '../../domain/workout/actions'
-import { remainingMs } from '../../domain/workout/timer'
+import { secondsLeft } from '../../domain/workout/timer'
 import { useClock } from '../../state/useTicker'
 import { useWorkoutStore } from '../../state/workoutStore'
 import styles from './RestTimerSheet.module.css'
 
 type Toggle = 'expand' | 'collapse'
 
+/** Past this, a focus request is stale and the newly shown size leaves focus alone. */
+const FOCUS_HANDOFF_MS = 1000
+
 /**
  * The toggle that should take focus once the other size has rendered, so a
  * keyboard or screen-reader user isn't dropped when their button unmounts.
- * Only a press of Expand or Collapse sets it; a stale request is ignored.
+ * Only a press of Expand or Collapse sets it.
  */
 let pendingFocus: { toggle: Toggle; at: number } | null = null
 
@@ -32,7 +35,7 @@ function takeFocus(toggle: Toggle, element: HTMLElement | null) {
   const pending = pendingFocus
   if (pending?.toggle !== toggle) return
   pendingFocus = null
-  if (Date.now() - pending.at < 1000) element?.focus()
+  if (Date.now() - pending.at < FOCUS_HANDOFF_MS) element?.focus()
 }
 
 /** The running rest, as both sizes show it. */
@@ -41,15 +44,15 @@ function useRest() {
   const apply = useWorkoutStore((state) => state.apply)
   const now = useClock((state) => state.now)
   if (!rest) return null
+  const done = Boolean(rest.finishedAt)
+  const paused = !rest.timer.running && !done
   const overtimeSec = rest.finishedAt ? Math.floor((now - rest.finishedAt) / 1000) : 0
-  const remainingSec = Math.ceil(remainingMs(rest.timer, now) / 1000)
-  const paused = !rest.timer.running && !rest.finishedAt
   return {
-    rest,
     apply,
+    done,
     paused,
-    display: rest.finishedAt ? `+${formatDuration(overtimeSec)}` : formatDuration(remainingSec),
-    label: rest.finishedAt ? 'Rest done' : paused ? 'Rest paused' : 'Rest',
+    display: done ? `+${formatDuration(overtimeSec)}` : formatDuration(secondsLeft(rest.timer, now)),
+    label: done ? 'Rest done' : paused ? 'Rest paused' : 'Rest',
   }
 }
 
@@ -63,16 +66,20 @@ export function RestTimerCompact() {
   const expandRef = useRef<HTMLButtonElement>(null)
   useEffect(() => takeFocus('expand', expandRef.current), [])
   if (!shown) return null
-  const { rest, apply, display, label } = shown
+  const { apply, done, display, label } = shown
 
   return (
-    <section className={`${styles.compact} ${rest.finishedAt ? styles.compactDone : ''}`} aria-label="Rest timer">
+    <section className={`${styles.compact} ${done ? styles.compactDone : ''}`} aria-label="Rest timer">
       <div className={styles.face}>
         <span className={styles.faceTop}>
           <span className={styles.faceLabel}>{label}</span>
-          <IconChevronUp size={16} className={styles.faceIcon} />
+          <IconArrowUp size={16} className={styles.faceIcon} />
         </span>
-        <span className={styles.faceTime} role="timer" aria-live="off">
+        <span
+          className={`${styles.faceTime} ${display.length > 5 ? styles.faceTimeLong : ''}`}
+          role="timer"
+          aria-live="off"
+        >
           {display}
         </span>
         <button
@@ -86,8 +93,8 @@ export function RestTimerCompact() {
           }}
         />
       </div>
-      <button type="button" className={styles.dismiss} onClick={() => apply((s, ctx) => endRest(s, ctx))}>
-        {rest.finishedAt ? 'Close' : 'Skip'}
+      <button type="button" className={styles.dismiss} onClick={() => apply(endRest)}>
+        {done ? 'Close' : 'Skip'}
       </button>
     </section>
   )
@@ -98,17 +105,8 @@ interface RestTimerSheetProps {
   next?: { exerciseId: string; name: string }
 }
 
-/**
- * The large rest view, opened from the compact countdown. Touching the card
- * tucks it away again without swallowing that tap, so the next set still
- * logs in one tap.
- */
+/** The large rest view, opened from the compact countdown. */
 export function RestTimerSheet({ next }: RestTimerSheetProps) {
-  const expanded = useWorkoutStore((state) => state.session?.runtime?.rest?.expanded === true)
-  return expanded ? <LargeRestTimer next={next} /> : null
-}
-
-function LargeRestTimer({ next }: RestTimerSheetProps) {
   const shown = useRest()
   const exerciseName = useWorkoutStore(
     (state) => state.session?.exercises.find((e) => e.exerciseId === state.session?.runtime?.rest?.exerciseId)?.shortName,
@@ -116,10 +114,10 @@ function LargeRestTimer({ next }: RestTimerSheetProps) {
   const collapseRef = useRef<HTMLButtonElement>(null)
   useEffect(() => takeFocus('collapse', collapseRef.current), [])
   if (!shown) return null
-  const { rest, apply, paused, display, label } = shown
+  const { apply, done, paused, display, label } = shown
 
   return (
-    <section className={`${styles.sheet} ${rest.finishedAt ? styles.done : ''}`} aria-label="Rest timer">
+    <section className={`${styles.sheet} ${done ? styles.done : ''}`} aria-label="Rest timer">
       <header className={styles.header}>
         <p className={styles.title}>
           {label}
@@ -148,15 +146,11 @@ function LargeRestTimer({ next }: RestTimerSheetProps) {
         <Button size="lg" onClick={() => apply((s, ctx) => addRestTime(s, 30, ctx))}>
           +30 s
         </Button>
-        <Button
-          size="lg"
-          disabled={Boolean(rest.finishedAt)}
-          onClick={() => apply(paused ? resumeRest : pauseRest)}
-        >
+        <Button size="lg" disabled={done} onClick={() => apply(paused ? resumeRest : pauseRest)}>
           {paused ? 'Resume' : 'Pause'}
         </Button>
-        <Button size="lg" variant="rest" onClick={() => apply((s, ctx) => endRest(s, ctx))}>
-          {rest.finishedAt ? 'Close' : 'Skip'}
+        <Button size="lg" variant="rest" onClick={() => apply(endRest)}>
+          {done ? 'Close' : 'Skip'}
         </Button>
       </div>
       {next && (
