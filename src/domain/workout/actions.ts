@@ -263,7 +263,8 @@ function withSet(log: RepsExerciseLog, index: number, patch: Partial<ActualSet>)
   return { ...log, actual: log.actual.map((set, i) => (i === index ? { ...set, ...patch } : set)) }
 }
 
-function startRestFor(session: WorkoutSession, exerciseId: string, now: number, startedBySet?: number): WorkoutSession {
+/** Starts an exercise's rest, compact; the large view only ever opens on request. */
+export function startRestFor(session: WorkoutSession, exerciseId: string, now: number, startedBySet?: number): WorkoutSession {
   const log = findExercise(session, exerciseId)
   if (!log) return session
   return withRuntime(session, {
@@ -271,7 +272,7 @@ function startRestFor(session: WorkoutSession, exerciseId: string, now: number, 
       exerciseId,
       timer: startTimer(log.restSec * 1000, now),
       ...(startedBySet !== undefined ? { startedBySet } : {}),
-      expanded: true,
+      expanded: false,
     },
   })
 }

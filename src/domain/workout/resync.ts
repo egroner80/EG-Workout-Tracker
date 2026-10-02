@@ -1,5 +1,14 @@
 import type { CarryExerciseLog, SessionRuntime, WorkoutSession } from '../types'
-import { activeStepIndexes, flowsInto, GET_READY_MS, isRepStep, SIDE_SWITCH_MS, stepWorkMs, type ActionResult } from './actions'
+import {
+  activeStepIndexes,
+  flowsInto,
+  GET_READY_MS,
+  isRepStep,
+  SIDE_SWITCH_MS,
+  startRestFor,
+  stepWorkMs,
+  type ActionResult,
+} from './actions'
 import { isFresh, type CueEvent } from './cues'
 import { isExpired, startTimer } from './timer'
 
@@ -137,12 +146,8 @@ function resolveOne(session: WorkoutSession, ctx: ResyncContext): ActionResult |
       return { session: next, events: [{ type: 'switch-sides' }] }
     }
     const setComplete = recorded.actual.filter((e) => e.setIndex === done?.setIndex).every((e) => e.status === 'done')
-    next = withRuntime(next, {
-      effort: null,
-      ...(setComplete
-        ? { rest: { exerciseId: log.exerciseId, timer: startTimer(log.restSec * 1000, at), expanded: true } }
-        : {}),
-    })
+    next = withRuntime(next, { effort: null })
+    if (setComplete) next = startRestFor(next, log.exerciseId, at)
     return { session: next, events: fresh ? [{ type: 'complete' }] : [] }
   }
 

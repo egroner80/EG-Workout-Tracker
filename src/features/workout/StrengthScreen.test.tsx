@@ -7,7 +7,7 @@ import { createTemplate } from '../../data/seed/defaultTemplate'
 import { buildSession } from '../../domain/session'
 import { goToExercise, startStrength } from '../../domain/workout/actions'
 import { useWorkoutStore } from '../../state/workoutStore'
-import { act, advance, advanceFrames, renderAt, resetApp, startWorkout } from '../../test/workoutHarness'
+import { act, renderAt, resetApp, startWorkout } from '../../test/workoutHarness'
 import { WorkoutRoute } from './WorkoutRoute'
 
 async function openExercise(exerciseId: string) {
@@ -46,7 +46,7 @@ describe('exercise card', () => {
     await user.click(setChip(1))
     expect(setChip(1)).toHaveAttribute('aria-pressed', 'true')
     const rest = screen.getByRole('region', { name: 'Rest timer' })
-    expect(within(rest).getByRole('timer')).toHaveTextContent('1:30')
+    expect(within(rest).getByRole('timer')).toHaveTextContent(/^1:30$/)
 
     await user.click(setChip(1))
     expect(setChip(1)).toHaveAttribute('aria-pressed', 'false')
@@ -98,46 +98,48 @@ describe('exercise card', () => {
 })
 
 describe('rest timer', () => {
-  it('extends, pauses, resumes, cues at zero, shows overtime, and collapses', async () => {
-    const user = userEvent.setup()
-    await openExercise('hammer-curls')
-    await user.click(screen.getByRole('button', { name: /Start rest · 1:15/ }))
-    const rest = () => screen.getByRole('region', { name: 'Rest timer' })
-    await user.click(within(rest()).getByRole('button', { name: '+15 s' }))
-    expect(within(rest()).getByRole('timer')).toHaveTextContent('1:30')
-    await user.click(within(rest()).getByRole('button', { name: 'Pause' }))
-    advance(20_000)
-    expect(within(rest()).getByRole('timer')).toHaveTextContent('1:30')
-    await user.click(within(rest()).getByRole('button', { name: 'Resume' }))
-    advanceFrames(90_500)
-    expect(within(rest()).getByText('Rest done')).toBeInTheDocument()
-    advance(12_000)
-    expect(within(rest()).getByRole('timer')).toHaveTextContent('+0:12')
-
-    await user.click(screen.getAllByRole('button', { name: 'Collapse rest timer' })[0])
-    expect(screen.queryByRole('region', { name: 'Rest timer' })).not.toBeInTheDocument()
-    expect(screen.getByRole('timer', { name: /Rest/ })).toBeInTheDocument()
-  })
-
-  it('logs the next set in one tap while the rest sheet is open', async () => {
+  it('opens compact in the action bar beside Next, leaving the logged set adjustable', async () => {
     const user = userEvent.setup()
     await openExercise('db-row')
     await user.click(setChip(1))
-    expect(screen.getByRole('region', { name: 'Rest timer' })).toBeInTheDocument()
-    // The same tap collapses the sheet and logs set 2; its own rest then opens.
-    await user.click(setChip(2))
-    expect(setChip(2)).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('region', { name: 'Rest timer' })).toBeInTheDocument()
+    const rest = () => screen.getByRole('region', { name: 'Rest timer' })
+    expect(within(rest()).getByRole('timer')).toHaveTextContent(/^1:30$/)
+    expect(within(rest()).getByRole('button', { name: 'Expand rest timer' })).toBeInTheDocument()
+    expect(within(rest()).queryByRole('button', { name: 'Pause' })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Next: DB Bench' })).toHaveLength(1)
+
+    await user.click(screen.getByRole('button', { name: 'Set 1: one rep fewer' }))
+    expect(setChip(1)).toHaveAccessibleName(/^Set 1: 4 reps, below target/)
+    expect(within(rest()).getByRole('timer')).toHaveTextContent(/^1:30$/)
+
+    await user.click(within(rest()).getByRole('button', { name: 'Skip' }))
+    expect(screen.queryByRole('region', { name: 'Rest timer' })).not.toBeInTheDocument()
   })
 
-  it('offers the next exercise once the current one is fully logged', async () => {
+  it('logs the next set in one tap while the large view is open', async () => {
+    const user = userEvent.setup()
+    await openExercise('db-row')
+    await user.click(setChip(1))
+    await user.click(screen.getByRole('button', { name: 'Expand rest timer' }))
+    expect(screen.getByRole('button', { name: 'Collapse rest timer' })).toBeInTheDocument()
+    // The same tap tucks the large view away and logs set 2; its own rest opens compact.
+    await user.click(setChip(2))
+    expect(setChip(2)).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('button', { name: 'Collapse rest timer' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Expand rest timer' })).toBeInTheDocument()
+  })
+
+  it('offers the next exercise in the large view once the current one is fully logged', async () => {
     const user = userEvent.setup()
     await openExercise('hammer-curls')
     await user.click(setChip(1))
     await user.click(setChip(2))
-    await user.click(within(screen.getByRole('region', { name: 'Rest timer' })).getByRole('button', { name: /Next: Reverse crunch/ }))
+    await user.click(screen.getByRole('button', { name: 'Expand rest timer' }))
+    const large = screen.getByRole('region', { name: 'Rest timer' })
+    await user.click(within(large).getByRole('button', { name: /Next: Reverse crunch/ }))
     expect(screen.getByRole('heading', { name: 'Weighted reverse crunch', level: 1 })).toBeInTheDocument()
-    expect(screen.getByRole('timer', { name: /Rest/ })).toBeInTheDocument()
+    const rest = screen.getByRole('region', { name: 'Rest timer' })
+    expect(within(rest).getByRole('button', { name: 'Expand rest timer' })).toBeInTheDocument()
   })
 })
 

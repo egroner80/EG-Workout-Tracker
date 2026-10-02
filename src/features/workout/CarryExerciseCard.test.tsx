@@ -66,7 +66,9 @@ describe('timed suitcase carry', () => {
     advanceFrames(40_250)
     expect(carry().actual[1]).toMatchObject({ status: 'done', seconds: 40 })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(screen.getByRole('region', { name: 'Rest timer' })).toBeInTheDocument()
+    const rest = screen.getByRole('region', { name: 'Rest timer' })
+    expect(within(rest).getByRole('button', { name: 'Expand rest timer' })).toBeInTheDocument()
+    expect(within(rest).queryByRole('button', { name: 'Pause' })).not.toBeInTheDocument()
   })
 
   it('Stop records the elapsed time and flags it below target', async () => {

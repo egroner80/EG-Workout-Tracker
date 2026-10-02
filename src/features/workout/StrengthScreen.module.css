@@ -21,9 +21,7 @@
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
-  /* Leave room for the collapsed rest bar that floats above the action bar. */
-  padding: var(--space-3) calc(var(--gutter) + var(--safe-right)) calc(var(--tap) + var(--space-8))
-    calc(var(--gutter) + var(--safe-left));
+  padding: var(--space-3) calc(var(--gutter) + var(--safe-right)) var(--space-6) calc(var(--gutter) + var(--safe-left));
 }
 
 .actionBar {
@@ -34,6 +32,31 @@
     calc(var(--gutter) + var(--safe-left));
   border-top: 1px solid var(--border);
   background: var(--bg);
+}
+
+/* The rest timer and Next share one row exactly as tall as Next alone, so the card never shrinks. */
+.restRow {
+  display: flex;
+  gap: var(--space-2);
+  height: var(--tap-xl);
+}
+
+.restRow .narrow {
+  flex: 0 0 38%;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--fs-sm);
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+}
+
+/* Button's label span: up to three lines fit the row; a longer custom name is clipped, never taller. */
+.restRow .narrow > span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
 }
 
 .error {
