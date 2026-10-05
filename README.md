@@ -40,6 +40,9 @@ tells you what to attempt next time.
   - The reverse crunch climbs a 10–15 rep ladder.
   - The suitcase carry is timed per side, 40 s up to 60 s in 5 s steps. The Copenhagen plank is a
     timed hold per side, 20 s up to 40 s in 5 s steps.
+  - Beat the target and the next one builds on what you actually did: one rep past the reps every
+    set reached (8/8/8 against a 6/6/6 target makes the next one 8/8/9), or the next weight once
+    every set reaches the top. Timed efforts do the same in 5 s steps.
   - Any set below target, or done at a lighter weight, repeats the same target next time.
   - At the top of the ladder at bodyweight (or the top of a bodyweight hold), you choose the added
     weight, or stay at bodyweight with a harder variation.

@@ -77,6 +77,14 @@
   white-space: nowrap;
 }
 
+/* A target kept below the exercise's rep range, e.g. after the range changed. */
+.rangeNote {
+  margin-top: var(--space-1);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--warn);
+}
+
 .actual {
   display: flex;
   flex-direction: column;

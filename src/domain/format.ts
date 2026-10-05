@@ -20,6 +20,12 @@ export function formatReps(reps: readonly (number | null)[], separator = ' — '
   return reps.map((r) => (r === null ? DASH : String(r))).join(separator)
 }
 
+/** "Below the 8–12 rep range" when any set's target is under the minimum. */
+export function belowRangeNote(reps: readonly number[], range: { minReps: number; maxReps: number }): string | undefined {
+  if (!reps.some((r) => r < range.minReps)) return undefined
+  return `Below the ${range.minReps}${DASH}${range.maxReps} rep range`
+}
+
 export function formatDuration(totalSeconds: number): string {
   const seconds = Math.max(0, Math.round(totalSeconds))
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`

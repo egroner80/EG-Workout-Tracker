@@ -286,9 +286,10 @@ function RepsSchemeFields({ exercise, update }: { exercise: RepsExerciseDef; upd
           />
         </Field>
         <p className={styles.rowHint}>
-          Each successful workout adds one rep, from {Array(sets).fill(minReps).join(' / ')} up to{' '}
-          {Array(sets).fill(maxReps).join(' / ')}, then the weight goes up. Changing sets or reps restarts at the
-          bottom at the same weight.
+          Meet every set’s target and the next one is a rep past what you actually did, from{' '}
+          {Array(sets).fill(minReps).join(' / ')} up to {Array(sets).fill(maxReps).join(' / ')}; then the weight goes
+          up. Changing the number of sets restarts at the bottom at the same weight; changing the reps keeps your
+          current target.
         </p>
       </div>
     </section>

@@ -1,4 +1,4 @@
-import { formatDuration, formatPrescription, formatWarmupTarget } from '../../domain/format'
+import { belowRangeNote, formatDuration, formatPrescription, formatWarmupTarget } from '../../domain/format'
 import type { ResolvedPrescription } from '../../domain/prescription'
 import { isProgressiveStep } from '../../domain/progression/warmup'
 import type { WorkoutTemplate } from '../../domain/types'
@@ -46,11 +46,16 @@ export function NextWorkoutList({ template, targets, onEdit }: NextWorkoutListPr
       {template.exercises.map((exercise) => {
         const resolved = targets.get(exercise.id)
         const value = resolved ? formatPrescription(resolved.prescription, exercise.loadType) : '—'
+        const warning =
+          exercise.kind === 'reps' && resolved?.prescription.kind === 'reps'
+            ? belowRangeNote(resolved.prescription.reps, exercise.scheme)
+            : undefined
         return (
           <li key={exercise.id}>
             <Row
               name={exercise.shortName}
               value={value}
+              warning={warning}
               badge={badgeFor(resolved)}
               onEdit={onEdit ? () => onEdit(exercise.id) : undefined}
             />
@@ -77,12 +82,14 @@ function Row({
   name,
   value,
   detail,
+  warning,
   badge,
   onEdit,
 }: {
   name: string
   value: string
   detail?: string
+  warning?: string
   badge?: string | null
   onEdit?: () => void
 }) {
@@ -91,6 +98,7 @@ function Row({
       <span className={styles.name}>
         {name}
         {detail && <span className={styles.detail}>{detail}</span>}
+        {warning && <span className={styles.warning}>{warning}</span>}
         {badge && <span className={styles.badge}>{badge}</span>}
       </span>
       <span className={styles.value}>{valueParts(value)}</span>
@@ -99,7 +107,12 @@ function Row({
   )
   if (!onEdit) return <div className={styles.row}>{content}</div>
   return (
-    <button type="button" className={`${styles.row} ${styles.interactive}`} onClick={onEdit} aria-label={`${name}: ${value}. Edit next target`}>
+    <button
+      type="button"
+      className={`${styles.row} ${styles.interactive}`}
+      onClick={onEdit}
+      aria-label={`${name}: ${value}.${warning ? ` ${warning}.` : ''} Edit next target`}
+    >
       {content}
     </button>
   )

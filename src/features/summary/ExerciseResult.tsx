@@ -59,16 +59,17 @@ function targetAt(log: ExerciseLog, loadKg: number): ExercisePrescription {
   if (log.kind === 'carry') {
     return { kind: 'timed', loadKg, seconds: log.scheme.minSec, setsPerSide: log.scheme.setsPerSide }
   }
+  // The top rung was reached by what was actually done, which may be beyond the planned target.
   const reps =
     loadKg === log.planned.loadKg
-      ? log.planned.sets.map((s) => s.reps)
+      ? log.planned.sets.map((s) => Math.max(s.reps, log.scheme.maxReps))
       : bottomRung(log.planned.sets.length, log.scheme.minReps)
   return { kind: 'reps', loadKg, reps }
 }
 
 /**
  * Top of the ladder at bodyweight: the app suggests added resistance and the
- * user decides — any change here becomes the next target. A lift repeats its
+ * user decides — any change here becomes the next target. A lift repeats the
  * top rung at the load it just finished and restarts at the bottom rung at
  * any other. A timed hold restarts at the bottom of its time range either
  * way; staying at the same load then means a harder lever.

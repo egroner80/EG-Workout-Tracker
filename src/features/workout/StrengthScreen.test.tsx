@@ -6,6 +6,7 @@ import { updateMeta } from '../../data/repositories/settingsRepo'
 import { createTemplate } from '../../data/seed/defaultTemplate'
 import { buildSession } from '../../domain/session'
 import { goToExercise, startStrength } from '../../domain/workout/actions'
+import { createOverride } from '../../services/dataCommands'
 import { useWorkoutStore } from '../../state/workoutStore'
 import { act, renderAt, resetApp, startWorkout } from '../../test/workoutHarness'
 import { WorkoutRoute } from './WorkoutRoute'
@@ -38,6 +39,22 @@ describe('exercise card', () => {
     expect(screen.getByText('First time')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Start rest · 1:30/ })).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /^Set \d: 5 reps, not logged/ })).toHaveLength(3)
+  })
+
+  it('keeps a target below the rep range and says so', async () => {
+    const curls = createTemplate('upper').exercises.find((e) => e.id === 'hammer-curls')
+    if (curls?.kind !== 'reps') throw new Error('expected a reps exercise')
+    await createOverride('hammer-curls', { kind: 'reps', loadKg: 10, reps: [3, 4] }, Date.now())
+    vi.setSystemTime(Date.now() + 60_000)
+    await openExercise('hammer-curls')
+    expect(screen.getByText('3 — 4')).toBeInTheDocument()
+    const { minReps, maxReps } = curls.scheme
+    expect(screen.getByText(`Below the ${minReps}–${maxReps} rep range`)).toBeInTheDocument()
+  })
+
+  it('says nothing about the range for a target inside it', async () => {
+    await openExercise('db-row')
+    expect(screen.queryByText(/rep range/)).not.toBeInTheDocument()
   })
 
   it('logs a set with one tap and opens the rest timer; a second tap undoes both', async () => {

@@ -10,6 +10,7 @@ import { STALE_AFTER_MS, buildSession, discardSession, finishSession, softDelete
 import type { SessionSource, TemplateId, WorkoutSession } from '../../domain/types'
 import { startStrength } from '../../domain/workout/actions'
 import { useWorkoutStore } from '../../state/workoutStore'
+import { createOverride } from '../../services/dataCommands'
 import { act, renderAt, resetApp, startWorkout } from '../../test/workoutHarness'
 import { HomeScreen } from './HomeScreen'
 
@@ -213,6 +214,17 @@ describe('Home', () => {
     ])
     await user.click(recentRows()[1])
     expect(screen.getByTestId('location')).toHaveTextContent('/history/w4')
+  })
+
+  it('flags a next target kept below its rep range', async () => {
+    const curls = createTemplate('upper').exercises.find((e) => e.id === 'hammer-curls')
+    if (curls?.kind !== 'reps') throw new Error('expected a reps exercise')
+    await createOverride('hammer-curls', { kind: 'reps', loadKg: 10, reps: [3, 4] }, Date.now())
+    renderAt(<HomeScreen />, '/')
+    const note = `Below the ${curls.scheme.minReps}–${curls.scheme.maxReps} rep range`
+    const row = await screen.findByRole('button', { name: `Hammer curls: 10 kg · 3 / 4. ${note}. Edit next target` })
+    expect(row).toHaveTextContent(note)
+    expect(screen.getByRole('button', { name: /^DB Row: [^.]+\. Edit next target$/ })).toBeInTheDocument()
   })
 
   it('edits the targets of the workout shown', async () => {

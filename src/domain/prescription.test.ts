@@ -132,12 +132,12 @@ describe('deriveCurrentPrescriptions', () => {
     expect(derive([s1], [], template).get('pull-ups')?.prescription).toEqual({ kind: 'reps', loadKg: 0, reps: [5, 5, 5, 5] })
   })
 
-  it('restarts at the bottom rung when the rep range changes', () => {
+  it('keeps the target when the rep range changes, even below the new minimum', () => {
     const s1 = finished('s1', T0, { prescriptions: new Map<string, Prescription>([['db-row', { kind: 'reps', loadKg: 18, reps: [5, 6, 5] }]]) })
     const template = createTemplate('upper')
     const row = template.exercises[2]
     if (row.kind === 'reps') row.scheme = { ...row.scheme, minReps: 8, maxReps: 12 }
-    expect(derive([s1], [], template).get('db-row')?.prescription).toEqual({ kind: 'reps', loadKg: 18, reps: [8, 8, 8] })
+    expect(derive([s1], [], template).get('db-row')?.prescription).toEqual({ kind: 'reps', loadKg: 18, reps: [5, 6, 6] })
   })
 })
 

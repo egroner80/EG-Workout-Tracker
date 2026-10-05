@@ -151,6 +151,24 @@ describe('completion screen', () => {
     expect(await nextTarget('upper', 'pull-ups')).toEqual({ kind: 'reps', loadKg: 2.5, reps: [5, 5, 5] })
   })
 
+  it('offers the choice when beating the target reached the top, and staying repeats the top rung', async () => {
+    const user = userEvent.setup()
+    await createOverride('pull-ups', { kind: 'reps', loadKg: 0, reps: [5, 6, 6] }, Date.now())
+    vi.setSystemTime(Date.now() + MINUTE)
+    const id = await finishWorkout(() => act((s, ctx) => stepReps(s, 'pull-ups', 0, 1, ctx)))
+    renderSummary(id)
+
+    const pullUps = await screen.findByRole('region', { name: 'Pull-ups' })
+    expect(pullUps).toHaveTextContent('ActualBW · 6 / 6 / 6')
+    expect(within(pullUps).getByText('Top of ladder — choose next resistance')).toBeInTheDocument()
+
+    vi.setSystemTime(Date.now() + MINUTE)
+    await user.click(within(pullUps).getByRole('button', { name: 'Stay at bodyweight' }))
+    const stepper = within(pullUps).getByRole('group', { name: 'next resistance' })
+    await vi.waitFor(() => expect(within(stepper).getByText('BW')).toBeInTheDocument())
+    expect(await nextTarget('upper', 'pull-ups')).toEqual({ kind: 'reps', loadKg: 0, reps: [6, 6, 6] })
+  })
+
   it('shows the load chosen for a lower-body lift at its top rung right away', async () => {
     const user = userEvent.setup()
     await createOverride('sliding-hamstring-curl', { kind: 'reps', loadKg: 0, reps: [10, 10] }, Date.now())

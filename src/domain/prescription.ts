@@ -40,20 +40,14 @@ export function baselineFor(target: ExerciseDef | WarmupStepDef): Prescription {
 
 /**
  * Keeps a prescription consistent with the exercise's current scheme: a
- * changed set count, or a recommendation produced under a different rep
- * range, restarts at the bottom rung at the same load.
+ * changed set count restarts at the bottom rung at the same load. A changed
+ * rep range keeps the target, which is built on what was actually done; one
+ * now below the minimum is flagged where it is shown, not raised.
  */
-export function normalizePrescription(
-  prescription: Prescription,
-  exercise: ExerciseDef,
-  producedUnder?: ExerciseLog,
-): Prescription {
+export function normalizePrescription(prescription: Prescription, exercise: ExerciseDef): Prescription {
   if (exercise.kind === 'reps' && prescription.kind === 'reps') {
-    const { sets, minReps, maxReps } = exercise.scheme
-    const rangeChanged =
-      producedUnder?.kind === 'reps' &&
-      (producedUnder.scheme.minReps !== minReps || producedUnder.scheme.maxReps !== maxReps)
-    if (prescription.reps.length !== sets || rangeChanged) {
+    const { sets, minReps } = exercise.scheme
+    if (prescription.reps.length !== sets) {
       return { kind: 'reps', loadKg: prescription.loadKg, reps: bottomRung(sets, minReps) }
     }
     return prescription
@@ -119,11 +113,7 @@ export function deriveCurrentPrescriptions(input: DeriveInput): Map<string, Reso
       resolved = { targetId: target.id, prescription: baselineFor(target), source: 'baseline' }
     }
 
-    if ('kind' in target) {
-      const producedUnder =
-        resolved.source === 'recommendation' ? session?.exercises.find((e) => e.exerciseId === target.id) : undefined
-      resolved.prescription = normalizePrescription(resolved.prescription, target, producedUnder)
-    }
+    if ('kind' in target) resolved.prescription = normalizePrescription(resolved.prescription, target)
     result.set(target.id, resolved)
   }
   return result

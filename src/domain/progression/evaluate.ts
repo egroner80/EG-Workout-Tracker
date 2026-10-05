@@ -1,15 +1,17 @@
 import { roundKg } from '../load'
 import type { CarryExerciseLog, ExerciseLog, Recommendation, RepsExerciseLog } from '../types'
-import { bottomRung, incrementStaircase } from './staircase'
-import { advanceTimed } from './timed'
+import { bottomRung, incrementStaircase, rungReached } from './staircase'
+import { advanceTimed, timeReached } from './timed'
 
 /**
  * Judges an exercise by what was actually done:
- * - every planned set done at ≥ planned load and ≥ planned reps → one rung up
- *   (at the lowest load actually used), or at the top rung → load + step and
- *   back to the bottom rung;
+ * - every planned set done at ≥ planned load and ≥ planned reps → one rung
+ *   above the highest rung every set actually reached (at the lowest load
+ *   actually used), so beating the target counts; once that is the top rung →
+ *   load + step and back to the bottom rung. Timed efforts work the same way,
+ *   in steps of time;
  * - anything short, skipped, or lighter → repeat the planned target exactly.
- * Added sets never count against success, and over-performance never skips rungs.
+ * Added sets count toward neither success nor the next target.
  */
 export function evaluateExercise(log: ExerciseLog): Recommendation {
   return log.kind === 'reps' ? evaluateReps(log) : evaluateCarry(log)
@@ -34,7 +36,8 @@ function evaluateReps(log: RepsExerciseLog): Recommendation {
   if (!success) return repeat('repeat')
 
   const workingLoad = Math.min(...performed.map((set) => set.loadKg))
-  const step = incrementStaircase(plannedReps, scheme.minReps, scheme.maxReps)
+  const reached = rungReached(plannedReps, performed.map((set) => set.reps), scheme.minReps, scheme.maxReps)
+  const step = incrementStaircase(reached, scheme.minReps, scheme.maxReps)
   if (step.topReached) {
     return {
       targetId: log.exerciseId,
@@ -78,7 +81,8 @@ function evaluateCarry(log: CarryExerciseLog): Recommendation {
   if (!success) return repeat('repeat')
 
   const workingLoad = Math.min(...performed.map((effort) => effort.loadKg))
-  const step = advanceTimed(planned.seconds, scheme)
+  const reached = timeReached(planned.seconds, performed.map((effort) => effort.seconds), scheme)
+  const step = advanceTimed(reached, scheme)
   if (step.topReached) {
     return {
       targetId: log.exerciseId,
