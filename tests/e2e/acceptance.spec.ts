@@ -75,9 +75,9 @@ test('the real-life workout: guided warm-up, a failed set, a lighter load, corre
   await advance(page, 3_000 + 4 * 30_000 + 500)
   await expect(exerciseHeading(page, 'Slow bodyweight squats')).toBeVisible()
   await page.getByRole('button', { name: 'Done', exact: true }).click()
-  // Four more steps: a 3 s get-ready and 45 s each.
+  // Four more steps, each after a 3 s get-ready: shoulders and upper back 30 s on each side, then two of 45 s.
   await expect(exerciseHeading(page, 'Shoulder CARs')).toBeVisible()
-  await advance(page, 4 * 48_000 + 2_000)
+  await advance(page, 2 * (3_000 + 60_000) + 2 * (3_000 + 45_000) + 2_000)
   await expect(page.getByRole('heading', { level: 1, name: 'Warm-up complete' })).toBeVisible()
   for (const step of WARMUP) {
     await expect(page.getByRole('listitem').filter({ has: page.getByText(step, { exact: true }) })).toContainText('Done')
@@ -186,7 +186,7 @@ test('the real-life workout: guided warm-up, a failed set, a lighter load, corre
   for (const [name, value] of NEXT_UPPER) {
     await expect(reopened.getByRole('button', { name: `${name}: ${value}. Edit next target` })).toBeVisible()
   }
-  await expect(reopened.getByRole('button', { name: /^Warm-up: 7:40\. Edit next target$/ })).toContainText('Jump rope 2:10')
+  await expect(reopened.getByRole('button', { name: /^Warm-up: 8:10\. Edit next target$/ })).toContainText('Jump rope 2:10')
 
   // History: the workout with its planned and actual values; the demo workouts are gone.
   await reopened.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'History' }).click()

@@ -40,6 +40,12 @@ describe('workout seeds', () => {
     expect(step('glute-bridges')).toMatchObject({ reps: 10, cue: 'Pause 1 s at the top' })
   })
 
+  it('works the shoulders and upper back one side at a time, 30 s each side', () => {
+    const step = (id: string) => upper.warmup.find((s) => s.id === id)
+    expect(step('shoulder-cars')).toMatchObject({ durationSec: 30, perSide: true, cue: 'Slow, controlled circles — one arm at a time' })
+    expect(step('thoracic-rotations')).toMatchObject({ durationSec: 30, perSide: true })
+  })
+
   it('runs the squat routine as four flowing 30 s holds, then five slow squats', () => {
     expect(SQUAT_ROUTINE.map((s) => [s.durationSec, s.reps ?? null, s.flowGroup])).toEqual([
       [30, null, 'squat-routine'],

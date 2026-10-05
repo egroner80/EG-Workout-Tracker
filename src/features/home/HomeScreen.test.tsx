@@ -233,7 +233,7 @@ describe('Home', () => {
     const user = userEvent.setup()
     renderAt(<HomeScreen />, '/')
     // Rope 2:00, the squat routine's holds 2:00 and slow squats 0:30, four drills 3:00.
-    expect(await screen.findByRole('button', { name: 'Warm-up: 7:30. Edit next target' })).toHaveTextContent('Jump rope 2:00')
+    expect(await screen.findByRole('button', { name: 'Warm-up: 8:00. Edit next target' })).toHaveTextContent('Jump rope 2:00')
     await user.click(screen.getByRole('radio', { name: 'Lower body' }))
     // The same 4:30, three drills 2:15, the world's greatest stretch 0:30 on each side,
     // hip hinges 0:30, split squats 1:00 for both sides, glute bridges 0:40.

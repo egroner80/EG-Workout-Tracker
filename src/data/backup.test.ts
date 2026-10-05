@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isValidSession, isValidSettings, isValidTemplate } from '../domain/migrate'
-import { SINGLE_LEG_HIP_THRUST } from '../domain/retiredExercises'
+import { SHOULDER_CARS, SINGLE_LEG_HIP_THRUST } from '../domain/templateRevisions'
 import { buildSession, finishSession, reopenSession, resolvePending, softDeleteSession } from '../domain/session'
 import { SQUAT_ROUTINE } from '../domain/sharedWarmup'
 import { DEFAULT_SETTINGS, type WorkoutSession, type WorkoutTemplate } from '../domain/types'
@@ -264,6 +264,20 @@ describe('planImport', () => {
     const plan = planImport(backup, local([activeLocal]))
     expect(plan.sessionsToPut).toEqual([])
     expect(plan.preview.skippedWorkouts).toBe(2)
+  })
+
+  it('restores an upper-body warm-up backed up before the shoulder steps went per side with them split', () => {
+    const seed = createTemplate('upper')
+    const bothArms = { id: 'shoulder-cars', name: 'Shoulder CARs', durationSec: 45, cue: 'Slow, controlled circles — both arms' }
+    const upper: WorkoutTemplate = {
+      ...seed,
+      warmup: seed.warmup.map((step) => (step.id === bothArms.id ? bothArms : step)),
+      updatedAt: T0,
+    }
+    const source = { ...local(), templates: { ...createDefaultTemplates(), upper } }
+    const restored = planImport(parse(buildBackup(source, T0, '0.2.0')), local()).templates
+    expect(restored.map((t) => t.id)).toEqual(['upper'])
+    expect(restored[0].warmup.find((step) => step.id === bothArms.id)).toEqual(SHOULDER_CARS)
   })
 
   it('restores a lower-body workout backed up with the two-leg hip thrust with the single-leg one in its place', () => {

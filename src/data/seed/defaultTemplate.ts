@@ -1,4 +1,4 @@
-import { SINGLE_LEG_HIP_THRUST } from '../../domain/retiredExercises'
+import { SHOULDER_CARS, SINGLE_LEG_HIP_THRUST, THORACIC_ROTATIONS } from '../../domain/templateRevisions'
 import { ROPE_BLOCK, SQUAT_ROUTINE } from '../../domain/sharedWarmup'
 import type { ExerciseDef, TemplateId, WarmupStepDef, WorkoutTemplate } from '../../domain/types'
 
@@ -12,8 +12,8 @@ import type { ExerciseDef, TemplateId, WarmupStepDef, WorkoutTemplate } from '..
 const UPPER_WARMUP: WarmupStepDef[] = [
   ...ROPE_BLOCK,
   ...SQUAT_ROUTINE,
-  { id: 'shoulder-cars', name: 'Shoulder CARs', durationSec: 45, cue: 'Slow, controlled circles — both arms' },
-  { id: 'thoracic-rotations', name: 'Thoracic rotations', durationSec: 45, cue: 'Rotate through the upper back' },
+  SHOULDER_CARS,
+  THORACIC_ROTATIONS,
   { id: 'scapular-pull-ups', name: 'Scapular pull-ups', durationSec: 45, cue: 'Straight arms, pull the shoulder blades down' },
   { id: 'easy-push-ups', name: 'Easy push-ups', durationSec: 45, cue: 'Smooth and easy — nowhere near failure' },
 ]
