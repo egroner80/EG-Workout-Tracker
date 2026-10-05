@@ -1,4 +1,12 @@
-import { SINGLE_LEG_HIP_THRUST } from '../../domain/retiredExercises'
+import {
+  CRUNCH_RANGE,
+  CURL_RANGE,
+  DUMBBELL_RANGE,
+  ONE_LEG_RANGE,
+  SHOULDER_CARS,
+  SINGLE_LEG_HIP_THRUST,
+  THORACIC_ROTATIONS,
+} from '../../domain/templateRevisions'
 import { ROPE_BLOCK, SQUAT_ROUTINE } from '../../domain/sharedWarmup'
 import type { ExerciseDef, TemplateId, WarmupStepDef, WorkoutTemplate } from '../../domain/types'
 
@@ -12,8 +20,8 @@ import type { ExerciseDef, TemplateId, WarmupStepDef, WorkoutTemplate } from '..
 const UPPER_WARMUP: WarmupStepDef[] = [
   ...ROPE_BLOCK,
   ...SQUAT_ROUTINE,
-  { id: 'shoulder-cars', name: 'Shoulder CARs', durationSec: 45, cue: 'Slow, controlled circles — both arms' },
-  { id: 'thoracic-rotations', name: 'Thoracic rotations', durationSec: 45, cue: 'Rotate through the upper back' },
+  SHOULDER_CARS,
+  THORACIC_ROTATIONS,
   { id: 'scapular-pull-ups', name: 'Scapular pull-ups', durationSec: 45, cue: 'Straight arms, pull the shoulder blades down' },
   { id: 'easy-push-ups', name: 'Easy push-ups', durationSec: 45, cue: 'Smooth and easy — nowhere near failure' },
 ]
@@ -43,7 +51,10 @@ const LOWER_WARMUP: WarmupStepDef[] = [
   { id: 'glute-bridges', name: 'Glute bridges', durationSec: 40, reps: 10, cue: 'Pause 1 s at the top' },
 ]
 
-const fiveToSix = { type: 'staircase', sets: 3, minReps: 5, maxReps: 6 } as const
+// Strength ranges (see templateRevisions.ts). Pull-ups and dips add 2.5 kg, about a rep, so 5–6 is enough.
+const bodyweightStrength = { type: 'staircase', sets: 3, minReps: 5, maxReps: 6 } as const
+const dumbbellStrength = { type: 'staircase', sets: 3, ...DUMBBELL_RANGE } as const
+const oneLegStrength = { type: 'staircase', sets: 3, ...ONE_LEG_RANGE } as const
 
 const UPPER_EXERCISES: ExerciseDef[] = [
   {
@@ -55,7 +66,7 @@ const UPPER_EXERCISES: ExerciseDef[] = [
     loadStepKg: 2.5,
     perSide: false,
     restSec: 120,
-    scheme: fiveToSix,
+    scheme: bodyweightStrength,
     baseline: { kind: 'reps', loadKg: 0, reps: [5, 5, 5] },
   },
   {
@@ -67,7 +78,7 @@ const UPPER_EXERCISES: ExerciseDef[] = [
     loadStepKg: 2.5,
     perSide: false,
     restSec: 120,
-    scheme: fiveToSix,
+    scheme: bodyweightStrength,
     baseline: { kind: 'reps', loadKg: 0, reps: [5, 5, 5] },
   },
   {
@@ -79,8 +90,8 @@ const UPPER_EXERCISES: ExerciseDef[] = [
     loadStepKg: 2,
     perSide: true,
     restSec: 90,
-    scheme: fiveToSix,
-    baseline: { kind: 'reps', loadKg: 18, reps: [5, 5, 5] },
+    scheme: dumbbellStrength,
+    baseline: { kind: 'reps', loadKg: 18, reps: [4, 4, 4] },
   },
   {
     id: 'db-bench',
@@ -91,8 +102,8 @@ const UPPER_EXERCISES: ExerciseDef[] = [
     loadStepKg: 2,
     perSide: false,
     restSec: 90,
-    scheme: fiveToSix,
-    baseline: { kind: 'reps', loadKg: 16, reps: [5, 5, 5] },
+    scheme: dumbbellStrength,
+    baseline: { kind: 'reps', loadKg: 16, reps: [4, 4, 4] },
   },
   {
     id: 'db-press',
@@ -103,8 +114,8 @@ const UPPER_EXERCISES: ExerciseDef[] = [
     loadStepKg: 2,
     perSide: false,
     restSec: 90,
-    scheme: fiveToSix,
-    baseline: { kind: 'reps', loadKg: 12, reps: [5, 5, 5] },
+    scheme: dumbbellStrength,
+    baseline: { kind: 'reps', loadKg: 12, reps: [4, 4, 4] },
   },
   {
     id: 'hammer-curls',
@@ -115,8 +126,8 @@ const UPPER_EXERCISES: ExerciseDef[] = [
     loadStepKg: 2,
     perSide: false,
     restSec: 75,
-    scheme: { type: 'staircase', sets: 2, minReps: 8, maxReps: 10 },
-    baseline: { kind: 'reps', loadKg: 10, reps: [8, 8] },
+    scheme: { type: 'staircase', sets: 2, ...CURL_RANGE },
+    baseline: { kind: 'reps', loadKg: 10, reps: [6, 6] },
   },
   {
     id: 'reverse-crunch',
@@ -127,8 +138,8 @@ const UPPER_EXERCISES: ExerciseDef[] = [
     loadStepKg: 2,
     perSide: false,
     restSec: 60,
-    scheme: { type: 'staircase', sets: 3, minReps: 10, maxReps: 15 },
-    baseline: { kind: 'reps', loadKg: 10, reps: [10, 10, 10] },
+    scheme: { type: 'staircase', sets: 3, ...CRUNCH_RANGE },
+    baseline: { kind: 'reps', loadKg: 10, reps: [8, 8, 8] },
   },
   {
     id: 'suitcase-carry',
@@ -154,7 +165,7 @@ const LOWER_EXERCISES: ExerciseDef[] = [
     loadStepKg: 2,
     perSide: true,
     restSec: 90,
-    scheme: fiveToSix,
+    scheme: oneLegStrength,
     baseline: { kind: 'reps', loadKg: 12, reps: [5, 5, 5] },
   },
   {
@@ -166,7 +177,7 @@ const LOWER_EXERCISES: ExerciseDef[] = [
     loadStepKg: 2,
     perSide: true,
     restSec: 90,
-    scheme: fiveToSix,
+    scheme: oneLegStrength,
     baseline: { kind: 'reps', loadKg: 16, reps: [5, 5, 5] },
   },
   SINGLE_LEG_HIP_THRUST,

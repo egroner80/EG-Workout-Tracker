@@ -47,7 +47,7 @@ const derive = (sessions: WorkoutSession[], overrides: PrescriptionOverride[] = 
 describe('deriveCurrentPrescriptions', () => {
   it('uses the seeded baseline when there is no history', () => {
     const row = derive([]).get('db-row')
-    expect(row).toMatchObject({ source: 'baseline', prescription: { kind: 'reps', loadKg: 18, reps: [5, 5, 5] } })
+    expect(row).toMatchObject({ source: 'baseline', prescription: { kind: 'reps', loadKg: 18, reps: [4, 4, 4] } })
     expect(derive([]).get('jump-rope')?.prescription).toEqual({ kind: 'warmup', durationSec: 120, active: true })
     expect(derive([]).get('double-unders')?.prescription).toEqual({ kind: 'warmup', durationSec: 30, active: false })
   })
@@ -55,7 +55,7 @@ describe('deriveCurrentPrescriptions', () => {
   it("uses the latest finished session's recommendations", () => {
     const s1 = finished('s1', T0)
     const row = derive([s1]).get('db-row')
-    expect(row).toMatchObject({ source: 'recommendation', sessionId: 's1', prescription: { loadKg: 18, reps: [5, 5, 6] } })
+    expect(row).toMatchObject({ source: 'recommendation', sessionId: 's1', prescription: { loadKg: 18, reps: [4, 4, 5] } })
   })
 
   it('applies an override created after the latest session and yields to a newer session', () => {
@@ -132,12 +132,12 @@ describe('deriveCurrentPrescriptions', () => {
     expect(derive([s1], [], template).get('pull-ups')?.prescription).toEqual({ kind: 'reps', loadKg: 0, reps: [5, 5, 5, 5] })
   })
 
-  it('restarts at the bottom rung when the rep range changes', () => {
+  it('keeps the target when the rep range changes, even below the new minimum', () => {
     const s1 = finished('s1', T0, { prescriptions: new Map<string, Prescription>([['db-row', { kind: 'reps', loadKg: 18, reps: [5, 6, 5] }]]) })
     const template = createTemplate('upper')
     const row = template.exercises[2]
     if (row.kind === 'reps') row.scheme = { ...row.scheme, minReps: 8, maxReps: 12 }
-    expect(derive([s1], [], template).get('db-row')?.prescription).toEqual({ kind: 'reps', loadKg: 18, reps: [8, 8, 8] })
+    expect(derive([s1], [], template).get('db-row')?.prescription).toEqual({ kind: 'reps', loadKg: 18, reps: [5, 6, 6] })
   })
 })
 

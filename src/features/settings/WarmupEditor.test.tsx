@@ -33,7 +33,7 @@ describe('warm-up editor', () => {
     await screen.findByRole('article', { name: 'Arm circles' })
 
     await user.click(within(card('Arm circles')).getByRole('button', { name: 'Increase Arm circles duration' }))
-    await vi.waitFor(() => expect(within(card('Arm circles')).getByText('0:50')).toBeInTheDocument())
+    await vi.waitFor(() => expect(within(card('Arm circles')).getByText('0:35')).toBeInTheDocument())
 
     await user.click(screen.getByRole('button', { name: 'Move Thoracic rotations up' }))
 
@@ -55,8 +55,8 @@ describe('warm-up editor', () => {
     expect(next.warmup.filter((s) => s.active).map((s) => [s.name, s.plannedSec])).toEqual([
       ['Jump rope', 120],
       ...SQUAT_ROUTINE.map((step) => [step.name, step.durationSec]),
-      ['Thoracic rotations', 45],
-      ['Arm circles', 50],
+      ['Thoracic rotations', 30],
+      ['Arm circles', 35],
       ['Scapular pull-ups', 45],
       ['Band pull-aparts', 45],
     ])

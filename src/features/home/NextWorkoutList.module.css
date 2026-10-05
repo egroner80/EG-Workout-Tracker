@@ -43,6 +43,13 @@
   margin-top: 2px;
 }
 
+.warning {
+  font-weight: 600;
+  font-size: var(--fs-xs);
+  color: var(--warn);
+  margin-top: 2px;
+}
+
 .value {
   display: flex;
   flex-wrap: wrap;

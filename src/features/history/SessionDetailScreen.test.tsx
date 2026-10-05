@@ -53,8 +53,8 @@ describe('session detail', () => {
 
     const row = await screen.findByRole('region', { name: 'One-arm DB row' })
     expect(screen.getByText('Upper body workout')).toBeInTheDocument()
-    expect(row).toHaveTextContent('Planned18 kg · 5 / 5 / 5')
-    expect(row).toHaveTextContent('Actual18 kg · 5 / 5 / 4')
+    expect(row).toHaveTextContent('Planned18 kg · 4 / 4 / 4')
+    expect(row).toHaveTextContent('Actual18 kg · 4 / 4 / 3')
 
     const dips = screen.getByRole('region', { name: 'Dips' })
     expect(dips).toHaveTextContent('ActualBW · 5 / – / 5')

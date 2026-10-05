@@ -6,6 +6,7 @@ import { updateMeta } from '../../data/repositories/settingsRepo'
 import { createTemplate } from '../../data/seed/defaultTemplate'
 import { buildSession } from '../../domain/session'
 import { goToExercise, startStrength } from '../../domain/workout/actions'
+import { createOverride } from '../../services/dataCommands'
 import { useWorkoutStore } from '../../state/workoutStore'
 import { act, renderAt, resetApp, startWorkout } from '../../test/workoutHarness'
 import { WorkoutRoute } from './WorkoutRoute'
@@ -34,10 +35,26 @@ describe('exercise card', () => {
     await openExercise('db-row')
     expect(screen.getByRole('heading', { name: 'One-arm DB row', level: 1 })).toBeInTheDocument()
     expect(screen.getByText('per side').closest('p')).toHaveTextContent('18 kg')
-    expect(screen.getByText('5 — 5 — 5')).toBeInTheDocument()
+    expect(screen.getByText('4 — 4 — 4')).toBeInTheDocument()
     expect(screen.getByText('First time')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Start rest · 1:30/ })).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: /^Set \d: 5 reps, not logged/ })).toHaveLength(3)
+    expect(screen.getAllByRole('button', { name: /^Set \d: 4 reps, not logged/ })).toHaveLength(3)
+  })
+
+  it('keeps a target below the rep range and says so', async () => {
+    const curls = createTemplate('upper').exercises.find((e) => e.id === 'hammer-curls')
+    if (curls?.kind !== 'reps') throw new Error('expected a reps exercise')
+    await createOverride('hammer-curls', { kind: 'reps', loadKg: 10, reps: [3, 4] }, Date.now())
+    vi.setSystemTime(Date.now() + 60_000)
+    await openExercise('hammer-curls')
+    expect(screen.getByText('3 — 4')).toBeInTheDocument()
+    const { minReps, maxReps } = curls.scheme
+    expect(screen.getByText(`Below the ${minReps}–${maxReps} rep range`)).toBeInTheDocument()
+  })
+
+  it('says nothing about the range for a target inside it', async () => {
+    await openExercise('db-row')
+    expect(screen.queryByText(/rep range/)).not.toBeInTheDocument()
   })
 
   it('logs a set with one tap and opens the rest timer; a second tap undoes both', async () => {
@@ -109,7 +126,7 @@ describe('rest timer', () => {
     expect(screen.getAllByRole('button', { name: 'Next: DB Bench' })).toHaveLength(1)
 
     await user.click(screen.getByRole('button', { name: 'Set 1: one rep fewer' }))
-    expect(setChip(1)).toHaveAccessibleName(/^Set 1: 4 reps, below target/)
+    expect(setChip(1)).toHaveAccessibleName(/^Set 1: 3 reps, below target/)
     expect(within(rest()).getByRole('timer')).toHaveTextContent(/^1:30$/)
 
     await user.click(within(rest()).getByRole('button', { name: 'Skip' }))

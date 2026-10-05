@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { SINGLE_LEG_HIP_THRUST } from '../../domain/retiredExercises'
+import { SINGLE_LEG_HIP_THRUST } from '../../domain/templateRevisions'
 import { buildSession, finishSession, resolvePending } from '../../domain/session'
 import { SQUAT_ROUTINE } from '../../domain/sharedWarmup'
 import type { WarmupStepDef, WorkoutTemplate } from '../../domain/types'
@@ -83,6 +83,42 @@ describe('bootstrap', () => {
   it('can seed without demo data', async () => {
     await bootstrap(NOW, { demo: false })
     expect(await db.sessions.count()).toBe(0)
+  })
+
+  it('splits the shoulder and back steps of a saved upper-body warm-up into 30 s on each side', async () => {
+    const seed = createTemplate('upper')
+    const bothSides: Record<string, WarmupStepDef> = {
+      'shoulder-cars': { id: 'shoulder-cars', name: 'Shoulder CARs', durationSec: 45, cue: 'Slow, controlled circles — both arms' },
+      'thoracic-rotations': { id: 'thoracic-rotations', name: 'Thoracic rotations', durationSec: 45, cue: 'Rotate through the upper back' },
+    }
+    await saveTemplate({ ...seed, warmup: seed.warmup.map((step) => bothSides[step.id] ?? step), updatedAt: 5 })
+
+    await bootstrap(NOW, { demo: false })
+    const upper = await getTemplate('upper')
+    const step = (id: string) => upper.warmup.find((s) => s.id === id)
+    expect(step('shoulder-cars')).toMatchObject({ perSide: true, durationSec: 30, cue: 'Slow, controlled circles — one arm at a time' })
+    expect(step('thoracic-rotations')).toMatchObject({ perSide: true, durationSec: 30, cue: 'Rotate through the upper back — one side at a time' })
+    expect(upper.updatedAt).toBe(5)
+  })
+
+  it('moves a saved workout to the strength rep ranges, leaving a range the user set', async () => {
+    const seed = createTemplate('upper')
+    const earlier = (e: (typeof seed.exercises)[number]) => {
+      if (e.kind !== 'reps') return e
+      if (e.id === 'db-row') return { ...e, scheme: { ...e.scheme, minReps: 5, maxReps: 6 }, baseline: { ...e.baseline, reps: [5, 5, 5] } }
+      if (e.id === 'db-press') return { ...e, scheme: { ...e.scheme, minReps: 6, maxReps: 10 } }
+      return e
+    }
+    await saveTemplate({ ...seed, exercises: seed.exercises.map(earlier), updatedAt: 5 })
+
+    await bootstrap(NOW, { demo: false })
+    const upper = await getTemplate('upper')
+    expect(upper.exercises.find((e) => e.id === 'db-row')).toMatchObject({
+      scheme: { minReps: 4, maxReps: 8 },
+      baseline: { reps: [4, 4, 4] },
+    })
+    expect(upper.exercises.find((e) => e.id === 'db-press')).toMatchObject({ scheme: { minReps: 6, maxReps: 10 } })
+    expect(upper.updatedAt).toBe(5)
   })
 
   it('swaps the two-leg hip thrust in a saved lower-body workout for the single-leg one, keeping edits and past workouts', async () => {

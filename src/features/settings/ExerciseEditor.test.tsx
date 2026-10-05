@@ -21,19 +21,19 @@ describe('exercise editor', () => {
   it('applies a set-count change at the current load and a new rest time to the next workout', async () => {
     const user = userEvent.setup({ delay: null })
     await completeWorkout()
-    expect((await getCurrentPrescriptions('upper')).get('db-row')?.prescription).toMatchObject({ loadKg: 18, reps: [5, 5, 6] })
+    expect((await getCurrentPrescriptions('upper')).get('db-row')?.prescription).toMatchObject({ loadKg: 18, reps: [4, 4, 5] })
 
     renderSettings('/settings/upper/exercises/db-row')
     await screen.findByRole('heading', { level: 1, name: 'One-arm DB row' })
     await user.click(screen.getByRole('button', { name: 'Increase sets' }))
-    await vi.waitFor(() => expect(screen.getByText('18 kg · 5 / 5 / 5 / 5')).toBeInTheDocument())
+    await vi.waitFor(() => expect(screen.getByText('18 kg · 4 / 4 / 4 / 4')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: 'Increase rest time' }))
     await user.click(screen.getByRole('button', { name: 'Increase rest time' }))
     await vi.waitFor(() => expect(screen.getByRole('group', { name: 'rest time' })).toHaveTextContent('2:00'))
 
     const next = await startWorkout()
     const row = next.exercises.find((e) => e.exerciseId === 'db-row')
-    expect(row?.kind === 'reps' && row.planned).toEqual({ loadKg: 18, sets: [{ reps: 5 }, { reps: 5 }, { reps: 5 }, { reps: 5 }] })
+    expect(row?.kind === 'reps' && row.planned).toEqual({ loadKg: 18, sets: [{ reps: 4 }, { reps: 4 }, { reps: 4 }, { reps: 4 }] })
     expect(row?.restSec).toBe(120)
   })
 
@@ -98,7 +98,7 @@ describe('exercise editor', () => {
     const sheet = await screen.findByRole('dialog', { name: 'Standing DB press' })
     await user.click(within(sheet).getByRole('button', { name: 'Increase weight' }))
     await user.click(within(sheet).getByRole('button', { name: 'Save target' }))
-    await vi.waitFor(() => expect(screen.getByText('14 kg · 5 / 5 / 5')).toBeInTheDocument())
+    await vi.waitFor(() => expect(screen.getByText('14 kg · 4 / 4 / 4')).toBeInTheDocument())
     expect(screen.getByText('Set by you.')).toBeInTheDocument()
   })
 

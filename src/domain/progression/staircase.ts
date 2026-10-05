@@ -31,6 +31,21 @@ export function incrementStaircase(reps: readonly number[], _minReps: number, ma
   return { reps: next, topReached: false }
 }
 
+/**
+ * The highest rung the reps actually done reach: climbs from the planned
+ * target while every set still meets the next rung, and stops at the top.
+ * Planned 5/5/5 done as 8/8/8 reaches 8/8/8; done as 9/7/6 it reaches 6/6/6,
+ * because a rung counts only when every set reaches it.
+ */
+export function rungReached(planned: readonly number[], done: readonly number[], minReps: number, maxReps: number): number[] {
+  let reached = [...planned]
+  for (;;) {
+    const step = incrementStaircase(reached, minReps, maxReps)
+    if (step.topReached || !step.reps.every((reps, i) => reps <= done[i])) return reached
+    reached = step.reps
+  }
+}
+
 export function buildLadder(sets: number, minReps: number, maxReps: number): number[][] {
   const ladder = [bottomRung(sets, minReps)]
   let current = ladder[0]

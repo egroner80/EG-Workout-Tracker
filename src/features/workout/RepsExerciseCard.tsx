@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { formatReps } from '../../domain/format'
+import { belowRangeNote, formatReps } from '../../domain/format'
 import type { LastTime as LastTimeData } from '../../domain/prescription'
 import type { Outcome, RepsExerciseLog } from '../../domain/types'
 import { currentLoad, stepExerciseLoad, stepReps, toggleSet } from '../../domain/workout/actions'
@@ -32,6 +32,7 @@ export function RepsExerciseCard({ log, lastTime, previousOutcome }: RepsExercis
   const plannedReps = log.planned.sets.map((s) => s.reps)
   const hasPending = log.actual.some((set) => set.status === 'pending')
   const badge = previousOutcome ? BADGE[previousOutcome] : undefined
+  const rangeNote = belowRangeNote(plannedReps, log.scheme)
 
   return (
     <article className={styles.card} aria-labelledby={`exercise-${id}`}>
@@ -42,6 +43,7 @@ export function RepsExerciseCard({ log, lastTime, previousOutcome }: RepsExercis
           Today {badge && <span className={styles.badge}>{badge}</span>}
         </h2>
         <p className={styles.targets}>{formatReps(plannedReps)}</p>
+        {rangeNote && <p className={styles.rangeNote}>{rangeNote}</p>}
       </section>
 
       <section className={styles.actual} aria-label="Actual">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bottomRung, buildLadder, incrementStaircase, rungIndex } from './staircase'
+import { bottomRung, buildLadder, incrementStaircase, rungIndex, rungReached } from './staircase'
 
 describe('buildLadder', () => {
   it('reproduces the 5–6 ladder for three sets exactly', () => {
@@ -58,6 +58,32 @@ describe('incrementStaircase', () => {
     const reps = [5, 5, 5]
     incrementStaircase(reps, 5, 6)
     expect(reps).toEqual([5, 5, 5])
+  })
+})
+
+describe('rungReached', () => {
+  it('climbs from the planned rung to the highest rung every set reached', () => {
+    expect(rungReached([5, 5, 5], [8, 8, 8], 5, 12)).toEqual([8, 8, 8])
+    expect(rungReached([5, 5, 5], [9, 7, 6], 5, 12)).toEqual([6, 6, 6])
+    expect(rungReached([8, 8], [9, 10], 8, 12)).toEqual([9, 10])
+  })
+
+  it('stays on the planned rung when the reps match it', () => {
+    expect(rungReached([5, 6, 6], [5, 6, 6], 5, 12)).toEqual([5, 6, 6])
+  })
+
+  it('stops at the top of the range', () => {
+    expect(rungReached([5, 5, 6], [9, 9, 9], 5, 6)).toEqual([6, 6, 6])
+  })
+
+  it('stays put when a set has no reps to compare', () => {
+    expect(rungReached([5, 5, 5], [9, 9], 5, 12)).toEqual([5, 5, 5])
+  })
+
+  it('never mutates its input', () => {
+    const planned = [5, 5, 5]
+    rungReached(planned, [8, 8, 8], 5, 12)
+    expect(planned).toEqual([5, 5, 5])
   })
 })
 

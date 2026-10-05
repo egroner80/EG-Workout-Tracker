@@ -10,6 +10,7 @@ import { STALE_AFTER_MS, buildSession, discardSession, finishSession, softDelete
 import type { SessionSource, TemplateId, WorkoutSession } from '../../domain/types'
 import { startStrength } from '../../domain/workout/actions'
 import { useWorkoutStore } from '../../state/workoutStore'
+import { createOverride } from '../../services/dataCommands'
 import { act, renderAt, resetApp, startWorkout } from '../../test/workoutHarness'
 import { HomeScreen } from './HomeScreen'
 
@@ -50,11 +51,11 @@ describe('Home', () => {
     expect(await screen.findByText('Pull-ups')).toBeInTheDocument()
     for (const [name, value] of [
       ['Pull-ups', 'BW · 5 / 5 / 5'],
-      ['DB Row', '18 kg · 5 / 5 / 5'],
-      ['DB Bench', '16 kg · 5 / 5 / 5'],
-      ['DB Press', '12 kg · 5 / 5 / 5'],
-      ['Hammer curls', '10 kg · 8 / 8'],
-      ['Reverse crunch', '10 kg · 10 / 10 / 10'],
+      ['DB Row', '18 kg · 4 / 4 / 4'],
+      ['DB Bench', '16 kg · 4 / 4 / 4'],
+      ['DB Press', '12 kg · 4 / 4 / 4'],
+      ['Hammer curls', '10 kg · 6 / 6'],
+      ['Reverse crunch', '10 kg · 8 / 8 / 8'],
       ['Carry', '18 kg · 40 s per side × 2'],
     ]) {
       expect(screen.getByText(name).closest('li')).toHaveTextContent(value)
@@ -215,6 +216,17 @@ describe('Home', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/history/w4')
   })
 
+  it('flags a next target kept below its rep range', async () => {
+    const curls = createTemplate('upper').exercises.find((e) => e.id === 'hammer-curls')
+    if (curls?.kind !== 'reps') throw new Error('expected a reps exercise')
+    await createOverride('hammer-curls', { kind: 'reps', loadKg: 10, reps: [3, 4] }, Date.now())
+    renderAt(<HomeScreen />, '/')
+    const note = `Below the ${curls.scheme.minReps}–${curls.scheme.maxReps} rep range`
+    const row = await screen.findByRole('button', { name: `Hammer curls: 10 kg · 3 / 4. ${note}. Edit next target` })
+    expect(row).toHaveTextContent(note)
+    expect(screen.getByRole('button', { name: /^DB Row: [^.]+\. Edit next target$/ })).toBeInTheDocument()
+  })
+
   it('edits the targets of the workout shown', async () => {
     const user = userEvent.setup()
     renderAt(<HomeScreen />, '/')
@@ -233,7 +245,7 @@ describe('Home', () => {
     const user = userEvent.setup()
     renderAt(<HomeScreen />, '/')
     // Rope 2:00, the squat routine's holds 2:00 and slow squats 0:30, four drills 3:00.
-    expect(await screen.findByRole('button', { name: 'Warm-up: 7:30. Edit next target' })).toHaveTextContent('Jump rope 2:00')
+    expect(await screen.findByRole('button', { name: 'Warm-up: 8:00. Edit next target' })).toHaveTextContent('Jump rope 2:00')
     await user.click(screen.getByRole('radio', { name: 'Lower body' }))
     // The same 4:30, three drills 2:15, the world's greatest stretch 0:30 on each side,
     // hip hinges 0:30, split squats 1:00 for both sides, glute bridges 0:40.

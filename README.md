@@ -35,12 +35,30 @@ tells you what to attempt next time.
 - **Planned vs actual.** Both are stored; the plan is never overwritten. Missed reps, a lighter or
   heavier weight, skipped sets, and extra sets are all recorded as they happened.
 - **Transparent progression from actual performance.**
-  - 5–6 rep exercises climb `5/5/5 → 5/5/6 → 5/6/6 → 6/6/6`, then the weight goes up and the
-    ladder restarts. Hammer curls and the sliding hamstring curl go `8/8 → … → 10/10`.
-  - The reverse crunch climbs a 10–15 rep ladder.
+  - Rep ranges are set for strength: heavy sets of about 8 reps or fewer (roughly 80% of your
+    max or more), each range wide enough to absorb one weight step, which costs about 3 reps per
+    10% added.
+
+    | Exercise | Reps per set |
+    | --- | --- |
+    | Pull-ups, dips (+2.5 kg is about one rep) | 5–6 |
+    | DB row, bench press, overhead press (+2 kg is 11–17% of the dumbbell) | 4–8 |
+    | Split squat, single-leg RDL, single-leg hip thrust | 5–8 |
+    | Hammer curls (+2 kg is a fifth of a 10 kg dumbbell) | 6–12 |
+    | Reverse crunch | 8–12 |
+    | Sliding hamstring curl | 8–10 |
+
+  - Each successful workout climbs the ladder a rep at a time, `4/4/4 → 4/4/5 → 4/5/5 → 5/5/5 →
+    … → 8/8/8`; then the weight goes up and the ladder restarts at the bottom.
+  - Beat the target and the next one builds on what you actually did: one rep past the reps every
+    set reached (7/7/7 against a 5/5/5 target makes the next one 7/7/8), or the next weight once
+    every set reaches the top.
   - The suitcase carry is timed per side, 40 s up to 60 s in 5 s steps. The Copenhagen plank is a
-    timed hold per side, 20 s up to 40 s in 5 s steps.
+    timed hold per side, 20 s up to 40 s in 5 s steps. Holding longer than the target counts the
+    same way.
   - Any set below target, or done at a lighter weight, repeats the same target next time.
+  - Changing an exercise's rep range keeps your current target. One below the new minimum says so
+    ("Below the 4–8 rep range") until it climbs back in.
   - At the top of the ladder at bodyweight (or the top of a bodyweight hold), you choose the added
     weight, or stay at bodyweight with a harder variation.
   - You can override any next target by hand.

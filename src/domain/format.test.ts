@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  belowRangeNote,
   formatActualCarry,
   formatActualSets,
   formatDuration,
@@ -36,6 +37,20 @@ describe('formatReps', () => {
 
   it('renders missing reps as a dash', () => {
     expect(formatReps([5, null, 6], ' / ')).toBe('5 / – / 6')
+  })
+})
+
+describe('belowRangeNote', () => {
+  const range = { minReps: 8, maxReps: 12 }
+
+  it('names the range when any set is under its minimum', () => {
+    expect(belowRangeNote([7, 8, 8], range)).toBe('Below the 8–12 rep range')
+    expect(belowRangeNote([5, 5, 6], range)).toBe('Below the 8–12 rep range')
+  })
+
+  it('says nothing for a target inside or above the range', () => {
+    expect(belowRangeNote([8, 8, 8], range)).toBeUndefined()
+    expect(belowRangeNote([12, 13, 13], range)).toBeUndefined()
   })
 })
 

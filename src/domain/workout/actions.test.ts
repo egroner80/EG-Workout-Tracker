@@ -107,13 +107,13 @@ describe('set logging', () => {
   it('stepping reps changes actual only, logs the set, and starts rest once', () => {
     let s = stepReps(session(), 'db-row', 2, -1, ctx(T0)).session
     const row = reps(s, 'db-row')
-    expect(row.actual[2]).toMatchObject({ reps: 4, status: 'done' })
-    expect(row.planned.sets[2].reps).toBe(5)
+    expect(row.actual[2]).toMatchObject({ reps: 3, status: 'done' })
+    expect(row.planned.sets[2].reps).toBe(4)
     expect(s.runtime?.rest).toMatchObject({ startedBySet: 2, expanded: false })
     const restEndsAt = s.runtime?.rest?.timer.endsAt
 
     s = stepReps(s, 'db-row', 2, -1, ctx(T0 + 5000)).session
-    expect(reps(s, 'db-row').actual[2].reps).toBe(3)
+    expect(reps(s, 'db-row').actual[2].reps).toBe(2)
     expect(s.runtime?.rest?.timer.endsAt).toBe(restEndsAt)
   })
 

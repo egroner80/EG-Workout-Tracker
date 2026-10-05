@@ -43,11 +43,11 @@ describe('buildSession', () => {
     const row = session.exercises[2]
     expect(row.kind).toBe('reps')
     if (row.kind !== 'reps') return
-    expect(row.planned).toEqual({ loadKg: 18, sets: [{ reps: 5 }, { reps: 5 }, { reps: 5 }] })
+    expect(row.planned).toEqual({ loadKg: 18, sets: [{ reps: 4 }, { reps: 4 }, { reps: 4 }] })
     expect(row.actual).toEqual([
-      { reps: 5, loadKg: 18, status: 'pending' },
-      { reps: 5, loadKg: 18, status: 'pending' },
-      { reps: 5, loadKg: 18, status: 'pending' },
+      { reps: 4, loadKg: 18, status: 'pending' },
+      { reps: 4, loadKg: 18, status: 'pending' },
+      { reps: 4, loadKg: 18, status: 'pending' },
     ])
     expect(session).toMatchObject({ status: 'active', source: 'real', activeSlot: 'active', rev: 1 })
     expect(session.runtime).toMatchObject({ phase: 'warmup', currentExerciseId: 'pull-ups' })
@@ -88,9 +88,9 @@ describe('buildSession', () => {
     const before = plannedFingerprint(session)
     const row = session.exercises[2]
     if (row.kind !== 'reps') throw new Error('expected reps')
-    row.actual[0] = { reps: 4, loadKg: 16, status: 'done' }
+    row.actual[0] = { reps: 3, loadKg: 16, status: 'done' }
     expect(plannedFingerprint(session)).toBe(before)
-    expect(row.planned.sets[0].reps).toBe(5)
+    expect(row.planned.sets[0].reps).toBe(4)
   })
 })
 
@@ -139,7 +139,7 @@ describe('finish, reopen, cancel, discard', () => {
         'suitcase-carry',
       ].sort(),
     )
-    expect(finished.recommendations?.['db-row'].prescription).toEqual({ kind: 'reps', loadKg: 18, reps: [5, 5, 6] })
+    expect(finished.recommendations?.['db-row'].prescription).toEqual({ kind: 'reps', loadKg: 18, reps: [4, 4, 5] })
   })
 
   it('refuses to finish a workout that is not active', () => {
