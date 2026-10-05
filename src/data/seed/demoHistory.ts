@@ -90,12 +90,14 @@ export function generateDemoHistory({ now, templates, count = 24, successRate = 
         const success = random() < successRate
         if (exercise.kind === 'reps') {
           const shortSet = exercise.actual.length - 1
+          // A good day beats the target by a rep or two on every set, and the next target builds on it.
+          const extra = success && random() < 0.4 ? 1 + Math.floor(random() * 2) : 0
           return {
             ...exercise,
             actual: exercise.actual.map((set, i) => ({
               ...set,
               status: 'done' as const,
-              reps: !success && i === shortSet ? Math.max(1, set.reps - 1) : set.reps,
+              reps: !success && i === shortSet ? Math.max(1, set.reps - 1) : set.reps + extra,
             })),
           }
         }

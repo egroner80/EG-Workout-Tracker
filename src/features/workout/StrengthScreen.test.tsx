@@ -35,10 +35,10 @@ describe('exercise card', () => {
     await openExercise('db-row')
     expect(screen.getByRole('heading', { name: 'One-arm DB row', level: 1 })).toBeInTheDocument()
     expect(screen.getByText('per side').closest('p')).toHaveTextContent('18 kg')
-    expect(screen.getByText('5 — 5 — 5')).toBeInTheDocument()
+    expect(screen.getByText('4 — 4 — 4')).toBeInTheDocument()
     expect(screen.getByText('First time')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Start rest · 1:30/ })).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: /^Set \d: 5 reps, not logged/ })).toHaveLength(3)
+    expect(screen.getAllByRole('button', { name: /^Set \d: 4 reps, not logged/ })).toHaveLength(3)
   })
 
   it('keeps a target below the rep range and says so', async () => {
@@ -126,7 +126,7 @@ describe('rest timer', () => {
     expect(screen.getAllByRole('button', { name: 'Next: DB Bench' })).toHaveLength(1)
 
     await user.click(screen.getByRole('button', { name: 'Set 1: one rep fewer' }))
-    expect(setChip(1)).toHaveAccessibleName(/^Set 1: 4 reps, below target/)
+    expect(setChip(1)).toHaveAccessibleName(/^Set 1: 3 reps, below target/)
     expect(within(rest()).getByRole('timer')).toHaveTextContent(/^1:30$/)
 
     await user.click(within(rest()).getByRole('button', { name: 'Skip' }))

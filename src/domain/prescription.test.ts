@@ -47,7 +47,7 @@ const derive = (sessions: WorkoutSession[], overrides: PrescriptionOverride[] = 
 describe('deriveCurrentPrescriptions', () => {
   it('uses the seeded baseline when there is no history', () => {
     const row = derive([]).get('db-row')
-    expect(row).toMatchObject({ source: 'baseline', prescription: { kind: 'reps', loadKg: 18, reps: [5, 5, 5] } })
+    expect(row).toMatchObject({ source: 'baseline', prescription: { kind: 'reps', loadKg: 18, reps: [4, 4, 4] } })
     expect(derive([]).get('jump-rope')?.prescription).toEqual({ kind: 'warmup', durationSec: 120, active: true })
     expect(derive([]).get('double-unders')?.prescription).toEqual({ kind: 'warmup', durationSec: 30, active: false })
   })
@@ -55,7 +55,7 @@ describe('deriveCurrentPrescriptions', () => {
   it("uses the latest finished session's recommendations", () => {
     const s1 = finished('s1', T0)
     const row = derive([s1]).get('db-row')
-    expect(row).toMatchObject({ source: 'recommendation', sessionId: 's1', prescription: { loadKg: 18, reps: [5, 5, 6] } })
+    expect(row).toMatchObject({ source: 'recommendation', sessionId: 's1', prescription: { loadKg: 18, reps: [4, 4, 5] } })
   })
 
   it('applies an override created after the latest session and yields to a newer session', () => {

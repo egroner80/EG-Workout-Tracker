@@ -39,11 +39,11 @@ const NEXT_LOWER: [string, string][] = [
 const NEXT_UPPER: [string, string][] = [
   ['Pull-ups', 'BW · 5 / 5 / 6'],
   ['Dips', 'BW · 5 / 5 / 5'],
-  ['DB Row', '18 kg · 5 / 5 / 5'],
-  ['DB Bench', '16 kg · 5 / 5 / 6'],
-  ['DB Press', '12 kg · 5 / 5 / 6'],
-  ['Hammer curls', '10 kg · 8 / 9'],
-  ['Reverse crunch', '10 kg · 10 / 10 / 11'],
+  ['DB Row', '18 kg · 4 / 4 / 4'],
+  ['DB Bench', '16 kg · 4 / 4 / 5'],
+  ['DB Press', '12 kg · 4 / 4 / 5'],
+  ['Hammer curls', '10 kg · 6 / 7'],
+  ['Reverse crunch', '10 kg · 8 / 8 / 9'],
   ['Carry', '18 kg · 45 s per side × 2'],
 ]
 
@@ -158,10 +158,10 @@ test('the real-life workout: guided warm-up, a failed set, a lighter load, corre
   await expect(dips).toContainText(/Next\s*Repeat 5 \/ 5 \/ 5/)
 
   const row = result(page, 'One-arm DB row')
-  await expect(row).toContainText(/Target\s*18 kg · 5 \/ 5 \/ 5/)
-  await expect(row).toContainText(/Actual\s*16 kg · 5 \/ 5 \/ 5/)
+  await expect(row).toContainText(/Target\s*18 kg · 4 \/ 4 \/ 4/)
+  await expect(row).toContainText(/Actual\s*16 kg · 4 \/ 4 \/ 4/)
   await expect(row.getByLabel('target met')).toHaveCount(0)
-  await expect(row).toContainText(/Next\s*Repeat 18 kg · 5 \/ 5 \/ 5/)
+  await expect(row).toContainText(/Next\s*Repeat 18 kg · 4 \/ 4 \/ 4/)
 
   await expect(result(page, 'Suitcase carry')).toContainText(/Actual\s*18 kg · L 40 \/ 40 s · R 40 \/ 40 s/)
   // Next comes the lower-body workout, which shares today's jump rope.
@@ -200,7 +200,7 @@ test('the real-life workout: guided warm-up, a failed set, a lighter load, corre
   await expect(dipsDetail).toContainText(/Planned\s*BW · 5 \/ 5 \/ 5/)
   await expect(dipsDetail).toContainText(/Actual\s*BW · 5 \/ 5 \/ 4/)
   const rowDetail = result(reopened, 'One-arm DB row')
-  await expect(rowDetail).toContainText(/Planned\s*18 kg · 5 \/ 5 \/ 5/)
-  await expect(rowDetail).toContainText(/Actual\s*16 kg · 5 \/ 5 \/ 5/)
+  await expect(rowDetail).toContainText(/Planned\s*18 kg · 4 \/ 4 \/ 4/)
+  await expect(rowDetail).toContainText(/Actual\s*16 kg · 4 \/ 4 \/ 4/)
   await expect(result(reopened, 'Warm-up')).toContainText(/Jump rope\s*2:00 · done/)
 })

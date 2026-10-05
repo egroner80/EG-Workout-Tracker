@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isValidTemplate } from '../../domain/migrate'
+import { bottomRung } from '../../domain/progression/staircase'
 import { ROPE_BLOCK, SQUAT_ROUTINE } from '../../domain/sharedWarmup'
 import { createDefaultTemplates, createTemplate } from './defaultTemplate'
 
@@ -70,7 +71,7 @@ describe('workout seeds', () => {
       loadType: 'dumbbell',
       loadStepKg: 2,
       perSide: true,
-      scheme: { minReps: 5, maxReps: 6 },
+      scheme: { minReps: 5, maxReps: 8 },
       baseline: { loadKg: 12, reps: [5, 5, 5] },
     })
     expect(lower.exercises.at(-1)).toMatchObject({
@@ -80,6 +81,24 @@ describe('workout seeds', () => {
       perSide: true,
       scheme: { minSec: 20, maxSec: 40, stepSec: 5 },
     })
+  })
+
+  it('uses strength rep ranges and starts every exercise at the bottom of its range', () => {
+    const reps = [...upper.exercises, ...lower.exercises].flatMap((e) => (e.kind === 'reps' ? [e] : []))
+    expect(reps.map((e) => [e.id, `${e.scheme.minReps}–${e.scheme.maxReps}`])).toEqual([
+      ['pull-ups', '5–6'],
+      ['dips', '5–6'],
+      ['db-row', '4–8'],
+      ['db-bench', '4–8'],
+      ['db-press', '4–8'],
+      ['hammer-curls', '6–12'],
+      ['reverse-crunch', '8–12'],
+      ['bulgarian-split-squat', '5–8'],
+      ['single-leg-rdl', '5–8'],
+      ['single-leg-hip-thrust', '5–8'],
+      ['sliding-hamstring-curl', '8–10'],
+    ])
+    for (const e of reps) expect(e.baseline.reps, e.id).toEqual(bottomRung(e.scheme.sets, e.scheme.minReps))
   })
 
   it('hands out fresh copies', () => {

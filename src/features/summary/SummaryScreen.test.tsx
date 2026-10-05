@@ -87,8 +87,8 @@ describe('completion screen', () => {
     expect(dips).toHaveTextContent('NextRepeat 5 / 5 / 5')
 
     const row = block('One-arm DB row')
-    expect(row).toHaveTextContent('Actual16 kg · 5 / 5 / 5')
-    expect(row).toHaveTextContent('NextRepeat 18 kg · 5 / 5 / 5')
+    expect(row).toHaveTextContent('Actual16 kg · 4 / 4 / 4')
+    expect(row).toHaveTextContent('NextRepeat 18 kg · 4 / 4 / 4')
 
     const carry = block('Suitcase carry')
     expect(carry).toHaveTextContent('Next18 kg · 45 s per side × 2')

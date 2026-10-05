@@ -51,11 +51,11 @@ describe('Home', () => {
     expect(await screen.findByText('Pull-ups')).toBeInTheDocument()
     for (const [name, value] of [
       ['Pull-ups', 'BW · 5 / 5 / 5'],
-      ['DB Row', '18 kg · 5 / 5 / 5'],
-      ['DB Bench', '16 kg · 5 / 5 / 5'],
-      ['DB Press', '12 kg · 5 / 5 / 5'],
-      ['Hammer curls', '10 kg · 8 / 8'],
-      ['Reverse crunch', '10 kg · 10 / 10 / 10'],
+      ['DB Row', '18 kg · 4 / 4 / 4'],
+      ['DB Bench', '16 kg · 4 / 4 / 4'],
+      ['DB Press', '12 kg · 4 / 4 / 4'],
+      ['Hammer curls', '10 kg · 6 / 6'],
+      ['Reverse crunch', '10 kg · 8 / 8 / 8'],
       ['Carry', '18 kg · 40 s per side × 2'],
     ]) {
       expect(screen.getByText(name).closest('li')).toHaveTextContent(value)

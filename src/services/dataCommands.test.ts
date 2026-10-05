@@ -38,7 +38,7 @@ beforeEach(async () => {
 describe('derived targets with demo data present', () => {
   it('ignores demo history for targets and LAST TIME', async () => {
     const targets = await getCurrentPrescriptions('upper')
-    expect(targets.get('db-row')).toMatchObject({ source: 'baseline', prescription: { loadKg: 18, reps: [5, 5, 5] } })
+    expect(targets.get('db-row')).toMatchObject({ source: 'baseline', prescription: { loadKg: 18, reps: [4, 4, 4] } })
     expect((await loadLastTimes(['db-row'])).size).toBe(0)
   })
 
@@ -70,13 +70,13 @@ describe('overrides and workouts', () => {
   it('records the replaced recommendation and "Use suggestion" restores it', async () => {
     await db.sessions.add(finishedWorkout('real-1', NOW - 5 * HOUR))
     const override = await createOverride('db-row', { kind: 'reps', loadKg: 20, reps: [5, 5, 5] }, NOW)
-    expect(override.replacedRecommendation).toEqual({ kind: 'reps', loadKg: 18, reps: [5, 5, 6] })
+    expect(override.replacedRecommendation).toEqual({ kind: 'reps', loadKg: 18, reps: [4, 4, 5] })
     expect((await getCurrentPrescriptions('upper')).get('db-row')?.source).toBe('override')
 
     await applySuggestion('db-row')
     expect((await getCurrentPrescriptions('upper')).get('db-row')).toMatchObject({
       source: 'recommendation',
-      prescription: { loadKg: 18, reps: [5, 5, 6] },
+      prescription: { loadKg: 18, reps: [4, 4, 5] },
     })
   })
 

@@ -1,4 +1,5 @@
-import type { ExerciseDef, WarmupStepDef, WorkoutTemplate } from './types'
+import { bottomRung } from './progression/staircase'
+import type { ExerciseDef, StaircaseScheme, WarmupStepDef, WorkoutTemplate } from './types'
 
 /*
  * Changes to the built-in workouts that must also reach workouts already saved
@@ -7,6 +8,25 @@ import type { ExerciseDef, WarmupStepDef, WorkoutTemplate } from './types'
  * the same template when there is nothing left to change, so running it again
  * is harmless.
  */
+
+// ---------------------------------------------------------------------------
+// Strength rep ranges
+//
+// Strength comes from heavy sets: about 80% of max or more, roughly 8 reps or
+// fewer. Each range is also wide enough to absorb one load step, which costs
+// about 3 reps per 10% added: 2 kg on a 12–18 kg dumbbell needs 4–8, while a
+// lift where body weight is most of the load loses about a rep.
+
+type RepRange = Pick<StaircaseScheme, 'minReps' | 'maxReps'>
+
+/** One-arm row, bench press and overhead press with dumbbells. */
+export const DUMBBELL_RANGE: RepRange = { minReps: 4, maxReps: 8 }
+/** Split squat, single-leg RDL and hip thrust: body weight is most of the load. */
+export const ONE_LEG_RANGE: RepRange = { minReps: 5, maxReps: 8 }
+/** Hammer curls: 2 kg is a fifth of a 10 kg dumbbell, about 5–6 reps. */
+export const CURL_RANGE: RepRange = { minReps: 6, maxReps: 12 }
+/** Weighted reverse crunch: the legs are part of the load, so a step costs a rep or two. */
+export const CRUNCH_RANGE: RepRange = { minReps: 8, maxReps: 12 }
 
 // ---------------------------------------------------------------------------
 // Retired exercises
@@ -25,7 +45,7 @@ export const SINGLE_LEG_HIP_THRUST: ExerciseDef = {
   loadStepKg: 2,
   perSide: true,
   restSec: 90,
-  scheme: { type: 'staircase', sets: 3, minReps: 5, maxReps: 6 },
+  scheme: { type: 'staircase', sets: 3, ...ONE_LEG_RANGE },
   baseline: { kind: 'reps', loadKg: 12, reps: [5, 5, 5] },
 }
 
@@ -100,7 +120,57 @@ export function splitPerSideSteps(template: WorkoutTemplate): WorkoutTemplate {
   return { ...template, warmup }
 }
 
+// ---------------------------------------------------------------------------
+// Moving saved workouts to the strength rep ranges
+
+const FIVE_TO_SIX: RepRange = { minReps: 5, maxReps: 6 }
+
+/** Built-in exercises moved to a strength range, with the range they had before. */
+const RANGE_CHANGES = new Map<string, { previous: RepRange; range: RepRange }>([
+  ['db-row', { previous: FIVE_TO_SIX, range: DUMBBELL_RANGE }],
+  ['db-bench', { previous: FIVE_TO_SIX, range: DUMBBELL_RANGE }],
+  ['db-press', { previous: FIVE_TO_SIX, range: DUMBBELL_RANGE }],
+  ['bulgarian-split-squat', { previous: FIVE_TO_SIX, range: ONE_LEG_RANGE }],
+  ['single-leg-rdl', { previous: FIVE_TO_SIX, range: ONE_LEG_RANGE }],
+  [SINGLE_LEG_HIP_THRUST.id, { previous: FIVE_TO_SIX, range: ONE_LEG_RANGE }],
+  ['hammer-curls', { previous: { minReps: 8, maxReps: 10 }, range: CURL_RANGE }],
+  ['reverse-crunch', { previous: { minReps: 10, maxReps: 15 }, range: CRUNCH_RANGE }],
+])
+
+/** The range change still due for an exercise: one on the range it had before. */
+function rangeChangeFor(exercise: ExerciseDef) {
+  const change = RANGE_CHANGES.get(exercise.id)
+  if (!change || exercise.kind !== 'reps') return undefined
+  const { minReps, maxReps } = exercise.scheme
+  return minReps === change.previous.minReps && maxReps === change.previous.maxReps ? change : undefined
+}
+
+/**
+ * Moves built-in exercises still on their earlier rep range to the strength
+ * range. A range set in Settings stays, and so does the number of sets.
+ * Current targets are not touched: they keep what was actually done, and one
+ * below the new minimum is flagged where it is shown. The starting point, used
+ * only before the first workout with the exercise, moves to the new bottom
+ * rung when it was at the old one. Returns the same template when nothing
+ * changes.
+ */
+export function moveToStrengthRanges(template: WorkoutTemplate): WorkoutTemplate {
+  if (!template.exercises.some(rangeChangeFor)) return template
+  const exercises = template.exercises.map((exercise) => {
+    const change = rangeChangeFor(exercise)
+    if (!change || exercise.kind !== 'reps') return exercise
+    const { baseline } = exercise
+    const atBottom = baseline.reps.every((reps) => reps === change.previous.minReps)
+    return {
+      ...exercise,
+      scheme: { ...exercise.scheme, ...change.range },
+      baseline: atBottom ? { ...baseline, reps: bottomRung(baseline.reps.length, change.range.minReps) } : baseline,
+    }
+  })
+  return { ...template, exercises }
+}
+
 /** Every revision above, for a template saved or backed up by an earlier version. */
 export function reviseTemplate(template: WorkoutTemplate): WorkoutTemplate {
-  return splitPerSideSteps(replaceRetiredExercises(template))
+  return splitPerSideSteps(moveToStrengthRanges(replaceRetiredExercises(template)))
 }

@@ -101,6 +101,26 @@ describe('bootstrap', () => {
     expect(upper.updatedAt).toBe(5)
   })
 
+  it('moves a saved workout to the strength rep ranges, leaving a range the user set', async () => {
+    const seed = createTemplate('upper')
+    const earlier = (e: (typeof seed.exercises)[number]) => {
+      if (e.kind !== 'reps') return e
+      if (e.id === 'db-row') return { ...e, scheme: { ...e.scheme, minReps: 5, maxReps: 6 }, baseline: { ...e.baseline, reps: [5, 5, 5] } }
+      if (e.id === 'db-press') return { ...e, scheme: { ...e.scheme, minReps: 6, maxReps: 10 } }
+      return e
+    }
+    await saveTemplate({ ...seed, exercises: seed.exercises.map(earlier), updatedAt: 5 })
+
+    await bootstrap(NOW, { demo: false })
+    const upper = await getTemplate('upper')
+    expect(upper.exercises.find((e) => e.id === 'db-row')).toMatchObject({
+      scheme: { minReps: 4, maxReps: 8 },
+      baseline: { reps: [4, 4, 4] },
+    })
+    expect(upper.exercises.find((e) => e.id === 'db-press')).toMatchObject({ scheme: { minReps: 6, maxReps: 10 } })
+    expect(upper.updatedAt).toBe(5)
+  })
+
   it('swaps the two-leg hip thrust in a saved lower-body workout for the single-leg one, keeping edits and past workouts', async () => {
     const seed = createTemplate('lower')
     const twoLeg = { ...SINGLE_LEG_HIP_THRUST, id: 'hip-thrust', name: 'Hip thrust', shortName: 'Hip thrust', perSide: false }
