@@ -1,20 +1,31 @@
 import { roundKg } from '../load'
-import type { CarryExerciseLog, ExerciseLog, Recommendation, RepsExerciseLog } from '../types'
-import { bottomRung, incrementStaircase, rungReached } from './staircase'
+import type { CarryExerciseLog, ExerciseLog, Recommendation, RepsExerciseLog, WorkoutSession } from '../types'
+import { bottomRung, incrementStaircase, meetsTarget, ranked } from './staircase'
 import { advanceTimed, timeReached } from './timed'
 
 /**
- * Judges an exercise by what was actually done:
- * - every planned set done at ≥ planned load and ≥ planned reps → one rung
- *   above the highest rung every set actually reached (at the lowest load
- *   actually used), so beating the target counts; once that is the top rung →
- *   load + step and back to the bottom rung. Timed efforts work the same way,
- *   in steps of time;
- * - anything short, skipped, or lighter → repeat the planned target exactly.
- * Added sets count toward neither success nor the next target.
+ * Judges an exercise by what was actually done. Sets are compared from most
+ * reps to fewest, so it doesn't matter which one came out best:
+ * - goal met → the next goal proceeds a rep;
+ * - goal beaten → the next goal is a rep past what was actually done;
+ *   either way at the lowest load actually used, up to the top of the range,
+ *   and once every set reaches the top → load + step, back to the bottom;
+ * - goal unmet (a set short, skipped, or lighter) → the same goal again.
+ * Added sets count toward neither. Timed efforts work the same way, in steps
+ * of time.
  */
 export function evaluateExercise(log: ExerciseLog): Recommendation {
   return log.kind === 'reps' ? evaluateReps(log) : evaluateCarry(log)
+}
+
+/**
+ * What a finished workout recommends for a target, judged by today's rules
+ * from what was actually done, so a workout finished under earlier rules
+ * still counts in full. Progressive warm-up steps keep the stored one.
+ */
+export function recommendationFor(session: WorkoutSession, targetId: string): Recommendation | undefined {
+  const log = session.exercises.find((exercise) => exercise.exerciseId === targetId)
+  return log ? evaluateExercise(log) : session.recommendations?.[targetId]
 }
 
 function evaluateReps(log: RepsExerciseLog): Recommendation {
@@ -29,15 +40,18 @@ function evaluateReps(log: RepsExerciseLog): Recommendation {
   const performed = log.actual.slice(0, planned.sets.length)
   if (!performed.some((set) => set.status === 'done')) return repeat('not-performed')
 
-  const success = planned.sets.every((target, i) => {
+  const everySetDone = planned.sets.every((_, i) => {
     const set = performed[i]
-    return set !== undefined && set.status === 'done' && set.reps >= target.reps && set.loadKg >= planned.loadKg
+    return set !== undefined && set.status === 'done' && set.loadKg >= planned.loadKg
   })
-  if (!success) return repeat('repeat')
+  const doneReps = performed.map((set) => set.reps)
+  // A goal above the range (it was lowered since) counts as met at the top of the range.
+  const goal = plannedReps.map((reps) => Math.min(reps, scheme.maxReps))
+  if (!everySetDone || !meetsTarget(doneReps, goal)) return repeat('repeat')
 
   const workingLoad = Math.min(...performed.map((set) => set.loadKg))
-  const reached = rungReached(plannedReps, performed.map((set) => set.reps), scheme.minReps, scheme.maxReps)
-  const step = incrementStaircase(reached, scheme.minReps, scheme.maxReps)
+  const achieved = ranked(doneReps).map((reps) => Math.min(reps, scheme.maxReps))
+  const step = incrementStaircase(achieved, scheme.minReps, scheme.maxReps)
   if (step.topReached) {
     return {
       targetId: log.exerciseId,

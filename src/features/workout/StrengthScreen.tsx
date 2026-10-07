@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router'
 import { Button, type ButtonProps } from '../../components/Button'
 import { ConfirmSheet } from '../../components/ConfirmSheet'
 import { IconChevronRight } from '../../components/icons'
+import { recommendationFor } from '../../domain/progression/evaluate'
 import { goToExercise, setRestExpanded } from '../../domain/workout/actions'
 import { loadLastTimes } from '../../services/queries'
 import { useWorkoutStore } from '../../state/workoutStore'
@@ -53,7 +54,7 @@ export function StrengthScreen() {
   const allLogged = log.actual.every((set) => set.status !== 'pending')
   const isLast = index === exercises.length - 1
   const lastTime = lastTimes?.get(log.exerciseId)
-  const previousOutcome = lastTime?.session.recommendations?.[log.exerciseId]?.outcome
+  const previousOutcome = lastTime && recommendationFor(lastTime.session, log.exerciseId)?.outcome
   const reopened = Boolean(session.reopenSnapshot)
   // Exhaustive on purpose: a saved rest without a size still shows, compact.
   const compactRest = Boolean(session.runtime.rest) && !session.runtime.rest?.expanded

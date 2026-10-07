@@ -139,7 +139,7 @@ describe('finish, reopen, cancel, discard', () => {
         'suitcase-carry',
       ].sort(),
     )
-    expect(finished.recommendations?.['db-row'].prescription).toEqual({ kind: 'reps', loadKg: 18, reps: [4, 4, 5] })
+    expect(finished.recommendations?.['db-row'].prescription).toEqual({ kind: 'reps', loadKg: 18, reps: [5, 4, 4] })
   })
 
   it('refuses to finish a workout that is not active', () => {

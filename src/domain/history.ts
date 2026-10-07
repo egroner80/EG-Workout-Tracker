@@ -1,3 +1,4 @@
+import { recommendationFor } from './progression/evaluate'
 import { formatActual, formatPlanned, formatReps } from './format'
 import type {
   ExerciseDef,
@@ -53,7 +54,7 @@ export function exerciseRows(exerciseId: string, sessions: readonly WorkoutSessi
   for (const session of visibleHistory(sessions)) {
     const log = session.exercises.find((e) => e.exerciseId === exerciseId)
     if (!log) continue
-    const rec = session.recommendations?.[exerciseId]
+    const rec = recommendationFor(session, exerciseId)
     rows.push({
       sessionId: session.id,
       date: session.startedAt,
@@ -94,7 +95,7 @@ export function ladderGroups(exerciseId: string, sessions: readonly WorkoutSessi
     if (!log || !log.actual.some((set) => set.status === 'done')) continue
     const label =
       log.kind === 'reps' ? formatReps(log.planned.sets.map((s) => s.reps), '/') : `${log.planned.seconds} s`
-    const met = isMet(session.recommendations?.[exerciseId])
+    const met = isMet(recommendationFor(session, exerciseId))
 
     let group = groups.at(-1)
     if (!group || group.loadKg !== log.planned.loadKg) {

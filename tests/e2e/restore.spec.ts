@@ -161,5 +161,6 @@ test('a backup from the first version restores its workouts as upper body, and l
   // The restored jump rope carries into both workouts.
   await expect(page.getByRole('button', { name: /^Warm-up: .+\. Edit next target$/ })).toContainText('Jump rope 2:10')
   await page.getByRole('radio', { name: 'Upper body' }).click()
-  await expect(page.getByRole('button', { name: 'Pull-ups: BW · 5 / 5 / 6. Edit next target' })).toBeVisible()
+  // Judged by today's rules from what was done: the extra rep goes on the first set.
+  await expect(page.getByRole('button', { name: 'Pull-ups: BW · 6 / 5 / 5. Edit next target' })).toBeVisible()
 })

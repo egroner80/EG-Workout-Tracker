@@ -21,7 +21,7 @@ describe('exercise editor', () => {
   it('applies a set-count change at the current load and a new rest time to the next workout', async () => {
     const user = userEvent.setup({ delay: null })
     await completeWorkout()
-    expect((await getCurrentPrescriptions('upper')).get('db-row')?.prescription).toMatchObject({ loadKg: 18, reps: [4, 4, 5] })
+    expect((await getCurrentPrescriptions('upper')).get('db-row')?.prescription).toMatchObject({ loadKg: 18, reps: [5, 4, 4] })
 
     renderSettings('/settings/upper/exercises/db-row')
     await screen.findByRole('heading', { level: 1, name: 'One-arm DB row' })

@@ -1,9 +1,10 @@
 /**
- * The staircase progression: each success adds one rep to the rightmost set
+ * The staircase progression: each success adds one rep to the first set
  * holding the fewest reps, until every set reaches the top of the range.
+ * Targets run from most reps to fewest, the way sets go as you tire.
  *
- * With (3 sets, 5–6) this yields 5/5/5 → 5/5/6 → 5/6/6 → 6/6/6, and with
- * (2 sets, 8–10) it yields 8/8 → 8/9 → 9/9 → 9/10 → 10/10.
+ * With (3 sets, 5–6) this yields 5/5/5 → 6/5/5 → 6/6/5 → 6/6/6, and with
+ * (2 sets, 8–10) it yields 8/8 → 9/8 → 9/9 → 10/9 → 10/10.
  */
 
 export interface StaircaseStep {
@@ -25,25 +26,24 @@ export function incrementStaircase(reps: readonly number[], _minReps: number, ma
     return { reps: [...reps], topReached: true }
   }
   const lowest = Math.min(...reps)
-  const index = reps.lastIndexOf(lowest)
+  const index = reps.indexOf(lowest)
   const next = [...reps]
   next[index] = lowest + 1
   return { reps: next, topReached: false }
 }
 
+/** Sets ranked from most reps to fewest: 6/7/5 becomes 7/6/5. */
+export function ranked(reps: readonly number[]): number[] {
+  return [...reps].sort((a, b) => b - a)
+}
+
 /**
- * The highest rung the reps actually done reach: climbs from the planned
- * target while every set still meets the next rung, and stops at the top.
- * Planned 5/5/5 done as 8/8/8 reaches 8/8/8; done as 9/7/6 it reaches 6/6/6,
- * because a rung counts only when every set reaches it.
+ * Whether the reps done meet a target, with both ranked from most reps to
+ * fewest, so it doesn't matter which set came out best: 6/6/5 meets 5/5/6.
  */
-export function rungReached(planned: readonly number[], done: readonly number[], minReps: number, maxReps: number): number[] {
-  let reached = [...planned]
-  for (;;) {
-    const step = incrementStaircase(reached, minReps, maxReps)
-    if (step.topReached || !step.reps.every((reps, i) => reps <= done[i])) return reached
-    reached = step.reps
-  }
+export function meetsTarget(done: readonly number[], target: readonly number[]): boolean {
+  const best = ranked(done)
+  return best.length >= target.length && ranked(target).every((reps, i) => best[i] >= reps)
 }
 
 export function buildLadder(sets: number, minReps: number, maxReps: number): number[][] {

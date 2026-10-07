@@ -48,15 +48,20 @@ tells you what to attempt next time.
     | Reverse crunch | 8–12 |
     | Sliding hamstring curl | 8–10 |
 
-  - Each successful workout climbs the ladder a rep at a time, `4/4/4 → 4/4/5 → 4/5/5 → 5/5/5 →
-    … → 8/8/8`; then the weight goes up and the ladder restarts at the bottom.
-  - Beat the target and the next one builds on what you actually did: one rep past the reps every
-    set reached (7/7/7 against a 5/5/5 target makes the next one 7/7/8), or the next weight once
-    every set reaches the top.
+  - **Goal met:** the next goal goes up a rep, `4/4/4 → 5/4/4 → 5/5/4 → 5/5/5 → … → 8/8/8`. The
+    extra rep goes on the first set, where you're freshest.
+  - **Goal beaten:** the next goal is a rep past what you actually did: 7/6/5 against a 5/5/5 goal
+    makes the next one 7/6/6.
+  - **Goal missed** (a set short, skipped, or done lighter): the same goal again.
+  - Sets are compared from most reps to fewest, so it doesn't matter which set came out best:
+    6/6/5 meets a 5/5/6 goal.
+  - Once every set reaches the top of the range, the weight goes up and the goal restarts at the
+    bottom.
   - The suitcase carry is timed per side, 40 s up to 60 s in 5 s steps. The Copenhagen plank is a
     timed hold per side, 20 s up to 40 s in 5 s steps. Holding longer than the target counts the
     same way.
-  - Any set below target, or done at a lighter weight, repeats the same target next time.
+  - A workout finished on an earlier version is judged by these rules too, from what you actually
+    did.
   - Changing an exercise's rep range keeps your current target. One below the new minimum says so
     ("Below the 4–8 rep range") until it climbs back in.
   - At the top of the ladder at bodyweight (or the top of a bodyweight hold), you choose the added

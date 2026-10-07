@@ -79,7 +79,7 @@ describe('completion screen', () => {
     const pullUps = block('Pull-ups')
     expect(pullUps).toHaveTextContent('TargetBW · 5 / 5 / 5')
     expect(within(pullUps).getByLabelText('target met')).toBeInTheDocument()
-    expect(pullUps).toHaveTextContent('Next5 / 5 / 6')
+    expect(pullUps).toHaveTextContent('Next6 / 5 / 5')
 
     const dips = block('Dips')
     expect(dips).toHaveTextContent('ActualBW · 5 / 5 / 4')
@@ -109,7 +109,7 @@ describe('completion screen', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Lower body workout complete' })).toBeInTheDocument()
     expect(block('Warm-up')).toHaveTextContent('Jump rope 2:00 ✅Next: 2:10')
-    expect(block('Bulgarian split squat')).toHaveTextContent('Next12 kg · 5 / 5 / 6')
+    expect(block('Bulgarian split squat')).toHaveTextContent('Next12 kg · 6 / 5 / 5')
     const plank = block('Copenhagen plank')
     expect(plank).toHaveTextContent('NextBW · 25 s per side × 2')
     expect(within(plank).queryByText('Static hold')).not.toBeInTheDocument()
@@ -220,10 +220,10 @@ describe('completion screen', () => {
 
     vi.setSystemTime(Date.now() + MINUTE)
     await user.click(within(next).getByText('SL hip thrust'))
-    await user.click(screen.getByRole('radio', { name: '5 / 6 / 6' }))
+    await user.click(screen.getByRole('radio', { name: '6 / 6 / 5' }))
     await user.click(screen.getByRole('button', { name: 'Save target' }))
-    await vi.waitFor(() => expect(next).toHaveTextContent('SL hip thrust12 kg · 5 / 6 / 6'))
-    expect(await nextTarget('lower', 'single-leg-hip-thrust')).toEqual({ kind: 'reps', loadKg: 12, reps: [5, 6, 6] })
+    await vi.waitFor(() => expect(next).toHaveTextContent('SL hip thrust12 kg · 6 / 6 / 5'))
+    expect(await nextTarget('lower', 'single-leg-hip-thrust')).toEqual({ kind: 'reps', loadKg: 12, reps: [6, 6, 5] })
 
     // The jump rope is shared: the next workout gets the edit, today's recommendation stays.
     vi.setSystemTime(Date.now() + MINUTE)

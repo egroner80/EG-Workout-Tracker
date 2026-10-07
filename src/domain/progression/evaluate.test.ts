@@ -51,12 +51,12 @@ describe('evaluateExercise — 5–6 ladder', () => {
     const heavier = evaluateExercise(
       repsLog({ plannedLoad: 18, plannedReps: [5, 5, 5], actualLoads: [20, 20, 20] }),
     )
-    expect(heavier.prescription).toEqual({ kind: 'reps', loadKg: 20, reps: [5, 5, 6] })
+    expect(heavier.prescription).toEqual({ kind: 'reps', loadKg: 20, reps: [6, 5, 5] })
 
     const mixed = evaluateExercise(
       repsLog({ plannedLoad: 18, plannedReps: [5, 5, 5], actualLoads: [20, 20, 18] }),
     )
-    expect(mixed.prescription).toEqual({ kind: 'reps', loadKg: 18, reps: [5, 5, 6] })
+    expect(mixed.prescription).toEqual({ kind: 'reps', loadKg: 18, reps: [6, 5, 5] })
   })
 
   it('moves the weight up when beating the target took every set to the top', () => {
@@ -73,7 +73,7 @@ describe('evaluateExercise — 5–6 ladder', () => {
     const rec = evaluateExercise(
       repsLog({ plannedLoad: 18, plannedReps: [5, 5, 5], added: [{ reps: 2, loadKg: 14 }] }),
     )
-    expect(rec).toMatchObject({ outcome: 'advance', prescription: { loadKg: 18, reps: [5, 5, 6] } })
+    expect(rec).toMatchObject({ outcome: 'advance', prescription: { loadKg: 18, reps: [6, 5, 5] } })
   })
 
   it('reports not-performed and repeats when no planned set was done', () => {
@@ -89,12 +89,27 @@ describe('evaluateExercise — beating the target', () => {
   it('builds the next target on the reps actually done', () => {
     expect(sixToTwelve([6, 6, 7], [9, 9, 9])).toMatchObject({
       outcome: 'advance',
-      prescription: { kind: 'reps', loadKg: 16, reps: [9, 9, 10] },
+      prescription: { kind: 'reps', loadKg: 16, reps: [10, 9, 9] },
     })
   })
 
-  it('counts a rung only when every set reached it', () => {
-    expect(sixToTwelve([6, 6, 6], [10, 8, 7]).prescription).toMatchObject({ reps: [7, 7, 8] })
+  it('adds the rep to the set that had the fewest, keeping the others as done', () => {
+    expect(sixToTwelve([6, 6, 6], [10, 8, 7]).prescription).toMatchObject({ reps: [10, 8, 8] })
+    expect(sixToTwelve([6, 6, 6], [7, 9, 8]).prescription).toMatchObject({ reps: [9, 8, 8] })
+  })
+
+  it('meets the goal whichever set came out best, as when the last set is the most tired', () => {
+    const rec = evaluateExercise(repsLog({ plannedLoad: 18, plannedReps: [5, 5, 6], actualReps: [6, 6, 5] }))
+    expect(rec).toMatchObject({ outcome: 'advance', prescription: { loadKg: 18, reps: [6, 6, 6] } })
+  })
+
+  it('proceeds a rep from the goal when it was met exactly', () => {
+    expect(sixToTwelve([7, 6, 6], [7, 6, 6]).prescription).toMatchObject({ reps: [7, 7, 6] })
+  })
+
+  it('counts a goal above the range as met once every set reaches the top', () => {
+    const rec = evaluateExercise(repsLog({ plannedLoad: 10, plannedReps: [14, 14, 14], actualReps: [13, 12, 12], min: 8, max: 12 }))
+    expect(rec).toMatchObject({ outcome: 'increase-load', prescription: { loadKg: 12, reps: [8, 8, 8] } })
   })
 
   it('climbs no further than the top, then moves the weight up', () => {
@@ -113,7 +128,7 @@ describe('evaluateExercise — beating the target', () => {
     expect(sixToTwelve([6, 6, 6], [8, 8, 8], [18, 18, 18]).prescription).toEqual({
       kind: 'reps',
       loadKg: 18,
-      reps: [8, 8, 9],
+      reps: [9, 8, 8],
     })
   })
 
@@ -125,7 +140,7 @@ describe('evaluateExercise — beating the target', () => {
     const rec = evaluateExercise(
       repsLog({ plannedLoad: 16, plannedReps: [6, 6, 6], added: [{ reps: 12 }], min: 6, max: 12 }),
     )
-    expect(rec.prescription).toMatchObject({ reps: [6, 6, 7] })
+    expect(rec.prescription).toMatchObject({ reps: [7, 6, 6] })
   })
 })
 
