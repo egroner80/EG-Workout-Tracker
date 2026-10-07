@@ -55,7 +55,7 @@ describe('deriveCurrentPrescriptions', () => {
   it("uses the latest finished session's recommendations", () => {
     const s1 = finished('s1', T0)
     const row = derive([s1]).get('db-row')
-    expect(row).toMatchObject({ source: 'recommendation', sessionId: 's1', prescription: { loadKg: 18, reps: [4, 4, 5] } })
+    expect(row).toMatchObject({ source: 'recommendation', sessionId: 's1', prescription: { loadKg: 18, reps: [5, 4, 4] } })
   })
 
   it('applies an override created after the latest session and yields to a newer session', () => {
@@ -132,12 +132,34 @@ describe('deriveCurrentPrescriptions', () => {
     expect(derive([s1], [], template).get('pull-ups')?.prescription).toEqual({ kind: 'reps', loadKg: 0, reps: [5, 5, 5, 5] })
   })
 
+  it("judges the last workout by today's rules from what was actually done, whatever it stored", () => {
+    // Pull-ups planned 5/5/6 and done 6/6/5, stored as a repeat by a version that compared set by set.
+    const s1 = finished('s1', T0, { prescriptions: new Map<string, Prescription>([['pull-ups', { kind: 'reps', loadKg: 0, reps: [5, 5, 6] }]]) })
+    const stale: WorkoutSession = {
+      ...s1,
+      exercises: s1.exercises.map((e) =>
+        e.kind === 'reps' && e.exerciseId === 'pull-ups' ? { ...e, actual: e.actual.map((set, i) => ({ ...set, reps: [6, 6, 5][i] })) } : e,
+      ),
+      recommendations: {
+        ...s1.recommendations,
+        'pull-ups': { targetId: 'pull-ups', outcome: 'repeat', prescription: { kind: 'reps', loadKg: 0, reps: [5, 5, 6] } },
+      },
+    }
+    expect(derive([stale]).get('pull-ups')).toMatchObject({
+      source: 'recommendation',
+      prescription: { kind: 'reps', loadKg: 0, reps: [6, 6, 6] },
+      recommendation: { outcome: 'advance' },
+    })
+    // A progressive warm-up step keeps the recommendation it stored.
+    expect(derive([stale]).get('jump-rope')?.prescription).toEqual(s1.recommendations?.['jump-rope']?.prescription)
+  })
+
   it('keeps the target when the rep range changes, even below the new minimum', () => {
     const s1 = finished('s1', T0, { prescriptions: new Map<string, Prescription>([['db-row', { kind: 'reps', loadKg: 18, reps: [5, 6, 5] }]]) })
     const template = createTemplate('upper')
     const row = template.exercises[2]
     if (row.kind === 'reps') row.scheme = { ...row.scheme, minReps: 8, maxReps: 12 }
-    expect(derive([s1], [], template).get('db-row')?.prescription).toEqual({ kind: 'reps', loadKg: 18, reps: [5, 6, 6] })
+    expect(derive([s1], [], template).get('db-row')?.prescription).toEqual({ kind: 'reps', loadKg: 18, reps: [6, 6, 5] })
   })
 })
 

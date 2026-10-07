@@ -8,6 +8,7 @@ import { ScreenHeader } from '../../components/ScreenHeader'
 import { getSession } from '../../data/repositories/sessions'
 import { CARRY_MODE_LABEL, formatActual, formatPlanned, formatWarmupTarget } from '../../domain/format'
 import { isMet } from '../../domain/history'
+import { recommendationFor } from '../../domain/progression/evaluate'
 import { warmupStepStatus } from '../../domain/progression/warmup'
 import { templateLabel, workoutTypeOf } from '../../domain/workouts'
 import { deleteWorkout } from '../../services/dataCommands'
@@ -62,7 +63,7 @@ export function SessionDetailScreen() {
       </section>
 
       {session.exercises.map((log) => {
-        const met = isMet(session.recommendations?.[log.exerciseId])
+        const met = isMet(recommendationFor(session, log.exerciseId))
         const skipped = log.actual.filter((set) => set.status === 'skipped').length
         return (
           <section key={log.exerciseId} className={styles.card} aria-label={log.name}>

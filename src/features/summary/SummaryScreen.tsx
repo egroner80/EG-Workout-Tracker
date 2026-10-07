@@ -6,6 +6,7 @@ import { useMeta, useTargets } from '../../app/liveData'
 import { Button } from '../../components/Button'
 import { getSession } from '../../data/repositories/sessions'
 import { formatDuration, formatWarmupTarget } from '../../domain/format'
+import { recommendationFor } from '../../domain/progression/evaluate'
 import { isProgressiveStep } from '../../domain/progression/warmup'
 import type { WarmupStepLog, WorkoutSession } from '../../domain/types'
 import { otherTemplate, templateLabel, workoutTypeOf } from '../../domain/workouts'
@@ -123,7 +124,7 @@ function Summary({ session }: { session: WorkoutSession }) {
         <ExerciseResult
           key={log.exerciseId}
           log={log}
-          recommendation={recommendations[log.exerciseId]}
+          recommendation={recommendationFor(session, log.exerciseId)}
           resolved={own?.targets.get(log.exerciseId)}
           canChoose={!workoutActive}
         />

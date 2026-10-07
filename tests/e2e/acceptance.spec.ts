@@ -37,13 +37,13 @@ const NEXT_LOWER: [string, string][] = [
 
 /** What every upper-body exercise should prescribe after this workout, as Home lists it. */
 const NEXT_UPPER: [string, string][] = [
-  ['Pull-ups', 'BW · 5 / 5 / 6'],
+  ['Pull-ups', 'BW · 6 / 5 / 5'],
   ['Dips', 'BW · 5 / 5 / 5'],
   ['DB Row', '18 kg · 4 / 4 / 4'],
-  ['DB Bench', '16 kg · 4 / 4 / 5'],
-  ['DB Press', '12 kg · 4 / 4 / 5'],
-  ['Hammer curls', '10 kg · 6 / 7'],
-  ['Reverse crunch', '10 kg · 8 / 8 / 9'],
+  ['DB Bench', '16 kg · 5 / 4 / 4'],
+  ['DB Press', '12 kg · 5 / 4 / 4'],
+  ['Hammer curls', '10 kg · 7 / 6'],
+  ['Reverse crunch', '10 kg · 9 / 8 / 8'],
   ['Carry', '18 kg · 45 s per side × 2'],
 ]
 
@@ -149,7 +149,7 @@ test('the real-life workout: guided warm-up, a failed set, a lighter load, corre
   const pullUps = result(page, 'Pull-ups')
   await expect(pullUps).toContainText(/Actual\s*BW · 5 \/ 5 \/ 5/)
   await expect(pullUps.getByLabel('target met')).toBeVisible()
-  await expect(pullUps).toContainText(/Next\s*5 \/ 5 \/ 6/)
+  await expect(pullUps).toContainText(/Next\s*6 \/ 5 \/ 5/)
 
   const dips = result(page, 'Dips')
   await expect(dips).toContainText(/Target\s*BW · 5 \/ 5 \/ 5/)

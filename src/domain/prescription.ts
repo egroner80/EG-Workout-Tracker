@@ -1,3 +1,4 @@
+import { recommendationFor } from './progression/evaluate'
 import { bottomRung } from './progression/staircase'
 import { isProgressiveStep } from './progression/warmup'
 import type {
@@ -90,7 +91,7 @@ export function deriveCurrentPrescriptions(input: DeriveInput): Map<string, Reso
 
   for (const target of targets) {
     const session = history.find((s) => s.recommendations?.[target.id] !== undefined)
-    const recommendation = session?.recommendations?.[target.id]
+    const recommendation = session && recommendationFor(session, target.id)
     const override = newestOverride.get(target.id)
     // Overrides cannot be created during a workout, so one stamped at or after
     // the session's finish always follows it.

@@ -4,6 +4,7 @@ import { useHistory } from '../../app/liveData'
 import { ScreenHeader } from '../../components/ScreenHeader'
 import { IconChevronRight } from '../../components/icons'
 import { isMet } from '../../domain/history'
+import { recommendationFor } from '../../domain/progression/evaluate'
 import type { TemplateId } from '../../domain/types'
 import { workoutTypeOf } from '../../domain/workouts'
 import styles from './History.module.css'
@@ -23,7 +24,7 @@ export function HistoryScreen() {
       ) : (
         <ul className={styles.list}>
           {sessions.map((session) => {
-            const met = session.exercises.filter((e) => isMet(session.recommendations?.[e.exerciseId])).length
+            const met = session.exercises.filter((e) => isMet(recommendationFor(session, e.exerciseId))).length
             const duration = (session.finishedAt ?? session.startedAt) - session.startedAt
             return (
               <li key={session.id}>
