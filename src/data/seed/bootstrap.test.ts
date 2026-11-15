@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { SINGLE_LEG_HIP_THRUST } from '../../domain/templateRevisions'
+import { LATERAL_RAISES, SINGLE_LEG_HIP_THRUST } from '../../domain/templateRevisions'
 import { buildSession, finishSession, resolvePending } from '../../domain/session'
 import { SQUAT_ROUTINE } from '../../domain/sharedWarmup'
 import type { WarmupStepDef, WorkoutTemplate } from '../../domain/types'
@@ -41,8 +41,8 @@ describe('bootstrap', () => {
       ['pull-ups', 'Pull-ups'],
       ['dips', 'Dips'],
       ['db-row', 'One-arm DB row'],
-      ['db-bench', 'DB bench press'],
-      ['db-press', 'Standing DB press'],
+      ['db-bench', 'Incline DB press'],
+      ['lateral-raises', 'DB lateral raises'],
       ['hammer-curls', 'DB hammer curls'],
       ['reverse-crunch', 'Weighted reverse crunch'],
       ['suitcase-carry', 'Suitcase carry'],
@@ -106,7 +106,7 @@ describe('bootstrap', () => {
     const earlier = (e: (typeof seed.exercises)[number]) => {
       if (e.kind !== 'reps') return e
       if (e.id === 'db-row') return { ...e, scheme: { ...e.scheme, minReps: 5, maxReps: 6 }, baseline: { ...e.baseline, reps: [5, 5, 5] } }
-      if (e.id === 'db-press') return { ...e, scheme: { ...e.scheme, minReps: 6, maxReps: 10 } }
+      if (e.id === 'db-bench') return { ...e, scheme: { ...e.scheme, minReps: 6, maxReps: 10 } }
       return e
     }
     await saveTemplate({ ...seed, exercises: seed.exercises.map(earlier), updatedAt: 5 })
@@ -117,8 +117,36 @@ describe('bootstrap', () => {
       scheme: { minReps: 4, maxReps: 8 },
       baseline: { reps: [4, 4, 4] },
     })
-    expect(upper.exercises.find((e) => e.id === 'db-press')).toMatchObject({ scheme: { minReps: 6, maxReps: 10 } })
+    expect(upper.exercises.find((e) => e.id === 'db-bench')).toMatchObject({ scheme: { minReps: 6, maxReps: 10 } })
     expect(upper.updatedAt).toBe(5)
+  })
+
+  it('swaps a saved standing press for lateral raises and renames the bench, keeping its targets and past workouts', async () => {
+    const seed = createTemplate('upper')
+    const press: WorkoutTemplate['exercises'][number] = {
+      id: 'db-press', kind: 'reps', name: 'Standing DB press', shortName: 'DB Press', loadType: 'dumbbell', loadStepKg: 2,
+      perSide: false, restSec: 90, scheme: { type: 'staircase', sets: 3, minReps: 4, maxReps: 8 }, baseline: { kind: 'reps', loadKg: 12, reps: [4, 4, 4] },
+    }
+    const saved: WorkoutTemplate = {
+      ...seed,
+      exercises: seed.exercises.map((e) => {
+        if (e.id === LATERAL_RAISES.id) return press
+        if (e.id === 'db-bench') return { ...e, name: 'DB bench press', shortName: 'DB Bench', restSec: 120 }
+        return e
+      }),
+      updatedAt: 5,
+    }
+    await saveTemplate(saved)
+    const done = finishSession(resolvePending(buildSession({ id: 'w1', now: NOW - 3_600_000, template: saved, prescriptions: new Map() }), {}), { now: NOW - 60_000 })
+    await db.sessions.add(done)
+
+    await bootstrap(NOW, { demo: false })
+    const upper = await getTemplate('upper')
+    expect(upper.exercises.map((e) => e.id)).toEqual(seed.exercises.map((e) => e.id))
+    expect(upper.exercises.find((e) => e.id === 'db-bench')).toMatchObject({ name: 'Incline DB press', shortName: 'Incline press', restSec: 120 })
+    expect(upper.exercises.find((e) => e.id === LATERAL_RAISES.id)).toEqual(LATERAL_RAISES)
+    expect(upper.updatedAt).toBe(5)
+    expect((await db.sessions.get('w1'))?.exercises.some((e) => e.exerciseId === 'db-press')).toBe(true)
   })
 
   it('swaps the two-leg hip thrust in a saved lower-body workout for the single-leg one, keeping edits and past workouts', async () => {

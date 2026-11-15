@@ -6,7 +6,9 @@ import {
   SHOULDER_CARS,
   SINGLE_LEG_HIP_THRUST,
   THORACIC_ROTATIONS,
+  LATERAL_RAISES,
   moveToStrengthRanges,
+  renameExercises,
   replaceRetiredExercises,
   reviseTemplate,
   splitPerSideSteps,
@@ -135,7 +137,6 @@ describe('splitPerSideSteps', () => {
 const EARLIER_RANGES: Record<string, { minReps: number; maxReps: number }> = {
   'db-row': { minReps: 5, maxReps: 6 },
   'db-bench': { minReps: 5, maxReps: 6 },
-  'db-press': { minReps: 5, maxReps: 6 },
   'hammer-curls': { minReps: 8, maxReps: 10 },
   'reverse-crunch': { minReps: 10, maxReps: 15 },
   'bulgarian-split-squat': { minReps: 5, maxReps: 6 },
@@ -174,7 +175,7 @@ describe('moveToStrengthRanges', () => {
         if (e.kind !== 'reps') return e
         if (e.id === 'db-row') return { ...e, scheme: { ...e.scheme, maxReps: 10 } }
         if (e.id === 'db-bench') return { ...e, scheme: { ...e.scheme, sets: 4 }, baseline: { ...e.baseline, loadKg: 20, reps: [5, 5, 5, 5] } }
-        if (e.id === 'db-press') return { ...e, baseline: { ...e.baseline, reps: [6, 6, 6] } }
+        if (e.id === 'reverse-crunch') return { ...e, baseline: { ...e.baseline, reps: [12, 12, 12] } }
         return e
       }),
     }
@@ -184,7 +185,7 @@ describe('moveToStrengthRanges', () => {
       scheme: { sets: 4, minReps: 4, maxReps: 8 },
       baseline: { loadKg: 20, reps: [4, 4, 4, 4] },
     })
-    expect(exercise(moved, 'db-press')).toMatchObject({ scheme: { minReps: 4, maxReps: 8 }, baseline: { reps: [6, 6, 6] } })
+    expect(exercise(moved, 'reverse-crunch')).toMatchObject({ scheme: { minReps: 8, maxReps: 12 }, baseline: { reps: [12, 12, 12] } })
   })
 
   it('returns the same template once moved, and never touches an exercise added in Settings', () => {
@@ -208,5 +209,38 @@ describe('reviseTemplate', () => {
     const revised = reviseTemplate(beforeStrengthRanges('lower'))
     expect(revised).toEqual({ ...createTemplate('lower'), updatedAt: 1_000 })
     expect(reviseTemplate(revised)).toBe(revised)
+  })
+})
+
+describe('the shoulder change', () => {
+  const press: ExerciseDef = {
+    id: 'db-press', kind: 'reps', name: 'Standing DB press', shortName: 'DB Press', loadType: 'dumbbell', loadStepKg: 2,
+    perSide: false, restSec: 90, scheme: { type: 'staircase', sets: 3, minReps: 4, maxReps: 8 }, baseline: { kind: 'reps', loadKg: 12, reps: [4, 4, 4] },
+  }
+  const savedBefore = (): WorkoutTemplate => {
+    const upper = createTemplate('upper')
+    return {
+      ...upper,
+      exercises: upper.exercises.map((e) => {
+        if (e.id === LATERAL_RAISES.id) return press
+        if (e.id === 'db-bench') return { ...e, name: 'DB bench press', shortName: 'DB Bench' }
+        return e
+      }),
+      updatedAt: 1_000,
+    }
+  }
+
+  it('puts lateral raises where the standing press was and renames the bench to incline', () => {
+    const revised = reviseTemplate(savedBefore())
+    expect(revised).toEqual({ ...createTemplate('upper'), updatedAt: 1_000 })
+    expect(reviseTemplate(revised)).toBe(revised)
+  })
+
+  it('keeps a bench name or short name the user set', () => {
+    const saved = savedBefore()
+    const own = { ...saved, exercises: saved.exercises.map((e) => (e.id === 'db-bench' ? { ...e, name: 'Bench' } : e)) }
+    expect(renameExercises(own)).toBe(own)
+    const short = { ...saved, exercises: saved.exercises.map((e) => (e.id === 'db-bench' ? { ...e, shortName: 'Bench' } : e)) }
+    expect(exercise(renameExercises(short), 'db-bench')).toMatchObject({ name: 'Incline DB press', shortName: 'Bench' })
   })
 })

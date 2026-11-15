@@ -40,8 +40,8 @@ const NEXT_UPPER: [string, string][] = [
   ['Pull-ups', 'BW · 6 / 5 / 5'],
   ['Dips', 'BW · 5 / 5 / 5'],
   ['DB Row', '18 kg · 4 / 4 / 4'],
-  ['DB Bench', '16 kg · 5 / 4 / 4'],
-  ['DB Press', '12 kg · 5 / 4 / 4'],
+  ['Incline press', '16 kg · 5 / 4 / 4'],
+  ['Lateral raises', '5 kg · 11 / 10 / 10'],
   ['Hammer curls', '10 kg · 7 / 6'],
   ['Reverse crunch', '10 kg · 9 / 8 / 8'],
   ['Carry', '18 kg · 45 s per side × 2'],
@@ -110,9 +110,9 @@ test('the real-life workout: guided warm-up, a failed set, a lighter load, corre
   await logSetsAsPrescribed(page, [1, 2, 3])
 
   // --- The rest as prescribed ---
-  await goNext(page, 'DB Bench', 'DB bench press')
+  await goNext(page, 'Incline press', 'Incline DB press')
   await logSetsAsPrescribed(page, [1, 2, 3])
-  await goNext(page, 'DB Press', 'Standing DB press')
+  await goNext(page, 'Lateral raises', 'DB lateral raises')
   await logSetsAsPrescribed(page, [1, 2, 3])
   await goNext(page, 'Hammer curls', 'DB hammer curls')
   await logSetsAsPrescribed(page, [1, 2])

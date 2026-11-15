@@ -5,7 +5,7 @@ import { generateDemoHistory } from './demoHistory'
 
 const NOW = Date.UTC(2026, 8, 27, 17, 0)
 const DAY = 24 * 60 * 60 * 1000
-const MAIN_LIFTS = ['pull-ups', 'dips', 'db-row', 'db-bench', 'db-press', 'bulgarian-split-squat', 'single-leg-rdl', 'single-leg-hip-thrust']
+const MAIN_LIFTS = ['pull-ups', 'dips', 'db-row', 'db-bench', 'bulgarian-split-squat', 'single-leg-rdl', 'single-leg-hip-thrust']
 
 describe('generateDemoHistory', () => {
   const sessions = generateDemoHistory({ now: NOW, templates: createDefaultTemplates() })

@@ -12,8 +12,8 @@ tells you what to attempt next time.
 
 ## What it does
 
-- **Two workouts, alternating.** Upper body (pull-ups, dips, one-arm DB row, DB bench press,
-  standing DB press, hammer curls, weighted reverse crunch, suitcase carry) and lower body
+- **Two workouts, alternating.** Upper body (pull-ups, dips, one-arm DB row, incline DB press,
+  lateral raises, hammer curls, weighted reverse crunch, suitcase carry) and lower body
   (Bulgarian split squat, single-leg RDL, single-leg hip thrust, sliding hamstring curl, Copenhagen plank).
   Every workout records which one it was. Home suggests the next one and lists your recent
   workouts with their type and date, so three a week stays upper, lower, upper, lower.
@@ -42,7 +42,8 @@ tells you what to attempt next time.
     | Exercise | Reps per set |
     | --- | --- |
     | Pull-ups, dips (+2.5 kg is about one rep) | 5–6 |
-    | DB row, bench press, overhead press (+2 kg is 11–17% of the dumbbell) | 4–8 |
+    | DB row, incline press (+2 kg is 11–17% of the dumbbell) | 4–8 |
+    | Lateral raises (light, for the side of the shoulders; 1 kg steps) | 10–15 |
     | Split squat, single-leg RDL, single-leg hip thrust | 5–8 |
     | Hammer curls (+2 kg is a fifth of a 10 kg dumbbell) | 6–12 |
     | Reverse crunch | 8–12 |

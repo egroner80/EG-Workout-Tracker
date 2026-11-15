@@ -35,7 +35,7 @@ describe('buildSession', () => {
       'dips',
       'db-row',
       'db-bench',
-      'db-press',
+      'lateral-raises',
       'hammer-curls',
       'reverse-crunch',
       'suitcase-carry',
@@ -128,12 +128,12 @@ describe('finish, reopen, cancel, discard', () => {
     expect(Object.keys(finished.recommendations ?? {}).sort()).toEqual(
       [
         'db-bench',
-        'db-press',
         'db-row',
         'dips',
         'double-unders',
         'hammer-curls',
         'jump-rope',
+        'lateral-raises',
         'pull-ups',
         'reverse-crunch',
         'suitcase-carry',
