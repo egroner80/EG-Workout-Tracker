@@ -123,7 +123,7 @@ describe('rest timer', () => {
     expect(within(rest()).getByRole('timer')).toHaveTextContent(/^1:30$/)
     expect(within(rest()).getByRole('button', { name: 'Expand rest timer' })).toBeInTheDocument()
     expect(within(rest()).queryByRole('button', { name: 'Pause' })).not.toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: 'Next: DB Bench' })).toHaveLength(1)
+    expect(screen.getAllByRole('button', { name: 'Next: Incline press' })).toHaveLength(1)
 
     await user.click(screen.getByRole('button', { name: 'Set 1: one rep fewer' }))
     expect(setChip(1)).toHaveAccessibleName(/^Set 1: 3 reps, below target/)

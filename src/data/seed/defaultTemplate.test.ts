@@ -90,7 +90,7 @@ describe('workout seeds', () => {
       ['dips', '5–6'],
       ['db-row', '4–8'],
       ['db-bench', '4–8'],
-      ['db-press', '4–8'],
+      ['lateral-raises', '10–15'],
       ['hammer-curls', '6–12'],
       ['reverse-crunch', '8–12'],
       ['bulgarian-split-squat', '5–8'],

@@ -19,7 +19,7 @@ import type { ExerciseDef, StaircaseScheme, WarmupStepDef, WorkoutTemplate } fro
 
 type RepRange = Pick<StaircaseScheme, 'minReps' | 'maxReps'>
 
-/** One-arm row, bench press and overhead press with dumbbells. */
+/** One-arm row and incline press with dumbbells. */
 export const DUMBBELL_RANGE: RepRange = { minReps: 4, maxReps: 8 }
 /** Split squat, single-leg RDL and hip thrust: body weight is most of the load. */
 export const ONE_LEG_RANGE: RepRange = { minReps: 5, maxReps: 8 }
@@ -49,8 +49,30 @@ export const SINGLE_LEG_HIP_THRUST: ExerciseDef = {
   baseline: { kind: 'reps', loadKg: 12, reps: [5, 5, 5] },
 }
 
+/**
+ * Lateral raises for the side of the shoulders. They replaced the standing
+ * press once the bench went incline: the incline press and dips already work
+ * the front of the shoulders hard. A light, size-building exercise, so more
+ * reps and 1 kg steps (1 kg is a fifth of a 5 kg dumbbell, about 5 reps).
+ */
+export const LATERAL_RAISES: ExerciseDef = {
+  id: 'lateral-raises',
+  kind: 'reps',
+  name: 'DB lateral raises',
+  shortName: 'Lateral raises',
+  loadType: 'dumbbell',
+  loadStepKg: 1,
+  perSide: false,
+  restSec: 60,
+  scheme: { type: 'staircase', sets: 3, minReps: 10, maxReps: 15 },
+  baseline: { kind: 'reps', loadKg: 5, reps: [10, 10, 10] },
+}
+
 /** Built-in exercises the app no longer prescribes, by id, with what took their place. */
-const SUCCESSORS = new Map<string, ExerciseDef>([['hip-thrust', SINGLE_LEG_HIP_THRUST]])
+const SUCCESSORS = new Map<string, ExerciseDef>([
+  ['hip-thrust', SINGLE_LEG_HIP_THRUST],
+  ['db-press', LATERAL_RAISES],
+])
 
 /**
  * Swaps each retired exercise for its successor in the same slot, so a workout
@@ -129,7 +151,6 @@ const FIVE_TO_SIX: RepRange = { minReps: 5, maxReps: 6 }
 const RANGE_CHANGES = new Map<string, { previous: RepRange; range: RepRange }>([
   ['db-row', { previous: FIVE_TO_SIX, range: DUMBBELL_RANGE }],
   ['db-bench', { previous: FIVE_TO_SIX, range: DUMBBELL_RANGE }],
-  ['db-press', { previous: FIVE_TO_SIX, range: DUMBBELL_RANGE }],
   ['bulgarian-split-squat', { previous: FIVE_TO_SIX, range: ONE_LEG_RANGE }],
   ['single-leg-rdl', { previous: FIVE_TO_SIX, range: ONE_LEG_RANGE }],
   [SINGLE_LEG_HIP_THRUST.id, { previous: FIVE_TO_SIX, range: ONE_LEG_RANGE }],
@@ -170,7 +191,31 @@ export function moveToStrengthRanges(template: WorkoutTemplate): WorkoutTemplate
   return { ...template, exercises }
 }
 
+// ---------------------------------------------------------------------------
+// Renamed exercises
+
+/** Built-in exercises renamed in place, with the names they had before. Targets and history carry on. */
+const RENAMES = new Map<string, { previous: Pick<ExerciseDef, 'name' | 'shortName'>; next: Pick<ExerciseDef, 'name' | 'shortName'> }>([
+  ['db-bench', { previous: { name: 'DB bench press', shortName: 'DB Bench' }, next: { name: 'Incline DB press', shortName: 'Incline press' } }],
+])
+
+/** Renames built-in exercises still under their earlier name; a name the user set stays. */
+export function renameExercises(template: WorkoutTemplate): WorkoutTemplate {
+  const due = (e: ExerciseDef) => {
+    const rename = RENAMES.get(e.id)
+    return rename && e.name === rename.previous.name ? rename : undefined
+  }
+  if (!template.exercises.some(due)) return template
+  const exercises = template.exercises.map((e) => {
+    const rename = due(e)
+    if (!rename) return e
+    const shortName = e.shortName === rename.previous.shortName ? rename.next.shortName : e.shortName
+    return { ...e, name: rename.next.name, shortName }
+  })
+  return { ...template, exercises }
+}
+
 /** Every revision above, for a template saved or backed up by an earlier version. */
 export function reviseTemplate(template: WorkoutTemplate): WorkoutTemplate {
-  return splitPerSideSteps(moveToStrengthRanges(replaceRetiredExercises(template)))
+  return renameExercises(splitPerSideSteps(moveToStrengthRanges(replaceRetiredExercises(template))))
 }

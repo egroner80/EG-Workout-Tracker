@@ -52,8 +52,8 @@ describe('Home', () => {
     for (const [name, value] of [
       ['Pull-ups', 'BW · 5 / 5 / 5'],
       ['DB Row', '18 kg · 4 / 4 / 4'],
-      ['DB Bench', '16 kg · 4 / 4 / 4'],
-      ['DB Press', '12 kg · 4 / 4 / 4'],
+      ['Incline press', '16 kg · 4 / 4 / 4'],
+      ['Lateral raises', '5 kg · 10 / 10 / 10'],
       ['Hammer curls', '10 kg · 6 / 6'],
       ['Reverse crunch', '10 kg · 8 / 8 / 8'],
       ['Carry', '18 kg · 40 s per side × 2'],

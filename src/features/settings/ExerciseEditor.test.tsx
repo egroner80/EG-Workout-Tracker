@@ -83,7 +83,7 @@ describe('exercise editor', () => {
   it('reorders exercises for the next workout', async () => {
     const user = userEvent.setup({ delay: null })
     renderSettings('/settings/upper/exercises')
-    await user.click(await screen.findByRole('button', { name: 'Move DB bench press up' }))
+    await user.click(await screen.findByRole('button', { name: 'Move Incline DB press up' }))
     await vi.waitFor(async () =>
       expect((await getTemplate('upper')).exercises.map((e) => e.id).slice(0, 4)).toEqual(['pull-ups', 'dips', 'db-bench', 'db-row']),
     )
@@ -93,12 +93,12 @@ describe('exercise editor', () => {
 
   it('edits the next target through the target editor', async () => {
     const user = userEvent.setup({ delay: null })
-    renderSettings('/settings/upper/exercises/db-press')
+    renderSettings('/settings/upper/exercises/db-bench')
     await user.click(await screen.findByRole('button', { name: 'Edit target' }))
-    const sheet = await screen.findByRole('dialog', { name: 'Standing DB press' })
+    const sheet = await screen.findByRole('dialog', { name: 'Incline DB press' })
     await user.click(within(sheet).getByRole('button', { name: 'Increase weight' }))
     await user.click(within(sheet).getByRole('button', { name: 'Save target' }))
-    await vi.waitFor(() => expect(screen.getByText('14 kg · 4 / 4 / 4')).toBeInTheDocument())
+    await vi.waitFor(() => expect(screen.getByText('18 kg · 4 / 4 / 4')).toBeInTheDocument())
     expect(screen.getByText('Set by you.')).toBeInTheDocument()
   })
 

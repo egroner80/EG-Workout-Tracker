@@ -17,7 +17,7 @@ const DEMO_START: Record<string, ExercisePrescription> = {
   dips: { kind: 'reps', loadKg: -5, reps: [5, 5, 5] },
   'db-row': { kind: 'reps', loadKg: 14, reps: [5, 5, 5] },
   'db-bench': { kind: 'reps', loadKg: 12, reps: [5, 5, 5] },
-  'db-press': { kind: 'reps', loadKg: 8, reps: [5, 5, 5] },
+  'lateral-raises': { kind: 'reps', loadKg: 4, reps: [10, 10, 10] },
   'hammer-curls': { kind: 'reps', loadKg: 8, reps: [8, 8] },
   'reverse-crunch': { kind: 'reps', loadKg: 10, reps: [10, 10, 10] },
   'suitcase-carry': { kind: 'timed', loadKg: 14, seconds: 40, setsPerSide: 2 },
